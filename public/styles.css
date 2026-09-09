@@ -1744,13 +1744,18 @@ button:focus { outline: none; }
 /* Toast mais amigável */
 .app-toast { border-radius: 14px; padding: 11px 20px; font-size: 14px; }
 
-/* Friendly Names — devtools style */
+/* Friendly Names — devtools style.
+   Oculto em touch/mobile: além de inútil ali, em 390px ele cobria o botão Enviar
+   (fixed z-9999 sobrepõe o composer) — só faz sentido com hover+desktop. */
 .friendly-toggle {
   position: fixed; bottom: 16px; right: 16px; z-index: 9999;
   display: flex; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 999px; border: none;
   font-size: 13px; font-weight: 700; cursor: pointer;
   box-shadow: var(--shadow-md); transition: transform .15s, box-shadow .2s;
+}
+@media (pointer: coarse), (max-width: 768px) {
+  .friendly-toggle { display: none !important; }
 }
 .friendly-toggle.active { background: #15803d !important; } /* verde escuro: branco ≥4.5:1 */
 .friendly-toggle.inactive { background: #b91c1c !important; } /* vermelho escuro: branco ≥4.5:1 */
