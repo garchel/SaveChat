@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.12.1] — 2026-09-28
+### Corrigido
+- **Busca no lugar exato do NOVO**: o painel virou overlay na mesma área do botão (crossfade) — não empurra mais o layout nem abre “abaixo”
+- **Sem scrollbars**: a scrollbar do painel de busca e a da lista de cadernos/conversas do explorador foram escondidas (o scroll por gesto/roda continua funcionando)
+
 ## [1.12.0] — 2026-09-28
 ### Modificado
 - **Seletor de páginas redesenhado**: virou uma faixa própria **abaixo da marca e acima do NOVO**, com rótulos completos (Cadernos · IA · Diária), ícones e estado ativo claro — navegação principal do app

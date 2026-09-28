@@ -1046,9 +1046,7 @@ body::before {
   scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: contain;
 }
 .tree::-webkit-scrollbar { display: none; }
-.tree:hover { scrollbar-width: thin; }
-.tree:hover::-webkit-scrollbar { display: block; width: 6px; }
-.tree:hover::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* scrollbar do explorador sempre oculta (scroll por gestos/wheel continua) */
 
 .tnode {
   display: flex; align-items: center; gap: 7px;
@@ -2589,20 +2587,29 @@ button:focus { outline: none; }
   visibility: hidden;
   transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
 }
-/* Painel de busca: entra com fade IN + leve slide, ABAIXO da linha NOVO/lupa
-   (recolhido não ocupa layout — a lupa nunca se move) */
+/* Painel de busca: OVERLAY na exata área do NOVO (a lupa não se move e nada
+   no layout é empurrado). Resultados fluem por baixo, em dropdown, com scroll
+   interno SEM scrollbar visível. */
+.explorer-row { position: relative; }
 .explorer-search-panel {
-  visibility: hidden; opacity: 0; max-height: 0; overflow: hidden;
-  transform: translateY(-4px);
-  transition: opacity .24s ease .06s, transform .24s ease .06s, max-height .28s cubic-bezier(.2,.8,.25,1), visibility 0s linear .3s;
+  position: absolute; top: 0; left: 0; right: 52px; /* largura do NOVO: linha − lupa(44) − gap(8) */
+  z-index: 30;
+  visibility: hidden; opacity: 0; transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
 }
 .explorer-search-panel.open {
-  visibility: visible; opacity: 1; max-height: 60vh; overflow-y: auto;
-  transform: translateY(0);
-  transition: opacity .24s ease, transform .24s ease, max-height .28s cubic-bezier(.2,.8,.25,1);
+  visibility: visible; opacity: 1; transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity .22s ease, transform .22s ease;
 }
 .explorer-search-panel .search-box { margin: 0; }
-.explorer-search-panel .search-results { margin: 8px 0 0; }
+.explorer-search-panel .search-results {
+  margin: 8px 0 0;
+  max-height: 45vh; overflow-y: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.explorer-search-panel .search-results::-webkit-scrollbar { display: none; }
 .btn-explorer-icon {
   width: 44px; flex: 0 0 44px; border-radius: 14px;
   background: transparent; color: var(--text); border: 1.5px solid var(--border);

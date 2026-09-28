@@ -116,20 +116,21 @@
         <div class="explorer-row">
           <button id="btn-new-thread" class="btn-explorer primary grow" data-friendly-name="Botão NOVO"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> NOVO</button>
           <button id="btn-explorer-search" class="btn-explorer-icon" aria-expanded="false" aria-controls="explorer-search-panel" title="Buscar" aria-label="Buscar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
-        </div>
-        <!-- Painel de busca ABAIXO da linha (não empurra a lupa; abre por baixo) -->
-        <div id="explorer-search-panel" class="explorer-search-panel">
-          <div class="search-box" data-friendly-name="Campo de Busca (Busca)">
-          <span class="search-ic" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-tip" role="tooltip">
-            <div class="tip-title">Busca avançada</div>
-            <code>#tag</code> filtra por tag<br/>
-            <code>in:conversa</code> busca numa conversa<br/>
-            Texto livre busca em todas as notas
-          </span></span>
-          <input id="search-input" type="search" placeholder="Buscar notas…  #tag · in:conversa" autocomplete="off" />
-          <button id="search-clear" class="search-clear hidden" title="Limpar" aria-label="Limpar busca">×</button>
+          <!-- Painel de busca: overlay NA MESMA área do NOVO (fade cruzado);
+               resultados caem em dropdown por baixo, sem empurrar o layout -->
+          <div id="explorer-search-panel" class="explorer-search-panel">
+            <div class="search-box" data-friendly-name="Campo de Busca (Busca)">
+            <span class="search-ic" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-tip" role="tooltip">
+              <div class="tip-title">Busca avançada</div>
+              <code>#tag</code> filtra por tag<br/>
+              <code>in:conversa</code> busca numa conversa<br/>
+              Texto livre busca em todas as notas
+            </span></span>
+            <input id="search-input" type="search" placeholder="Buscar notas…  #tag · in:conversa" autocomplete="off" />
+            <button id="search-clear" class="search-clear hidden" title="Limpar" aria-label="Limpar busca">×</button>
+            </div>
+            <div id="search-results" class="search-results hidden"></div>
           </div>
-          <div id="search-results" class="search-results hidden"></div>
         </div>
       </div>
 
@@ -429,7 +430,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.12.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.12.1</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -499,7 +500,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.12.0';
+    window.APP_VERSION = '1.12.1';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.
