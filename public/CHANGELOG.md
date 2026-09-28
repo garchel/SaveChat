@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.9.4] — 2026-09-28
+### Corrigido
+- **App não abria (tela em branco)**: um refactor de "workspace" entrou pela metade num deploy (import ligado, módulo incompleto) e derrubou a inicialização. As peças do refactor foram retiradas até serem concluídas em outro lugar; o app volta a abrir normalmente na 1.9.1+ com os ícones novos da logo oficial
+
 ## [1.9.3] — 2026-09-28
 ### Corrigido
 - **Ícone do app usa a logo oficial** (balão + lápis, coral): a arte que ia para a tela inicial do celular era um resquício visual da era NoteThread (carretel de linha roxo) referenciado no manifest. Os ícones do launcher são gerados agora da própria logo — glifo grande no tile e variante maskable com o gradiente coral até a borda
