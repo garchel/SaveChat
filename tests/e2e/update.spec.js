@@ -28,10 +28,11 @@ test('abertura: check roda, chip mostra versão, botão Atualizar app no menu do
   const state1 = await chip.getAttribute('data-state');
   expect(['current', 'update', 'offline', 'error', 'checking']).toContain(state1);
 
-  // botão presente entre Configurações e Sair
+  // botão presente entre Configurações e Sair (4º = Instalar app, oculto até o browser oferecer o prompt)
   const btns = page.locator('#profile-popover button');
-  await expect(btns).toHaveCount(3);
+  await expect(btns).toHaveCount(4);
   await expect(page.locator('#profile-update')).toBeVisible();
+  await expect(page.locator('#profile-install')).toBeHidden();
 
   // estado do SW após abrir
   const sw = await page.evaluate(async () => {

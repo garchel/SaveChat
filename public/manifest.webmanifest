@@ -2,9 +2,11 @@
   "name": "SaveChat — Notas em threads",
   "short_name": "SaveChat",
   "description": "Bloco de notas em formato de chat/threads infinitas com sync em tempo real e offline-first.",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "launch_handler": { "client_mode": "focus-existing" },
   "background_color": "#f4f1fb",
   "theme_color": "#E28D42",
   "lang": "pt-BR",
@@ -15,6 +17,26 @@
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "assets/logo.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" },
     { "src": "assets/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova conversa",
+      "short_name": "Nova",
+      "url": "./?new=1",
+      "icons": [{ "src": "assets/logo.png", "sizes": "any", "type": "image/png" }]
+    },
+    {
+      "name": "Pendências",
+      "short_name": "Pendências",
+      "url": "./?tasks=1",
+      "icons": [{ "src": "assets/logo.png", "sizes": "any", "type": "image/png" }]
+    },
+    {
+      "name": "Lembretes",
+      "short_name": "Lembretes",
+      "url": "./?reminders=1",
+      "icons": [{ "src": "assets/logo.png", "sizes": "any", "type": "image/png" }]
+    }
   ],
   "screenshots": [
     {

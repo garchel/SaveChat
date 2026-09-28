@@ -1,0 +1,32 @@
+name: Lighthouse CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'lighthouserc.json'
+      - '.github/workflows/lighthouse.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'lighthouserc.json'
+      - '.github/workflows/lighthouse.yml'
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm install
+      - name: Build (minifica para dist/)
+        run: npm run build
+      - name: Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          lhci autorun

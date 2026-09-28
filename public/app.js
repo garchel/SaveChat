@@ -124,6 +124,39 @@ async init() {
           if (lc.state === 'update') Updater.applyUpdate();
           else Updater.check().then(() => done(Updater.lastCheck)); // revalida e avisa
         });
+        // Instalar app: prompt nativo de instalação do PWA (beforeinstallprompt).
+        // Fica escondido por padrão — só aparece quando o browser sinaliza que
+        // pode instalar (Chrome/Android/Edge; Safari iOS usa "Adicionar à Tela").
+        const installBtn = document.getElementById('profile-install');
+        const installLabel = document.getElementById('install-label');
+        if (installBtn) {
+          let deferredPrompt = null;
+          window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (!Store.data.ui.hasInstalled) installBtn.classList.remove('hidden');
+          });
+          // instalado de verdade (aceitou o prompt) → nunca mais oferecer
+          window.addEventListener('appinstalled', () => {
+            Store.data.ui.hasInstalled = true; Store.save();
+            installBtn.classList.add('hidden');
+          });
+          // já rodando instalado (standalone) → nunca oferecer de novo
+          if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            installBtn.classList.add('hidden');
+          }
+          installBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            try {
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === 'accepted' && installLabel) installLabel.textContent = 'Instalando…';
+            } catch {}
+            deferredPrompt = null;
+            installBtn.classList.add('hidden');
+          });
+        }
         document.getElementById('profile-logout')?.addEventListener('click', async () => {
           const supa = this._getSupa && this._getSupa();
           if (supa) try { await supa.auth.signOut(); } catch {}
@@ -355,6 +388,18 @@ showModal(title, bodyHtml, onOk) {
         if (Store.getThread(e.data.threadId)) UI.openThread(e.data.threadId);
       }
     });
+    // deep links do launcher (?new=1 ?tasks=1 ?reminders=1): dispara a ação
+    // depois do boot da UI e limpa a query (reload não refaz a ação)
+    const p = new URL(location.href).searchParams;
+    const bootAction =
+      p.has('new') ? () => UI.createThread() :
+      p.has('tasks') ? () => UI.showTasksPage() :
+      p.has('reminders') ? () => UI.showRemindersPage() :
+      null;
+    if (bootAction) {
+      setTimeout(bootAction, 300);
+      history.replaceState(null, '', location.pathname);
+    }
     // abertura via notificação com app fechado (?thread=<id>)
     const bootUrl = new URL(location.href);
     const bootThread = bootUrl.searchParams.get('thread');

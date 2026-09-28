@@ -5,3 +5,5 @@ server/node_modules/
 server/data.json
 test-results/
 dist/
+.lhci-reports/
+.tmp-lhci/

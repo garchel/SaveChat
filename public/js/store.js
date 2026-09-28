@@ -22,6 +22,7 @@ import { now } from './utils.js';
       } };
       d.ui.sounds = d.ui.sounds || defaultSounds;
       d.ui.theme = d.ui.theme || 'peach';
+      d.ui.hasInstalled = !!d.ui.hasInstalled; // PWA instalado de verdade (appinstalled) — esconde o botão Instalar app
       // migração: limpa flag "pending" de notas antigas (dados de versões anteriores)
       let migrated = false;
       Object.values(d.notes).forEach((arr) => arr.forEach((n) => { if (n.pending) { n.pending = false; migrated = true; } }));

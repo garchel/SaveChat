@@ -2,6 +2,14 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.9.0] — 2026-09-28
+### Adicionado
+- **Instalar app**: botão novo no menu do perfil aparece quando o navegador oferece a instalação do PWA (Chrome/Android/Edge) e some para sempre depois que você instala. No iOS o caminho continua sendo Compartilhar → "Adicionar à Tela"
+- **Atalhos no ícone do app**: segurar o ícone (Android/Chrome) mostra **Nova conversa**, **Pendências** e **Lembretes** — abrem direto na ação certa, sem passar pela tela inicial
+- Metadados de app (application-name, título iOS, description) para listing em lojas e buscadores
+### Corrigido
+- **Menções no editor novo**: dropdown de @ voltou a abrir (regressão do editor WYSIWYG) e o backlink `@[Nome](t:id)` não se perde mais ao enviar a nota — "Mencionado em" e a navegação entre notas funcionam de novo de ponta a ponta
+
 ## [1.8.2] — 2026-09-26
 ### Adicionado
 - **Visão Pendências** ✅: novo botão no topo do explorer mostra **todos os itens de checklist abertos de todas as conversas** numa lista única — com checkbox funcional (marcar aqui edita a nota de origem e sincroniza entre dispositivos), conversa de origem em cada linha e clique que abre a nota certa. Um contador discreto no botão mostra quantas pendências existem; concluir um item anima a linha para fora. O SaveChat agora também funciona como gerenciador leve de tarefas

@@ -73,6 +73,17 @@ Loja:
 
 > **Veredito da auditoria:** tecnicamente maduro — o que falta é configuração de conta/domínio, conformidade legal e validação física, não features.
 
+### Atualização 28/09/2026 (2) — v1.9.0: PWA pro, observabilidade no CI
+
+Segunda leva 100% do lado do repo (commitado, sem depender de config externa):
+
+- ✅ **Botão “Instalar app”** no menu do perfil: captura `beforeinstallprompt` (Chrome/Android/Edge), some para sempre ao instalar (`appinstalled` + flag `ui.hasInstalled`) e nunca aparece dentro do app já standalone
+- ✅ **Atalhos do launcher**: manifest ganhou `shortcuts` (Nova conversa · Pendências · Lembretes), `id` estável, `launch_handler focus-existing` + deep links `?new=1 / ?tasks=1 / ?reminders=1` tratados no boot
+- ✅ **Lighthouse CI**: `lighthouserc.json` + workflow dedicado — A11y e Best Practices travam merge em <0.9, instalabilidade PWA (manifest+SW) é erro; performance segue como warn até a medição em prod (LB-W1)
+- ✅ Metas iOS/SEO (`application-name`, `apple-mobile-web-app-title`, `description`)
+- ✅ Release **v1.9.0** sincronizada (package/APP_VERSION/Sobre/CHANGELOG/SW v119) + spec e2e ajustado ao 4º botão do perfil
+- ⬜ **Resta (fora do repo):** LB-W1 domínio · LB-W2 OAuth em produção · IMP-5 DSN do Sentry · LB-M3 device real · Lighthouse em prod · Fase 4 (TWA/Play, ver `GUIA_LANCAMENTO_MOBILE.md`)
+
 ### Atualização 28/09/2026 — lado código fechado
 
 Tudo que dependia do repositório está resolvido e validado (`check` + 18 unit + 8 e2e + build, todos verdes):
