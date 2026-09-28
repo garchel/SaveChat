@@ -92,6 +92,14 @@ export const MessagesMethods = {
       const el = $('#chat-active-ui');
       if (!el) return;
       el.classList.toggle('visible', show);
+      // placeholder "nenhuma conversa selecionada": visível exatamente quando
+      // a UI de conversa está oculta (boot, excluir conversa, apagar tudo)
+      document.getElementById('no-thread')?.classList.toggle('hidden', !!show);
+      // CTAs do placeholder: novo modal unificado e abrir a Diária
+      const ntNew = document.getElementById('nt-new');
+      if (ntNew && !ntNew.dataset.bound) { ntNew.dataset.bound = '1'; ntNew.addEventListener('click', () => this.createItem()); }
+      const ntDaily = document.getElementById('nt-open-daily');
+      if (ntDaily && !ntDaily.dataset.bound) { ntDaily.dataset.bound = '1'; ntDaily.addEventListener('click', () => this.showWorkspaceTab('daily')); }
       if (show) this._bindChatTitleMenu();
     },
 

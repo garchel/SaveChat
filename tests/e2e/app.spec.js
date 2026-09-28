@@ -17,6 +17,33 @@ test.beforeEach(async ({ context }) => {
   }, seed);
 });
 
+test('sem conversa selecionada: placeholder aparece e some ao abrir conversa', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('#app')).toBeVisible();
+  // sem threads no seed: placeholder visível no canvas
+  const ph = page.locator('#no-thread');
+  await expect(ph).toBeVisible();
+  await expect(ph.locator('.nt-title')).toContainText('Nenhuma conversa selecionada');
+  // CTA abre o modal unificado de criação
+  await page.click('#nt-new');
+  await expect(page.locator('#modal')).toBeVisible();
+  await page.click('#modal-cancel');
+  await expect(page.locator('#modal')).toBeHidden();
+  // segundo CTA leva à Diária
+  await page.click('#nt-open-daily');
+  await expect(page.locator('#daily-page')).toBeVisible();
+  // criar conversa esconde o placeholder (canvas volta a ser a conversa)
+  await page.click('.page-switch[data-page="notes"]');
+  await page.evaluate(() => document.getElementById('btn-new-thread').click());
+  await expect(page.locator('#modal')).toBeVisible();
+  await page.fill('#nt-name', 'Placeholder some');
+  await page.click('.emoji-opt');
+  await page.click('#modal-ok');
+  await expect(page.locator('#chat-name')).toHaveText('Placeholder some');
+  await expect(ph).toBeHidden();
+});
+
 test('fluxo crítico: criar thread → nota com checkbox → marcar → persiste após reload', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(1500);

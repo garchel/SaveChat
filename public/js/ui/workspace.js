@@ -105,8 +105,10 @@ export const WorkspaceMethods = {
     const cui = document.getElementById('chat-active-ui');
     cui?.setAttribute('data-active-tab', tab);
     // páginas IA/Lembretes/Diária são navegação global: o canvas precisa estar
-    // clicável mesmo sem conversa aberta; em Conversas, volta ao estado normal
-    cui?.classList.toggle('visible', tab !== 'conversations' || !!this.activeThread);
+    // clicável mesmo sem conversa aberta; em Conversas, volta ao estado normal.
+    // setChatActiveUi também controla o placeholder "nenhuma conversa" (assim
+    // as páginas abertas nunca competem com ele em camadas)
+    this.setChatActiveUi(tab !== 'conversations' || !!this.activeThread);
     // sincroniza o seletor da sidebar (Cadernos fica ativo também em conversas
     // abertas e na página de Lembretes — é o destino "de volta" ali)
     document.querySelectorAll('.page-switch').forEach((button) => {

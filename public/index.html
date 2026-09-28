@@ -161,6 +161,16 @@
 
     <!-- Canvas -->
     <main class="chat" data-friendly-name="Área Principal (Canvas/Thread)">
+      <!-- Placeholder: nenhuma conversa selecionada (evita canvas vazio) -->
+      <div id="no-thread" class="no-thread" aria-live="polite">
+        <img class="nt-logo" src="assets/logo.svg" alt="" aria-hidden="true" />
+        <h2 class="nt-title">Nenhuma conversa selecionada</h2>
+        <p class="nt-sub">Escolha uma conversa na lista ao lado<br />ou comece algo novo agora.</p>
+        <div class="nt-actions">
+          <button type="button" id="nt-new" class="btn primary">+ Nova conversa</button>
+          <button type="button" id="nt-open-daily" class="btn ghost">Abrir Diária</button>
+        </div>
+      </div>
       <button id="btn-pin" class="btn-pin hidden" title="Mensagem fixada" aria-label="Mensagem fixada"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6"/><path d="M10 4v5.5L7.2 13a1 1 0 0 0 .9 1.5h7.8a1 1 0 0 0 .9-1.5L14 9.5V4"/><path d="M12 14.5V21"/></svg></button>
 
       <div id="chat-active-ui" class="chat-active-ui">
@@ -441,7 +451,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.13.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.13.1</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -511,7 +521,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.13.0';
+    window.APP_VERSION = '1.13.1';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.13.1] — 2026-09-28
+### Adicionado
+- **Placeholder “Nenhuma conversa selecionada”**: ao abrir o app (ou excluir/apagar tudo) o canvas mostra logo animada, mensagem e atalhos **+ Nova conversa** e **Abrir Diária** — sem mais tela em branco. Some sozinho ao abrir uma conversa (e não compete com as páginas IA/Diária)
+
 ## [1.13.0] — 2026-09-28
 ### IA — assistente das suas notas
 - **A IA agora lê suas notas**: as conversas recentes entram como contexto automático — peça resumos, planos e perguntas sobre o que você já anotou

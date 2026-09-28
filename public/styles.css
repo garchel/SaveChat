@@ -1256,6 +1256,25 @@ body::before {
   pointer-events: auto;
 }
 
+/* Placeholder: nenhuma conversa selecionada (canvas não fica em branco) */
+.no-thread {
+  position: absolute; inset: 0; z-index: 4;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; text-align: center; padding: 24px;
+  pointer-events: none;
+}
+.no-thread.hidden { display: none; }
+.no-thread > * { pointer-events: auto; }
+.no-thread .nt-logo {
+  width: 72px; height: 72px; border-radius: 20px; box-shadow: var(--shadow-md);
+  margin-bottom: 10px; animation: nt-float 5.5s ease-in-out infinite;
+}
+@keyframes nt-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@media (prefers-reduced-motion: reduce) { .no-thread .nt-logo { animation: none; } }
+.no-thread .nt-title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
+.no-thread .nt-sub { margin: 0 0 14px; font-size: 13.5px; line-height: 1.55; color: var(--text-dim); }
+.no-thread .nt-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
 .chat-header {
   display: flex; align-items: center; gap: 12px;
   padding: 16px 20px; background: var(--bg-chat);
