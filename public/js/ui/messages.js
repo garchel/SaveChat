@@ -21,10 +21,22 @@ export const MessagesMethods = {
       $('#btn-send').disabled = false;
       this.dom.pinPopover.classList.add('hidden');
       this.updatePinButton();
-      // esconde páginas Busca/Lembretes/Pendências se abertas
+      // esconde páginas Busca/Lembretes/Pendências/IA/Diária se abertas
       document.getElementById('search-page')?.classList.add('hidden');
       document.getElementById('reminders-page')?.classList.add('hidden');
       document.getElementById('tasks-page')?.classList.add('hidden');
+      document.getElementById('ai-page')?.classList.add('hidden');
+      document.getElementById('daily-page')?.classList.add('hidden');
+      // volta o seletor para Cadernos + restaura cabeçalho da conversa
+      this._workspaceTab = 'conversations';
+      document.querySelectorAll('.page-switch').forEach((b) => {
+        const active = b.dataset.page === 'notes';
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', String(active));
+      });
+      document.getElementById('btn-thread-menu')?.classList.remove('hidden');
+      document.getElementById('ai-info-btn')?.classList.add('hidden');
+      document.getElementById('ai-info-tip')?.classList.remove('open');
       document.getElementById('messages').classList.remove('hidden');
       document.querySelectorAll('.tnode.active').forEach((el) => el.classList.remove('active'));
       document.querySelectorAll(`.tnode[data-tid="${id}"]`).forEach((el) => el.classList.add('active'));

@@ -13,6 +13,9 @@ export const NavigationMethods = {
       document.getElementById('live-region').classList.add('hidden');
       page.classList.remove('hidden');
       document.getElementById('reminders-page')?.classList.add('hidden');
+      document.getElementById('tasks-page')?.classList.add('hidden');
+      document.getElementById('ai-page')?.classList.add('hidden');
+      document.getElementById('daily-page')?.classList.add('hidden');
       if (label) label.textContent = q ? `"${q}"` : '';
       // reutiliza runSearch para popular a página completa
       const tmpClear = { classList: { add(){}, remove(){} } };

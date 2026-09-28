@@ -1610,24 +1610,37 @@ body::before {
 .search-page .search-result, .reminders-page .rem-item { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
 
 /* ---- Visão Pendências (v1.8.2) ---- */
-.tasks-page-list { max-width: 720px; margin: 0 auto; width: 100%; }
+.tasks-page-list { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 8px; }
 .task-row {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: flex-start; gap: 12px;
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
-  padding: 11px 14px; cursor: pointer; transition: background .13s, border-color .13s;
+  padding: 12px 14px; cursor: pointer;
+  transition: background .13s, border-color .13s, box-shadow .15s, transform .1s;
+  min-height: 56px;
 }
-.task-row:hover { background: var(--accent-soft); border-color: var(--accent); }
+.task-row:hover { background: var(--accent-soft); border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.task-row:active { transform: scale(.995); }
+.task-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .task-row:hover .task-go { color: var(--accent); transform: translateX(2px); }
-.task-chk { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
-.task-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.task-text { font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-meta { font-size: 11.5px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.task-go { color: var(--text-dim); flex-shrink: 0; transition: transform .15s, color .15s; }
+.task-chk { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.task-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.task-text {
+  font-size: 13.5px; line-height: 1.5; color: var(--text); font-weight: 600;
+  overflow-wrap: anywhere; word-break: break-word; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+}
+.task-meta {
+  font-size: 11.5px; line-height: 1.4; color: var(--text-dim);
+  overflow-wrap: anywhere; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.task-go { color: var(--text-dim); flex-shrink: 0; align-self: center; transition: transform .15s, color .15s; }
 .tasks-empty {
   text-align: center; color: var(--text-dim); font-size: 14px; font-weight: 600;
   padding: 40px 16px; line-height: 1.7;
+  background: var(--bg-elev); border: 1.5px dashed var(--border); border-radius: 16px;
 }
-.tasks-empty code { background: var(--bg-elev); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+.tasks-empty code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
 /* saída animada ao concluir */
 .task-row { transition: background .13s, border-color .13s, opacity .35s ease, transform .35s ease, max-height .35s ease; overflow: hidden; }
 .task-row.chk-out { opacity: 0; transform: translateX(18px); }
@@ -2784,50 +2797,66 @@ button:focus { outline: none; }
 .ai-message.user .ai-action-chip { background: rgba(255,255,255,.22); color: inherit; }
 
 /* Diária — checklist de rotina que se renova todo dia */
-.daily-page .daily-editor-wrap { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow-y: auto; max-width: 720px; margin: 0 auto; width: 100%; }
-.daily-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.daily-heading h2 { margin: 0 0 2px; font-size: 19px; font-weight: 800; }
-.daily-heading p { margin: 0; font-size: 12.5px; color: var(--text-dim); }
-.daily-streak { font-size: 14px; color: var(--text-dim); background: var(--bg-elev); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
-.daily-streak strong { color: var(--text); }
-.daily-progress { height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.daily-page .daily-editor-wrap { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 20px; overflow-y: auto; max-width: 720px; margin: 0 auto; width: 100%; }
+.daily-heading {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
+  padding: 14px 16px; box-shadow: var(--shadow-sm);
+}
+.daily-heading h2 { margin: 0 0 2px; font-size: 19px; font-weight: 800; letter-spacing: -.3px; display: flex; align-items: center; gap: 8px; }
+.daily-heading h2::before { content: "🗓️"; font-size: 18px; }
+.daily-heading p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-dim); }
+.daily-streak { font-size: 13.5px; font-weight: 700; color: var(--text-dim); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 7px 13px; white-space: nowrap; align-self: center; }
+.daily-streak strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.daily-progress { height: 10px; border-radius: 999px; background: var(--bg-elev); border: 1px solid var(--border); overflow: hidden; }
 .daily-progress > div { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-teal)); transition: width .35s cubic-bezier(.2,.8,.25,1); }
 .daily-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .daily-item {
-  display: flex; align-items: center; gap: 11px;
+  display: flex; align-items: flex-start; gap: 11px;
   background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
-  padding: 11px 12px; transition: opacity .2s;
+  padding: 12px; transition: border-color .15s, background .15s, box-shadow .15s, opacity .2s;
+  min-height: 52px;
 }
+.daily-item:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.daily-item.done { opacity: .85; }
 .daily-item .daily-check {
-  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 9px;
+  width: 26px; height: 26px; flex: 0 0 26px; margin-top: 1px; border-radius: 9px;
   border: 2px solid var(--border); background: transparent; cursor: pointer;
-  display: grid; place-items: center; transition: background .15s, border-color .15s;
+  display: grid; place-items: center; transition: background .15s, border-color .15s, transform .1s;
 }
+.daily-item .daily-check:hover { border-color: var(--accent); }
+.daily-item .daily-check:active { transform: scale(.9); }
+.daily-item .daily-check:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .daily-item .daily-check svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
 .daily-item.done .daily-check { background: var(--accent); border-color: var(--accent); }
 .daily-item.done .daily-check svg { opacity: 1; transform: scale(1); }
-.daily-item .daily-text { flex: 1; font-size: 14px; font-weight: 600; }
+.daily-item .daily-text { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; padding-top: 2px; }
 .daily-item.done .daily-text { text-decoration: line-through; color: var(--text-dim); font-weight: 500; }
 .daily-item .daily-del {
   border: none; background: transparent; color: var(--text-dim); font-size: 18px; line-height: 1;
   cursor: pointer; padding: 4px 8px; border-radius: 8px; opacity: 0; transition: opacity .15s, background .15s;
+  align-self: center;
 }
 .daily-item:hover .daily-del, .daily-item .daily-del:focus-visible { opacity: 1; }
 .daily-item .daily-del:hover { background: var(--bg); color: #e5484d; }
 @media (hover: none) { .daily-item .daily-del { opacity: .55; } }
-.daily-add { display: flex; gap: 8px; }
+.daily-add { display: flex; gap: 8px; position: sticky; bottom: 0; padding: 4px 0; }
 .daily-add input {
   flex: 1; min-width: 0; background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text);
-  border-radius: 14px; padding: 11px 14px; font: inherit; font-size: 14px; outline: none;
+  border-radius: 14px; padding: 12px 14px; font: inherit; font-size: 14px; outline: none;
+  box-shadow: var(--shadow-sm);
 }
+.daily-add input::placeholder { color: var(--text-dim); opacity: .8; }
 .daily-add input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .daily-add button {
-  width: 44px; height: 44px; flex: 0 0 44px; border: none; border-radius: 14px;
+  width: 46px; height: 46px; flex: 0 0 46px; border: none; border-radius: 14px;
   background: var(--accent); color: var(--on-accent); font-size: 22px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-sm); transition: transform .1s, filter .15s;
 }
+.daily-add button:hover { filter: brightness(1.06); }
 .daily-add button:active { transform: scale(.94); }
-.daily-empty { color: var(--text-dim); font-size: 13.5px; padding: 14px; border: 1.5px dashed var(--border); border-radius: 14px; text-align: center; }
-.daily-status { margin: 0; font-size: 11.5px; color: var(--text-dim); text-align: center; }
+.daily-empty { color: var(--text-dim); font-size: 13.5px; line-height: 1.6; padding: 20px 14px; border: 1.5px dashed var(--border); border-radius: 16px; text-align: center; background: var(--bg-elev); }
+.daily-status { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-dim); text-align: center; }
 
 /* Mobile: páginas já responsivas (abas do canvas removidas na v1.12.0) */
 @media (prefers-reduced-motion: reduce) {
@@ -2893,6 +2922,18 @@ button:focus { outline: none; }
 
 /* Composer é da conversa: fora da aba Conversas ele some (IA/Diária têm o próprio) */
 #chat-active-ui[data-active-tab]:not([data-active-tab="conversations"]) .composer { display: none; }
+/* Busca/Lembretes/Pendências têm banner próprio: esconde o cabeçalho global
+   (antes empilhava dois banners) e o composer da conversa */
+.chat:has(.search-page:not(.hidden)) #chat-header,
+.chat:has(.reminders-page:not(.hidden)) #chat-header,
+.chat:has(.tasks-page:not(.hidden)) #chat-header { display: none; }
+.chat:has(.search-page:not(.hidden)) .composer,
+.chat:has(.reminders-page:not(.hidden)) .composer,
+.chat:has(.tasks-page:not(.hidden)) .composer { display: none; }
+/* Páginas de canvas ocupam o espaço do cabeçalho escondido */
+.chat:has(.search-page:not(.hidden)) #chat-active-ui,
+.chat:has(.reminders-page:not(.hidden)) #chat-active-ui,
+.chat:has(.tasks-page:not(.hidden)) #chat-active-ui { padding-top: 0; }
 
 /* Modal acima do teclado no mobile: âncora no topo (não no centro) e scroll
    interno — o input focado fica visível com o teclado aberto */

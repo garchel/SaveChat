@@ -12,12 +12,17 @@ export const TasksMethods = {
   showTasksPage() {
     const page = document.getElementById('tasks-page');
     if (!page) return;
+    // Exclusiva: esconde TODAS as outras páginas do canvas (inclusive IA/Diária
+    // do workspace — antes ficavam abertas em conjunto por baixo das Pendências)
     document.getElementById('messages').classList.add('hidden');
     document.getElementById('backlinks')?.classList.add('hidden');
     document.getElementById('live-region')?.classList.add('hidden');
     document.getElementById('search-page')?.classList.add('hidden');
     document.getElementById('reminders-page')?.classList.add('hidden');
+    document.getElementById('ai-page')?.classList.add('hidden');
+    document.getElementById('daily-page')?.classList.add('hidden');
     page.classList.remove('hidden');
+    this.setChatActiveUi(true);
     this.renderTasksPage();
     this.updateTasksBadge();
   },
@@ -25,8 +30,17 @@ export const TasksMethods = {
   hideTasksPage() {
     const page = document.getElementById('tasks-page');
     if (page) page.classList.add('hidden');
-    document.getElementById('messages').classList.remove('hidden');
-    document.getElementById('backlinks')?.classList.remove('hidden');
+    // Volta para a aba ativa do workspace (não força messages se estava na IA/Diária)
+    const tab = this._workspaceTab || 'conversations';
+    if (tab === 'conversations') {
+      document.getElementById('messages').classList.remove('hidden');
+      document.getElementById('backlinks')?.classList.remove('hidden');
+    } else if (typeof this.showWorkspaceTab === 'function') {
+      this.showWorkspaceTab(tab, { updateUrl: false });
+    } else {
+      document.getElementById('messages').classList.remove('hidden');
+      document.getElementById('backlinks')?.classList.remove('hidden');
+    }
   },
 
   // todas as pendências abertas, da conversa mexida mais recentemente para a mais antiga

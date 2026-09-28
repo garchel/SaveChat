@@ -135,9 +135,23 @@ export const WorkspaceMethods = {
     const aiInfoTip = document.getElementById('ai-info-tip');
     if (aiInfoBtn) aiInfoBtn.classList.toggle('hidden', tab !== 'ai');
     if (aiInfoTip && tab !== 'ai') aiInfoTip.classList.remove('open');
+    // título do cabeçalho global por página (evita "Conversa com a IA" presa na Diária)
+    const chatName = document.getElementById('chat-name');
+    const threadMenuBtn = document.getElementById('btn-thread-menu');
     if (tab === 'ai') {
-      const chatName = document.getElementById('chat-name');
       if (chatName) chatName.textContent = 'Conversa com a IA';
+      if (threadMenuBtn) threadMenuBtn.classList.add('hidden');
+    } else if (tab === 'daily') {
+      if (chatName) chatName.textContent = 'Diária';
+      if (threadMenuBtn) threadMenuBtn.classList.add('hidden');
+    } else if (tab === 'reminders') {
+      if (chatName) chatName.textContent = 'Lembretes';
+      if (threadMenuBtn) threadMenuBtn.classList.add('hidden');
+    } else {
+      // de volta às conversas: restaura o nome da thread aberta
+      const t = this.activeThread && Store.getThread(this.activeThread);
+      if (chatName) chatName.textContent = t ? t.name : 'Selecione uma conversa';
+      if (threadMenuBtn) threadMenuBtn.classList.remove('hidden');
     }
     if (tab === 'ai') this.prepareAiPage();
     if (tab === 'reminders') this.renderRemindersList();
@@ -546,9 +560,13 @@ export const WorkspaceMethods = {
     const bar = document.getElementById('daily-progress-bar');
     if (bar) bar.style.width = total ? `${Math.round((doneCount / total) * 100)}%` : '0%';
     const sub = document.getElementById('daily-sub');
-    if (sub) sub.textContent = total
-      ? (doneCount >= total && total > 0 ? 'Tudo concluído hoje — amanhã ela recomeça. 🎉' : `${doneCount} de ${total} concluídas hoje — amanhã a lista recomeça.`)
-      : 'Cadastre sua rotina uma vez — ela se renova todo dia.';
+    if (sub) {
+      const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+      const todayCap = today.charAt(0).toUpperCase() + today.slice(1);
+      sub.textContent = total
+        ? (doneCount >= total && total > 0 ? `${todayCap} · tudo concluído — amanhã ela recomeça. 🎉` : `${todayCap} · ${doneCount} de ${total} concluídas — amanhã a lista recomeça.`)
+        : `${todayCap} · cadastre sua rotina uma vez — ela se renova todo dia.`;
+    }
     // streak: dias seguidos (até ontem) com tudo concluído
     const streakEl = document.getElementById('daily-streak');
     if (streakEl) {

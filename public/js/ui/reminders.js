@@ -144,6 +144,8 @@ showReminderModal(clientId) {
       document.getElementById('backlinks')?.classList.add('hidden');
       document.getElementById('search-page')?.classList.add('hidden');
       document.getElementById('tasks-page')?.classList.add('hidden');
+      document.getElementById('ai-page')?.classList.add('hidden');
+      document.getElementById('daily-page')?.classList.add('hidden');
       page.classList.remove('hidden');
       this.renderRemindersList();
     },
