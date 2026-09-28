@@ -12,6 +12,7 @@ import { MessagesMethods } from './js/ui/messages.js';
 import { MentionMethods } from './js/ui/mentions.js';
 import { ReminderMethods } from './js/ui/reminders.js';
 import { TasksMethods } from './js/ui/tasks.js';
+import { WorkspaceMethods } from './js/ui/workspace.js';
 import { SettingsMethods } from './js/ui/settings.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { TreeMethods } from './js/ui/tree.js';
@@ -49,9 +50,10 @@ async init() {
       // Explorer: lembretes + pendências no header
         const expRem = document.getElementById('explorer-reminders');
       if (expRem) {
-        expRem.addEventListener('click', () => { this.showRemindersPage(); this._mobileRevealCanvas(); });
+        // Lembretes agora é aba do workspace (a lista é a mesma)
+        expRem.addEventListener('click', () => this.showWorkspaceTab('reminders'));
         const backRem = document.getElementById('reminders-back');
-        if (backRem) backRem.addEventListener('click', () => { this.hideRemindersPage(); this._mobileBackToExplorer(); });
+        if (backRem) backRem.addEventListener('click', () => this.showWorkspaceTab('conversations'));
         this.updateRemBadge();
       }
       const expTasks = document.getElementById('explorer-tasks');
@@ -177,6 +179,7 @@ async init() {
       this.bindSearch();
       this.bindShortcuts();
       this.bindSwipe();
+      this.bindWorkspace();
       this.initReminders();
       // persistência de login: restaura sessão Supabase antes do primeiro render
       if (USE_SUPABASE) {
@@ -337,7 +340,7 @@ showModal(title, bodyHtml, onOk) {
 
   // mescla os grupos de métodos extraídos
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
-    SettingsMethods, AuthMethods, TreeMethods, ComposerMethods, SyncEventsMethods, TasksMethods);
+    SettingsMethods, AuthMethods, TreeMethods, ComposerMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods);
 
   Store.load();
   // aplica tema salvo antes de montar a UI

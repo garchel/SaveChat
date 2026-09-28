@@ -2,6 +2,13 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.10.0] — 2026-09-28
+### Adicionado
+- **Workspace com abas**: faixa compacta de abas **Conversas · IA · Lembretes · Diária** abaixo do cabeçalho (a conversa aberta continua sendo tela dentro de Conversas, com Voltar). No celular, o **swipe horizontal** alterna as páginas e mostra por um instante o **indicador do destino** (seu carrossel temporário) enquanto o dedo se move
+- **Chat com IA (Gemini)**: aba IA com conversa persistente neste dispositivo — você cola sua própria chave do Google AI Studio (nada sai do aparelho além da chamada direta à API), escolhe o modelo e conversa com markdown renderizado. O histórico guarda as últimas 40 mensagens e a CSP do site foi aberta especificamente para `generativelanguage.googleapis.com`
+- **Diária**: espaço privado para registrar o dia, por data, salvo apenas no dispositivo (não sincroniza)
+- Botão Lembretes do explorer agora abre a aba Lembretes (mesma lista de sempre)
+
 ## [1.9.4] — 2026-09-28
 ### Corrigido
 - **App não abria (tela em branco)**: um refactor de "workspace" entrou pela metade num deploy (import ligado, módulo incompleto) e derrubou a inicialização. As peças do refactor foram retiradas até serem concluídas em outro lugar; o app volta a abrir normalmente na 1.9.1+ com os ícones novos da logo oficial
