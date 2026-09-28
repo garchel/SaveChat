@@ -4,6 +4,7 @@ import { renderMarkdown } from '../markdown.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
+import { burstConfetti } from '../confetti.js';
 
 export const MessagesMethods = {
     openThread(id) {
@@ -15,12 +16,15 @@ export const MessagesMethods = {
       $('#app').classList.add('show-chat');
       const t = Store.getThread(id);
       $('#chat-name').textContent = t ? t.name : 'Conversa';
-      $('#composer-input').disabled = false; $('#btn-send').disabled = false;
+      const ci = $('#composer-input');
+      ci.setAttribute('contenteditable', 'true'); ci.classList.remove('composer-disabled');
+      $('#btn-send').disabled = false;
       this.dom.pinPopover.classList.add('hidden');
       this.updatePinButton();
-      // esconde páginas Busca/Lembretes se abertas
+      // esconde páginas Busca/Lembretes/Pendências se abertas
       document.getElementById('search-page')?.classList.add('hidden');
       document.getElementById('reminders-page')?.classList.add('hidden');
+      document.getElementById('tasks-page')?.classList.add('hidden');
       document.getElementById('messages').classList.remove('hidden');
       document.querySelectorAll('.tnode.active').forEach((el) => el.classList.remove('active'));
       document.querySelectorAll(`.tnode[data-tid="${id}"]`).forEach((el) => el.classList.add('active'));
@@ -205,18 +209,17 @@ export const MessagesMethods = {
       return L > 0.4 ? '#1f1a17' : '#ffffff';
     },
 
-    // CTA "Nova anotação" no empty state do canvas — replica o botão da sidebar
-    _bindEmptyCta() {
-      const cta = $('#es-new-note');
-      if (!cta || cta._bound) return;
-      cta._bound = true;
-      cta.addEventListener('click', () => {
-        const primary = $('#btn-new-thread');
-        if (primary) primary.click();
-      });
-    },
+    // CTA do empty state removido — o fluxo de criar conversa vive na sidebar
+    // (e no menu de contexto do caderno); nada mais a vincular aqui
+    _bindEmptyCta() {},
 
     renderMessages(reset) {
+      // último anel de defesa: cura gêmeas ANTES de renderizar (double-send local:
+      // texto idêntico + mesmo autor + ts quase igual, client_id diferentes)
+      if (this.activeThread) {
+        const removedHere = Store.dedupeIdentical(this.activeThread);
+        removedHere.forEach((r) => Sync.send('note:delete', { threadId: this.activeThread, clientId: r.clientId }));
+      }
       const box = $('#messages');
       const empty = $('#empty-state');
       const notes = Store.notesFor(this.activeThread);
@@ -224,6 +227,7 @@ export const MessagesMethods = {
         empty.classList.remove('hidden');
         $('#load-older').classList.add('hidden');
         box.querySelectorAll('.bubble, .day-sep').forEach((n) => n.remove());
+        this._applyCozyEmptyCopy(empty);
         this._bindEmptyCta();
         return;
       }
@@ -247,7 +251,7 @@ export const MessagesMethods = {
         lastDay = dayKey;
         frag.appendChild(this.bubbleEl(n));
       });
-      box.insertBefore(frag, before || loader);
+      box.insertBefore(frag, reset ? loader.nextSibling : (before || loader));
       if (reset) box.scrollTop = box.scrollHeight;
       // M1 fix: animação de entrada só em bolhas novas; classe removida após animar
       // (no reset inicial da thread NENHUMA bolha anima — a thread aparece pronta)
@@ -260,10 +264,26 @@ export const MessagesMethods = {
       }
     },
 
+    // rede de segurança de DOM: nunca mais de 1 bolha por nota (qualquer caminho
+    // futuro que renderize 2x deixa apenas a primeira; retorna quantas removeu)
+    dedupeBubblesDom() {
+      const box = $('#messages'); if (!box) return 0;
+      const seen = new Set(); let removed = 0;
+      box.querySelectorAll('.bubble[data-client-id]').forEach((el) => {
+        const id = el.dataset.clientId;
+        if (seen.has(id)) { el.remove(); removed++; }
+        else seen.add(id);
+      });
+      return removed;
+    },
+
     bubbleEl(n, opts) {
       const div = document.createElement('div');
       const clientId = n.clientId; // escopo p/ os handlers abaixo
-      const mine = n.userId === (Store.user && Store.user.mail) || n.local;
+      // minha nota: flag local OU userId = email OU userId = uuid auth (o eco do
+      // realtime entrega user_id como UUID — sem isso a nota própria era "remota")
+      const me = Store.user || {};
+      const mine = !!n.local || n.userId === me.mail || (!!me.id && n.userId === me.id);
       const thread = Store.getThread(this.activeThread);
       const isPinned = thread && thread.pinnedId === n.clientId;
       let cozyExtra = '';
@@ -304,14 +324,22 @@ export const MessagesMethods = {
       const imgs = (n.images && n.images.length) ? `<div class="bubble-images">${n.images.map((src) => `<img class="bubble-img" src="${src}" alt="anexo" loading="lazy"/>`).join('')}</div>` : '';
 
       const hideDone = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
-      div.innerHTML = `${pinBadge}${imgs}${renderMarkdown(n.text, hideDone)}${tags}${meta}${toggle}`;
+      const rxRow = this._reactionsHtml(n);
+      div.innerHTML = `${pinBadge}${imgs}${renderMarkdown(n.text, hideDone)}${tags}${rxRow}${meta}${toggle}`;
 
       // Seta ▾ → popover
       div.querySelector('.msg-toggle').addEventListener('click', (e) => { e.stopPropagation(); this.openMsgPopover(div, n); });
+      // pills de reação: clique alterna a reação do usuário
+      div.querySelectorAll('.rx-pill').forEach((pill) => {
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleReaction(n.clientId, pill.dataset.rx);
+        });
+      });
       // Long-press (mobile)
       div.addEventListener('touchstart', (e) => this.onTouchStart(e, div, n), { passive: true });
       div.addEventListener('touchend', () => this.onTouchEnd());
-      div.addEventListener('touchmove', () => this.onTouchEnd());
+      div.addEventListener('touchmove', () => this.onTouchEnd(), { passive: true });
       // Drag-and-drop desktop
       div.addEventListener('dragstart', (e) => this.onDragStart(e, n));
       div.addEventListener('dragover', (e) => this.onDragOver(e, div));
@@ -356,6 +384,26 @@ export const MessagesMethods = {
       });
 
       return div;
+    },
+
+    // ---------- Copy cozy: frases variadas no empty state ----------
+    // troca o texto do estado vazio com uma fala diferente a cada conversa nova criada
+    _applyCozyEmptyCopy(empty) {
+      if (!empty) return;
+      const hint = empty.querySelector('.es-hint');
+      const sub = hint && hint.nextElementSibling;
+      if (!hint || !sub) return;
+      const pool = [
+        ['Página em branco, ideias à solta ✨', 'Salve sua primeira ideia como uma mensagem — ela fica guardadinha aqui.'],
+        ['Tudo tranquilo por aqui 🌷', 'Crie sua primeira conversa e comece a guardar suas ideias como mensagens.'],
+        ['Um cantinho só seu ☁️', 'Anote aquela ideia que apareceu no banho — aqui ela não se perde.'],
+        ['Prontinho para começar ⭐', 'Despeje o que está na cabeça: listas, lembretes, pensamentos soltos.'],
+        ['Suas ideias moram aqui 🏡', 'Escreva a primeira mensagem e deixe o cantinho aconchegante.'],
+        ['Respire, anote, floresça 🌸', 'Uma mensagem de cada vez — o resto a gente guarda.'],
+      ];
+      const pick = pool[(Math.random() * pool.length) | 0];
+      hint.textContent = pick[0];
+      sub.textContent = pick[1];
     },
 
     // marca/desmarca o N-ésimo checkbox do texto ([ ] ↔ [x]) e sincroniza
@@ -407,6 +455,8 @@ export const MessagesMethods = {
           el.appendChild(badge);
           setTimeout(() => badge.remove(), 3000);
         }
+        burstConfetti(el || document.body); // estrelinhas e pétalas ao concluir
+        Sound.playName('sparkle');
         this.toast('✓ Lista completa!', { kind: 'success', duration: 2500 });
       }
     },
@@ -476,6 +526,52 @@ export const MessagesMethods = {
       return wrap;
     },
 
+    // ---------- Reações rápidas ----------
+    // catálogo completo: afetivas + úteis para marcar as próprias mensagens
+    REACTIONS: ['❤️', '✨', '🌸', '😊', '👍', '🙏', '🔥', '⭐', '✅', '❌', '❗', '❓', '💡', '🎯', '📌', '⏰', '👀', '💯', '😂', '🥰', '😮', '😢', '🤔', '🫶'],
+    // reações "funcionais" — emoji fixo independente do tema
+    _RX_EMOJI_ONLY: true,
+    // + do quick row: abre a vista picker; a linha mostra as MAIS USADAS (4)
+    _quickReactions() {
+      const counts = (Store.data.ui && Store.data.ui.reactionUse) || {};
+      const sorted = this.REACTIONS.filter((e2) => counts[e2]).sort((a, b) => (counts[b] || 0) - (counts[a] || 0));
+      const rest = this.REACTIONS.filter((e2) => !counts[e2]);
+      const top = sorted.concat(rest).slice(0, 4);
+      // fallback estável = os 4 primeiros do catálogo
+      return top.length >= 4 ? top : ['❤️', '✨', '🌸', '😊'];
+    },
+    _bumpReactionUse(emoji) {
+      Store.data.ui = Store.data.ui || {};
+      const c = Store.data.ui.reactionUse || (Store.data.ui.reactionUse = {});
+      c[emoji] = (c[emoji] || 0) + 1;
+      Store.save();
+    },
+    // html das pills na bolha — marca as que o usuário atual reagiu
+    _reactionsHtml(n) {
+      if (!n.reactions || !Object.keys(n.reactions).length) return '';
+      const me = Store.getUserId();
+      const emojis = Object.keys(n.reactions).filter((k) => n.reactions[k] && n.reactions[k].length);
+      if (!emojis.length) return '';
+      const pills = emojis.map((e2) => {
+        const mine = n.reactions[e2].includes(me);
+        const count = n.reactions[e2].length;
+        return `<button type="button" class="rx-pill${mine ? ' mine' : ''}" data-rx="${e2}" title="${count} reação${count !== 1 ? 'es' : ''}">${e2}${count > 1 ? `<span class="rx-n">${count}</span>` : ''}</button>`;
+      }).join('');
+      return `<div class="bubble-reactions">${pills}</div>`;
+    },
+    toggleReaction(clientId, emoji) {
+      const tid = this.activeThread;
+      const updated = Store.toggleReaction(tid, clientId, emoji);
+      if (!updated) return;
+      this._bumpReactionUse(emoji);
+      // sync de reações (P0): envia o mapa completo do estado local — o merge no
+      // outro device é por usuário/emoji, então enviar tudo é seguro e simples
+      Sync.send('note:reactions', { threadId: tid, clientId, reactions: Store.reactionsOf(tid, clientId) });
+      Sound.playName('toggle');
+      haptic('light');
+      this._replaceBubble(clientId, updated);
+    },
+
     // ---------- Popover de ações da mensagem ----------
     bindMsgPopover() {
       const p = this.dom.msgPopover;
@@ -487,10 +583,17 @@ export const MessagesMethods = {
       });
       // ação
       p.addEventListener('click', (e) => {
+        // reações (quick e do picker): não fecham o popover (permite reagir com várias)
+        const rb = e.target.closest('.rp-react');
+        if (rb && rb.dataset.react) { this.toggleReaction(this.popoverClientId, rb.dataset.react); this._syncReactionButtons(p, this.popoverClientId); return; }
         const b = e.target.closest('button'); if (!b || !b.dataset.msg) return;
         const act = b.dataset.msg;
+        // + abre a vista picker (preenchendo a grade); ← volta pro menu
+        if (act === 'react-more') { this._openReactionPicker(p); return; }
+        if (act === 'react-back') { this._showRpView(p, 'menu'); return; }
         const cid = this.popoverClientId;
         p.classList.add('hidden');
+        this._showRpView(p, 'menu'); // próxima abertura começa no menu
         if (!cid) return;
         if (act === 'edit') this.editNoteInline(cid);
         else if (act === 'delete') this.confirmDeleteNote(cid);
@@ -501,6 +604,36 @@ export const MessagesMethods = {
         else if (act === 'cancel-remind') this.cancelReminder(cid);
       });
     },
+    // reflete as reações atuais da nota nos botões do popover (quick + picker)
+    _syncReactionButtons(p, clientId) {
+      const n = (Store.notesFor(this.activeThread) || []).find((x) => x.clientId === clientId);
+      const me = Store.getUserId();
+      p.querySelectorAll('.rp-react').forEach((b) => {
+        const on = !!(n && n.reactions && n.reactions[b.dataset.react] && n.reactions[b.dataset.react].includes(me));
+        b.classList.toggle('active', on);
+      });
+    },
+    // troca entre as vistas menu/picker do popover de mensagem
+    _showRpView(p, view) {
+      p.querySelectorAll('.rp-view').forEach((v) => v.classList.toggle('hidden', v.dataset.rpView !== view));
+      // reposiciona: a altura muda entre vistas e o clamp precisa recalcular
+      if (!p.classList.contains('hidden')) this._clampMsgPopover(p);
+    },
+    _openReactionPicker(p) {
+      const grid = p.querySelector('#rp-grid');
+      grid.innerHTML = this.REACTIONS.map((e2) => `<button type="button" class="rp-react rp-grid-it" data-react="${e2}" aria-label="Reagir com ${e2}">${e2}</button>`).join('');
+      this._syncReactionButtons(p, this.popoverClientId);
+      this._showRpView(p, 'picker');
+    },
+    _clampMsgPopover(p) {
+      const pw = p.offsetWidth, ph = p.offsetHeight;
+      let left = parseFloat(p.style.left) || 8;
+      let top = parseFloat(p.style.top) || 8;
+      if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+      if (top + ph > window.innerHeight - 8) top = Math.max(8, window.innerHeight - ph - 8);
+      p.style.left = Math.round(left) + 'px';
+      p.style.top = Math.round(top) + 'px';
+    },
     openMsgPopover(bubbleEl, note) {
       const p = this.dom.msgPopover;
       this.popoverClientId = note.clientId;
@@ -510,17 +643,30 @@ export const MessagesMethods = {
       p.querySelector('[data-msg="pin"]').classList.toggle('hidden', isPinned);
       p.querySelector('[data-msg="unpin"]').classList.toggle('hidden', !isPinned);
       p.querySelector('[data-msg="cancel-remind"]').classList.toggle('hidden', !hasRemind);
+      // quick row dinâmica: reflete as reações mais usadas pelo usuário
+      const quick = this._quickReactions();
+      const row = p.querySelector('.rp-row');
+      const btns = quick.map((e2) => `<button type="button" class="rp-react" data-react="${e2}" aria-label="Reagir com ${e2}">${e2}</button>`).join('');
+      row.innerHTML = btns + '<button type="button" class="rp-more" data-msg="react-more" title="Mais reações" aria-label="Mais reações">+</button>';
+      this._showRpView(p, 'menu'); // sempre abre no menu
+      this._syncReactionButtons(p, note.clientId);
       p.classList.remove('hidden');
-      // posicionar perto do bubble, ancorado à seta ▾
+      // posicionar perto do bubble, ancorado à seta ▾ — medição REAL do popover
+      // (ph estimado estourava em telas baixas/cliques no fim da conversa) e
+      // clamps nos DOIS eixos: popover 100% dentro da janela, sempre
       const r = bubbleEl.getBoundingClientRect();
-      const pw = 220, ph = 180;
+      const pw = p.offsetWidth, ph = p.offsetHeight;
       let left = r.right - pw + 30; // alinha canto direito
       let top = r.bottom + 6;
-      if (top + ph > window.innerHeight) top = r.top - ph - 6;
+      if (top + ph > window.innerHeight - 8) {
+        // não cabe embaixo → abre pra cima; ainda não cabe? encosta no chão
+        top = r.top - ph - 6;
+        if (top < 8) top = Math.max(8, window.innerHeight - ph - 8);
+      }
       if (left < 8) left = 8;
-      if (left + pw > window.innerWidth) left = window.innerWidth - pw - 8;
-      p.style.left = left + 'px';
-      p.style.top = top + 'px';
+      if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+      p.style.left = Math.round(left) + 'px';
+      p.style.top = Math.round(top) + 'px';
     },
 
     // ---------- Long-press (mobile) ----------
@@ -612,10 +758,13 @@ export const MessagesMethods = {
           this._editDetached = null;
         }
         if (save) {
-          // lê SÓ o texto digitado — meta/toggle agora estão fora, mas mantém o clone por segurança
+          // serializa o CLONE (meta/toggle/badge removidos) — o elemento vivo teve os
+          // meta re-anexados acima, e serializá-los corrompia a nota com a hora dentro
           const clone = el.cloneNode(true);
-          clone.querySelectorAll('.meta,.msg-toggle,.pin-badge,.md-checklist').forEach((r) => r.remove());
-          const v = clone.textContent.replace(/\s+$/, '').trim();
+          clone.querySelectorAll('.meta,.msg-toggle,.pin-badge').forEach((r) => r.remove());
+          // serializa via _editorText (markdown): preserva quebras, **bold**, listas
+          // e os prefixos [ ]/[x] — antes textContent destruíam checklists na edição
+          const v = this._editorText(clone);
           if (v && v !== n.text) {
             const updated = Store.editNote(this.activeThread, clientId, v);
             if (updated) {
@@ -633,6 +782,48 @@ export const MessagesMethods = {
       const onKey = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); finish(true); }
         else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        else if (e.key === 'Enter' && e.shiftKey) {
+          // Shift+Enter na edição: continua a lista da linha atual — checklist
+          // ([ ] automático), bullet (- ) ou numerada (n+1.); fora de lista, quebra simples
+          e.preventDefault();
+          const sel = getSelection();
+          if (!sel.rangeCount) return;
+          const cr = sel.getRangeAt(0).cloneRange();
+          cr.selectNodeContents(el);
+          cr.setEnd(sel.getRangeAt(0).endContainer, sel.getRangeAt(0).endOffset);
+          // range.toString() ignora <br> — converte via cloneContents para a
+          // detecção de linha funcionar após continuações seguidas
+          const fragTxt = (node) => {
+            let s = '';
+            for (const c of node.childNodes) {
+              if (c.nodeType === 3) s += c.textContent;
+              else if (c.tagName === 'BR') s += '\n';
+              else s += fragTxt(c);
+            }
+            return s;
+          };
+          const upto = fragTxt(cr.cloneContents());
+          const nl = upto.lastIndexOf('\n');
+          const lineStart = nl >= 0 ? upto.slice(nl + 1) : upto;
+          let prefix = null;
+          let m;
+          if ((m = lineStart.match(/^\s*\[( |x)\]\s/i))) prefix = '[ ] ';
+          else if ((m = lineStart.match(/^\s*(\d+)([.)])\s/))) prefix = (parseInt(m[1], 10) + 1) + m[2] + ' ';
+          else if (/^\s*-\s+/.test(lineStart)) prefix = '- ';
+          // insere <br> + prefixo via Range: determinístico, sem depender de execCommand/foco
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          const br = document.createElement('br');
+          range.insertNode(br);
+          range.setStartAfter(br);
+          if (prefix) {
+            const t = document.createTextNode(prefix);
+            range.insertNode(t);
+            range.setStart(t, prefix.length);
+          }
+          range.collapse(true);
+          sel.removeAllRanges(); sel.addRange(range);
+        }
       };
       const onBlur = () => finish(true);
       el.addEventListener('keydown', onKey);
@@ -806,17 +997,19 @@ export const MessagesMethods = {
       });
     },
 
-    // skeleton temporário no topo do fluxo enquanto carrega página anterior
+    // indicador de carregamento do load-older: SLOT RESERVADO no topo do fluxo
+    // (#load-slot, no HTML) — o espaço existe SEMPRE (como o pull-indicator);
+    // mostrar/esconder só liga/desliga a classe .loading. Layout idêntico nos
+    // dois estados = flick de layout impossível, e as mensagens nunca alcançam
+    // nem ficam sob o indicador
     _showLoadSkeleton() {
-      const box = $('#messages');
-      const sk = document.createElement('div');
-      sk.className = 'load-skeleton-group';
-      sk.innerHTML = '<div class="skeleton" style="width:70%"></div><div class="skeleton skeleton-them" style="width:55%"></div><div class="skeleton" style="width:64%"></div>';
-      box.insertBefore(sk, box.firstChild);
-      return sk;
+      const slot = document.getElementById('load-slot');
+      if (slot) slot.classList.add('loading');
+      return slot || null;
     },
-    _hideLoadSkeleton(sk) {
-      if (sk && sk.parentNode) sk.parentNode.removeChild(sk);
+    _hideLoadSkeleton() {
+      const slot = document.getElementById('load-slot');
+      if (slot) slot.classList.remove('loading');
     },
 
     setupInfiniteScroll() {
@@ -837,28 +1030,36 @@ export const MessagesMethods = {
           this.loading = false;
           return;
         }
-        // local esgotado → tenta buscar no servidor (Supabase .range) — com skeleton
+        // local esgotado → tenta buscar no servidor (Supabase .range) — com faixa fina
         if (!Sync.fetchNotesPage) return;
         this.loading = true;
+        // âncoras ANTES da faixa: o scrollTop final é calculado por distância-do-pé,
+        // então a faixa precisa entrar DEPOIS da captura e sair ANTES da aplicação
+        const prevHeight = box.scrollHeight, prevTop = box.scrollTop;
         const skel = this._showLoadSkeleton();
         try {
           const serverItems = await Sync.fetchNotesPage(this.activeThread, this.oldestTs, PAGE_SIZE);
           if (!serverItems.length) return;
           serverItems.forEach(n => Store.upsertNote(n));
+          // cura de double-send: gêmeas (texto idêntico + ts quase igual) vindas do
+          // servidor nas páginas antigas são descartadas e apagadas lá
+          Store.dedupeIdentical(this.activeThread).forEach((r) => Sync.send('note:delete', { threadId: this.activeThread, clientId: r.clientId }));
           // pega do Store o que acabou de inserir (garante sortOrder)
           const { items } = Store.pageNotes(this.activeThread, this.oldestTs, PAGE_SIZE);
           // fallback: se pageNotes não retornou os recém-inseridos (ex: beforeTs null), usa serverItems
           const toRender = items.length ? items : serverItems;
           if (!toRender.length) return;
-          const prevHeight = box.scrollHeight, prevTop = box.scrollTop;
           this.oldestTs = toRender[0].ts;
           const frag = document.createDocumentFragment();
           const loader = $('#load-older');
           toRender.forEach((n) => { if (this.renderedClientIds.has(n.clientId)) return; this.renderedClientIds.add(n.clientId); frag.appendChild(this.bubbleEl(n)); });
           box.insertBefore(frag, loader.nextSibling);
-          box.scrollTop = box.scrollHeight - prevHeight + prevTop;
         } catch (e) { console.warn('fetch page fail', e); }
-        finally { this._hideLoadSkeleton(skel); this.loading = false; }
+        finally {
+          this._hideLoadSkeleton(skel); // faixa sai ANTES da âncora (não sobra espaço fantasma)
+          box.scrollTop = box.scrollHeight - prevHeight + prevTop;
+          this.loading = false;
+        }
       });
     },
 };

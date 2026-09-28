@@ -5,14 +5,43 @@ import { Sync } from '../sync-supabase.js';
 export const SyncEventsMethods = {
 bindSync() {
       Sync.on('snapshot', (db) => {
+        // fingerprint da conversa aberta ANTES do merge — se o snapshot não mudou
+        // nada visível (reconexões frequentes re-baixam tudo), pula o re-render
+        // completo que causava o "flash" ao criar nota/logo após o envio
+        const fp = (tid) => JSON.stringify((Store.notesFor(tid) || []).map((n) => [n.clientId, n.text, n.sortOrder, n.editedAt, n.rev]));
+        const beforeActive = this.activeThread ? fp(this.activeThread) : '';
         if (db.threads) Object.values(db.threads).forEach((t) => Store.upsertThread(t));
         if (db.folders) Object.values(db.folders).forEach((f) => Store.upsertFolder(f));
-        if (db.notes) Object.entries(db.notes).forEach(([tid, arr]) => arr.forEach((n) => Store.upsertNote(n)));
+        if (db.notes) Object.entries(db.notes).forEach(([tid, arr]) => {
+          arr.forEach((n) => {
+            const eff = Store.upsertNote(n);
+            // gêmea absorvida pelo guard estrutural: apaga a linha no servidor
+            if (eff && eff.clientId !== n.clientId) Sync.send('note:delete', { threadId: tid, clientId: n.clientId });
+          });
+          // cura de double-send: gêmeas vindas do servidor (builds antigos enviavam
+          // a mesma nota com client_id diferentes) são descartadas e apagadas lá
+          Store.dedupeIdentical(tid).forEach((r) => Sync.send('note:delete', { threadId: tid, clientId: r.clientId }));
+        });
         this.renderTree();
-        if (this.activeThread) { this.oldestTs = null; this.renderMessages(true); this.updatePinButton(); }
+        if (this.activeThread && fp(this.activeThread) !== beforeActive) { this.oldestTs = null; this.renderedClientIds = new Set(); this.renderMessages(true); this.updatePinButton(); }
       });
       Sync.on('note:upsert', (n) => {
-        Store.upsertNote(n);
+        const eff = Store.upsertNote(n);
+        // gêmea absorvida pelo guard estrutural anti-double-fire: a existente venceu —
+        // apaga a chegada no servidor e não renderiza nada
+        if (eff && eff.clientId !== n.clientId) {
+          Sync.send('note:delete', { threadId: n.threadId, clientId: n.clientId });
+          return;
+        }
+        // cura de double-send: se a nota recebida for gêmea de uma já existente
+        // (texto idêntico + autor + ts quase igual), não renderiza e apaga no servidor
+        const removed = Store.dedupeIdentical(n.threadId);
+        if (removed.some((r) => r.clientId === n.clientId)) {
+          Sync.send('note:delete', { threadId: n.threadId, clientId: n.clientId });
+          this.updateNoteCount();
+          return;
+        }
+        if (removed.length) removed.forEach((r) => Sync.send('note:delete', { threadId: n.threadId, clientId: r.clientId }));
         if (this.activeThread === n.threadId) this.appendNoteRealtime(n, true);
         this.updateNoteCount();
         // atualiza backlinks se a thread aberta foi mencionada
@@ -23,6 +52,10 @@ bindSync() {
       // A6 delight: nota de OUTRO usuário na thread aberta → slide do topo + tint azulado
       Sync.on('note:remote', (n) => {
         if (this.activeThread !== n.threadId) return;
+        // defesa extra: eco da própria nota NUNCA tinta (o filtro por user_id vive
+        // no subscribe; este cobre payload sem uid — mesmos checks de `mine` do bubbleEl)
+        const me = Store.user || {};
+        if (!!n.local || n.userId === me.mail || (!!me.id && n.userId === me.id)) return;
         const el = document.querySelector(`.bubble[data-client-id="${n.clientId}"]`);
         if (el && !el.classList.contains('incoming-note')) {
           el.classList.add('incoming-note');
@@ -42,6 +75,21 @@ bindSync() {
         const arr = Store.notesFor(threadId); const n = arr.find((x) => x.clientId === clientId); if (!n) return;
         n.tags = tags || []; Store.save();
         if (this.activeThread === threadId) this._replaceBubble(clientId, n);
+      });
+      // sync de reações (P0): mapa completo de OUTRO device → união dos que chegaram
+      // + remoção dos que saíram; se este device também mexeu nas reações nesse meio-
+      // tempo, o estado local vence (reenviado no próximo toggle)
+      Sync.on('note:reactions', ({ threadId, clientId, reactions }) => {
+        const local = Store.reactionsOf(threadId, clientId);
+        const gone = {};
+        Object.entries(local || {}).forEach(([e2, users]) => {
+          const inc = (reactions && reactions[e2]) || [];
+          const missing = users.filter((u) => !inc.includes(u));
+          if (missing.length) gone[e2] = missing;
+        });
+        const updated = Store.updateReaction(threadId, clientId, reactions || {});
+        if (Object.keys(gone).length) Store.removeReactions(threadId, clientId, gone);
+        if (updated && this.activeThread === threadId) this._replaceBubble(clientId, updated);
       });
       Sync.on('note:pin', ({ threadId, clientId }) => {
         const th = Store.getThread(threadId); if (!th) return;

@@ -73,6 +73,16 @@ Loja:
 
 > **Veredito da auditoria:** tecnicamente maduro — o que falta é configuração de conta/domínio, conformidade legal e validação física, não features.
 
+### Atualização 28/09/2026 — lado código fechado
+
+Tudo que dependia do repositório está resolvido e validado (`check` + 18 unit + 8 e2e + build, todos verdes):
+
+- ✅ **Precache do SW alinhado ao manifest** (v118): ícones `icons/icon-512.png` e `icons/icon-maskable-512.png`, `favicon-32.png`, `js/confetti.js` e os 10 logos de tema agora entram no precache — com **teste de paridade manifest↔SW** para o desalinhamento não regressar
+- ✅ **`oauth-callback.html`, `confetti.js`, `petals.js`, `ui/tasks.js` e logos sakura/napolitano commitados** (estavam só no working tree; o deploy da Vercel não os teria)
+- ✅ **2 bugs de menção corrigidos** (regressão do editor contenteditable): `esc()` reimportado em `mentions.js` e chip serializado de volta para `@[Nome](t:id)` em `_editorText()` — backlinks voltam a sobreviver ao envio; e2e de menções adaptado ao editor novo
+- ✅ Higiene: `icons-demo.html` movido para `docs/` (não sai em prod); `theme_color` do manifest alinhado ao tema real (`#E28D42`)
+- ⬜ **Resta (fora do repo):** LB-W1 domínio · LB-W2 OAuth em produção · IMP-5 DSN do Sentry · LB-M3 teste em device real · Lighthouse ≥90 medido em prod · Fase 4 (TWA/Play, ver `GUIA_LANCAMENTO_MOBILE.md`)
+
 ---
 
 ## FASE 0 — Infra mínima — ✅ CONCLUÍDA

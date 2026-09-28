@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="115 115 270 270" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fadbe3" />
+      <stop offset="100%" stop-color="#e0567a" />
+    </linearGradient>
+    <linearGradient id="bubbleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F5D9C4" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    <filter id="lightShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="1" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.20"/>
+    </filter>
+  </defs>
+  <rect x="125" y="125" width="250" height="250" rx="60" fill="url(#bgGrad)" filter="url(#shadow)" />
+  <path d="M 250 145
+           C 192 145 145 192 145 250
+           C 145 308 192 355 250 355
+           C 267 355 283 351 297 344
+           L 332 360
+           L 320 325
+           C 342 305 355 279 355 250
+           C 355 192 308 145 250 145 Z"
+        fill="url(#bubbleGrad)" filter="url(#shadow)" stroke="#ffffff" stroke-width="4"/>
+  <g stroke="#8A5A42" stroke-width="8" stroke-linecap="round">
+    <line x1="185" y1="200" x2="270" y2="200" />
+    <line x1="185" y1="230" x2="260" y2="230" />
+    <line x1="185" y1="260" x2="315" y2="260" />
+    <line x1="185" y1="290" x2="315" y2="290" />
+  </g>
+  <g transform="translate(285, 215) rotate(-35) scale(1.1)" filter="url(#lightShadow)">
+    <polygon points="0,0 25,-12 25,12" fill="#FFF4EE" />
+    <polygon points="0,0 7,-3.5 7,3.5" fill="#C4455F" />
+    <rect x="25" y="-12" width="60" height="12" fill="#E8A08A" />
+    <rect x="25" y="0" width="60" height="12" fill="#D97F62" />
+    <path d="M 85 -12 L 105 -12 C 110 -12 110 12 105 12 L 85 12 Z" fill="#F0BFA4" />
+    <line x1="85" y1="-12" x2="85" y2="12" stroke="#e0e0e0" stroke-width="2"/>
+  </g>
+</svg>

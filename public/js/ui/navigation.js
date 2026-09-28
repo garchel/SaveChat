@@ -31,7 +31,7 @@ export const NavigationMethods = {
       const run = () => {
         const q = input.value.trim();
         // se tem filtro, Enter abre página cheia no canvas
-        if (q && (q.includes('in:') || q.includes('#') || q.includes('depois:') || q.includes('antes:'))) {
+        if (q && (q.includes('in:') || q.includes('#') || q.includes('rx:') || q.includes('depois:') || q.includes('antes:'))) {
           // mostra preview rápido ainda, mas Enter levará para página
         }
         this.runSearch(q, results, clear);
@@ -49,7 +49,7 @@ export const NavigationMethods = {
           items[next].focus();
         } else if (e.key === 'Enter') {
           const q = input.value.trim();
-          if (q && (q.includes('in:') || q.includes('#') || q.includes('depois:') || q.includes('antes:'))) {
+          if (q && (q.includes('in:') || q.includes('#') || q.includes('rx:') || q.includes('depois:') || q.includes('antes:'))) {
             e.preventDefault();
             this.showSearchPage(q);
             return;
@@ -67,10 +67,17 @@ export const NavigationMethods = {
     },
     _parseSearch(q) {
       const tokens = q.trim().split(/\s+/);
-      let textParts = [], inFilter = null, tagFilter = null, depois = null, antes = null;
+      let textParts = [], inFilter = null, tagFilter = null, rxFilter = null, depois = null, antes = null;
       for (const tok of tokens) {
         const low = tok.toLowerCase();
-        if (low.startsWith('in:') && low.length > 3) inFilter = tok.slice(3);
+        if (low.startsWith('rx:') && tok.length > 3) {
+          // filtro por reação: rx:🔥 ou rx:fire (sinônimos em pt para as principais)
+          const w = tok.slice(3);
+          const alias = { coracao: '❤️', coração: '❤️', amor: '❤️', brilho: '✨', flor: '🌸', sorriso: '😊', joinha: '👍', obrigado: '🙏', fogo: '🔥', estrela: '⭐', ok: '✅', erro: '❌', importante: '❗', pergunta: '❓', ideia: '💡', alvo: '🎯', pino: '📌', olho: '👀', top: '💯', risada: '😂', duvida: '🤔', dúvida: '🤔' };
+          const direct = [...w].find((ch) => this.REACTIONS.includes(ch));
+          rxFilter = direct || alias[w] || w;
+        }
+        else if (low.startsWith('in:') && low.length > 3) inFilter = tok.slice(3);
         else if (low.startsWith('#') && low.length > 1) tagFilter = tok.slice(1);
         else if (low.startsWith('depois:') && low.length > 7) {
           const d = new Date(tok.slice(7)); if (!isNaN(d)) depois = d;
@@ -78,7 +85,7 @@ export const NavigationMethods = {
           const d = new Date(tok.slice(6)); if (!isNaN(d)) antes = d;
         } else textParts.push(tok);
       }
-      return { text: textParts.join(' ').trim(), textLower: textParts.join(' ').toLowerCase(), inFilter: inFilter ? inFilter.toLowerCase() : null, tagFilter: tagFilter ? tagFilter.toLowerCase() : null, depois, antes };
+      return { text: textParts.join(' ').trim(), textLower: textParts.join(' ').toLowerCase(), inFilter: inFilter ? inFilter.toLowerCase() : null, tagFilter: tagFilter ? tagFilter.toLowerCase() : null, rxFilter, depois, antes };
     },
     runSearch(q, results, clear) {
       if (!q) { this._searchShowAll = false; results.classList.add('hidden'); results.innerHTML = ''; clear.classList.add('hidden'); return; }
@@ -95,6 +102,8 @@ export const NavigationMethods = {
           if (p.tagFilter) {
             if (!n.tags || !n.tags.some((t) => t.toLowerCase().includes(p.tagFilter))) return;
           }
+          // filtro por reação (rx:🔥): nota deve ter o emoji com ≥1 usuário
+          if (p.rxFilter && !(n.reactions && n.reactions[p.rxFilter] && n.reactions[p.rxFilter].length)) return;
           // texto livre (se vazio, já passou pelos filtros)
           if (p.text) {
             const inText = n.text && n.text.toLowerCase().includes(p.textLower);
@@ -116,6 +125,7 @@ export const NavigationMethods = {
         // dica contextual conforme o filtro usado
         let hint = 'Tente outras palavras ou remova filtros.';
         if (p.tagFilter) hint = 'Nenhuma mensagem com #' + esc(p.tagFilter) + '. Verifique a grafia da tag.';
+        else if (p.rxFilter) hint = 'Nenhuma nota reagida com ' + p.rxFilter + '. Tente rx: + outro emoji (ex.: rx:🔥).';
         else if (p.inFilter) hint = 'Nenhuma conversa com esse nome. Verifique a grafia ou crie uma nova.';
         else if (p.depois || p.antes) hint = 'Nenhuma mensagem nesse período. Tente ampliar as datas.';
         results.innerHTML = '<div class="sr-empty"><div class="sr-empty-title">Nenhum resultado para "' + esc(q) + '"</div><div class="sr-empty-hint">' + hint + '</div></div>';
@@ -153,6 +163,7 @@ export const NavigationMethods = {
         ? `<button class="search-more" id="sr-more">+${extra} resultado${extra !== 1 ? 's' : ''} — mostrar tudo</button>`
         : '';
       const filterChips = [];
+      if (p.rxFilter) filterChips.push(`reação: ${p.rxFilter}`);
       if (p.inFilter) filterChips.push(`em: ${esc(p.inFilter)}`);
       if (p.tagFilter) filterChips.push(`#${esc(p.tagFilter)}`);
       if (p.depois) filterChips.push(`depois: ${p.depois.toLocaleDateString('pt-BR')}`);
@@ -247,6 +258,7 @@ export const NavigationMethods = {
         ['Ctrl/⌘ + K', 'Buscar notas e conversas'],
         ['in:trabalho', 'Filtrar por conversa'],
         ['#urgente', 'Filtrar por tag'],
+        ['rx:🔥', 'Notas reagidas com 🔥'],
         ['depois:2026-01-01', 'Após data'],
         ['antes:2026-12-31', 'Antes de data'],
         ['Ctrl/⌘ + N', 'Nova conversa'],

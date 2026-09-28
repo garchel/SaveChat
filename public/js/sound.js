@@ -33,6 +33,13 @@ import { haptic } from './utils.js';
       const name = s.map && s.map[action];
       if (!name) return;
       try { this.lib.play(name, { volume: typeof s.volume === 'number' ? s.volume : 0.6 }); } catch (e) { /* noop */ }
+    },
+    // toca um som pelo NOME da lib (bypass do mapa de ações) — respeita enabled/volume
+    playName(name) {
+      if (!this.lib || !this.ready) return;
+      const s = (Store.data && Store.data.ui && Store.data.ui.sounds) || {};
+      if (!s.enabled) return;
+      try { this.lib.play(name, { volume: typeof s.volume === 'number' ? s.volume : 0.6 }); } catch (e) { /* noop */ }
     }
   };
 

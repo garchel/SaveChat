@@ -36,7 +36,7 @@ function setChip(state, remote) {
     const titles = {
       checking: 'Verificando atualizações…',
       current: `Você está na versão mais recente (${V()})`,
-      update: `Baixar e instalar a versão ${remote}`,
+      update: `Baixar e instalar ${remote === 'nova versão' ? 'a atualização pendente' : 'a versão ' + remote}`,
       offline: 'Sem conexão para verificar atualizações',
       error: 'Não foi possível verificar atualizações agora',
     };
@@ -72,9 +72,19 @@ async function check({ silent } = {}) {
   setChip('checking');
   try {
     const remote = await remoteVersion();
-    const state = newer(remote, V()) ? 'update' : 'current';
+    // SW em waiting ganha SEMPRE: há uma versão nova já baixada esperando o clique,
+    // mesmo que CHANGELOG × APP_VERSION ainda não tenham divergido (evita o beco
+    // sem saída de updates reprovados porque as versões estavam sincronizadas)
+    let hasWaiting = false;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      hasWaiting = !!(reg && reg.waiting);
+      if (!hasWaiting && reg && !reg.installing) { try { await reg.update(); } catch {} }
+    } catch {}
+    const state = (newer(remote, V()) || hasWaiting) ? 'update' : 'current';
+    const pending = hasWaiting && !newer(remote, V());
     lastCheck = { state, remote, ts: Date.now() };
-    setChip(state, remote);
+    setChip(state, pending ? 'nova versão' : remote);
     // toast silencioso apenas quando há novidade e não foi pedido manual
     if (state === 'update' && silent && window.NoteThread && window.NoteThread.UI) {
       window.NoteThread.UI.toast(`Nova versão ${remote} disponível`, { kind: 'info', duration: 6000 });
@@ -91,23 +101,44 @@ async function applyUpdate() {
   const busy = () => btn && btn.classList.contains('updating');
   const setBusy = (on) => { if (btn) { btn.classList.toggle('updating', on); btn.disabled = on; } };
 
-  // 1) refresh da página controlada: SW waiting assume o controle
+  // 1) com SW: garante que existe um SW novo instalado ANTES de recarregar.
+  //    Sem isso, o clique recarregava a página sem nada instalado — e o reload
+  //    podia até servir o index.html ANTIGO do cache heurístico do HTTP
+  //    (o servidor não manda Cache-Control), mantendo a versão velha na tela.
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.getRegistration();
-      const waiting = reg && reg.waiting;
-      if (waiting) {
-        setBusy(true);
-        waiting.postMessage({ type: 'SKIP_WAITING' }); // controllerchange → app.js recarrega
-        setTimeout(() => setBusy(false), 8000); // destrava se o reload não vier
-        return;
+      if (reg) {
+        // sem waiting/installing? força o download/instalação do sw.js AGORA
+        if (!reg.waiting && !reg.installing) {
+          try { await reg.update(); } catch { /* offline: segue pro fallback */ }
+        }
+        // espera o SW novo chegar a 'installed' (waiting) — até 15s
+        const sw = await new Promise((resolve) => {
+          const cur = reg.waiting || reg.installing;
+          if (!cur) return resolve(null);
+          if (cur === reg.waiting || cur.state === 'installed') return resolve(cur);
+          const t = setTimeout(() => resolve(null), 15000);
+          cur.addEventListener('statechange', () => {
+            if (cur.state === 'installed') { clearTimeout(t); resolve(cur); }
+          });
+        });
+        if (sw && reg.waiting === sw) {
+          setBusy(true);
+          sw.postMessage({ type: 'SKIP_WAITING' }); // controllerchange → app.js recarrega
+          setTimeout(() => setBusy(false), 8000); // destrava se o reload não vier
+          return;
+        }
+        // instalação ainda em curso após timeout → fallback abaixo recarrega;
+        // na próxima carga o waiting existirá e o próximo clique ativa
       }
     } catch { /* segue para o fallback abaixo */ }
   }
 
-  // 2) sem SW waiting (ou sem SW): o navegador pode já ter a versão nova no HTTP
-  //    cache após o check network-first — um reload puro a adota.
+  // 2) fallback: aquece o cache HTTP com o index.html FRESCO (mata o cache
+  //    heurístico) e recarrega — a página volta com a versão nova de verdade
   setBusy(true);
+  try { await fetch(location.href, { cache: 'reload' }); } catch {}
   location.reload();
 }
 

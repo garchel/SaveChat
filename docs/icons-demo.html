@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo — ícones caderno × conversa</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px 22px 60px; background: #17171b; color: #fafafa; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: #9a9aa3; font-size: 13.5px; margin-bottom: 26px; line-height: 1.5; }
+  h2 { font-size: 14px; color: #E28D42; margin: 30px 0 12px; letter-spacing: .3px; text-transform: uppercase; }
+  .row { display: flex; gap: 26px; align-items: flex-start; flex-wrap: wrap; }
+  .cell { text-align: center; }
+  .cap { font-size: 12px; color: #9a9aa3; margin-top: 10px; max-width: 150px; line-height: 1.4; }
+  .cap b { color: #e8e8ec; }
+  .treebg { background: #1e1e23; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .label { font-size: 14.5px; font-weight: 600; }
+  .badge { font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 2px; }
+  .b-rec { background: rgba(226,141,66,.18); color: #E28D42; }
+  /* tile base — igual ao app: 52px, radius 12 */
+  .tile { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; font-size: 22px; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .tile svg { width: 26px; height: 26px; }
+</style>
+</head>
+<body>
+  <h1>Diferenciando cadernos (pastas) de conversas</h1>
+  <div class="sub">Mesmo tile 52×52, radius 12, mesma paleta. A pergunta: o que a pasta tem que a conversa não tem?</div>
+
+  <h2>O teste direto (árvore)</h2>
+  <div class="treebg" id="ab-test"></div>
+
+  <h2>Opção A — folhas empilhadas (SUA IDEIA — implementada)</h2>
+  <div class="sub">Duas "folhas" atrás do tile, via box-shadow em camadas com a cor escurecida. Custo zero de markup, herda qualquer cor da paleta, sobrevive a cache (inline).</div>
+  <div class="row" id="row-a"></div>
+
+  <h2>Opção B — glifo-padrão distinto</h2>
+  <div class="sub">Pastas sempre com glifo "pilha de folhas" na cor do tile; conversa mostra o glifo escolhido pelo usuário. Só aparece quando o usuário NÃO escolheu ícone.</div>
+  <div class="row" id="row-b"></div>
+
+  <h2>Opção C — aba lateral (fileira)</h2>
+  <div class="sub">Faixa vertical clara do lado esquerdo (como aba de fichário), via gradiente no próprio tile.</div>
+  <div class="row" id="row-c"></div>
+
+  <h2>Opção D — espiral de caderno</h2>
+  <div class="sub">Argolas no topo do tile (radial-gradient repetido), remete a caderno físico.</div>
+  <div class="row" id="row-d"></div>
+
+  <h2>Opção E — tile "recortado" (aba no topo)</h2>
+  <div class="sub">Pseudo-elemento atrás do tile, deslocado para cima — silhueta de pilha de papel.</div>
+  <div class="row" id="row-e"></div>
+
+  <h2>Opção F — tile menor + separação</h2>
+  <div class="sub">Conversa com tile 46px (mais "item"), pasta 52px com folhas — hierarquia por tamanho.</div>
+  <div class="row" id="row-f"></div>
+
+<script>
+  // paleta real do app (icons.js)
+  const PALETTE = [
+    { id: 'cozy-orange', bg: '#E28D42', fg: '#FFFFFF' },
+    { id: 'cozy-teal',   bg: '#589B99', fg: '#FFFFFF' },
+    { id: 'warm-beige',  bg: '#F5E6C8', fg: '#3A2E2A' },
+    { id: 'sage',        bg: '#A8B5A2', fg: '#FFFFFF' },
+    { id: 'dusty-blue',  bg: '#7C9CC4', fg: '#FFFFFF' },
+    { id: 'dusty-rose',  bg: '#C98B8B', fg: '#FFFFFF' },
+  ];
+  const darken = (hex, f = 0.8) => {
+    const n = parseInt(String(hex).replace('#', ''), 16);
+    const r = Math.round(((n >> 16) & 255) * f), g = Math.round(((n >> 8) & 255) * f), b = Math.round((n & 255) * f);
+    return `rgb(${r},${g},${b})`;
+  };
+  // glifos reais do app
+  const G_FOLDER = '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>';
+  const G_CHAT   = '<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 9 9 0 0 1-4-1L3 20l1.5-5.5a8.5 8.5 0 1 1 16.5-3z"/>';
+  const G_BOOK   = '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>';
+  const G_ZAP    = '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>';
+  const svg = (inner, col) => `<svg viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+
+  const sheets = (bg) => `4px 4px 0 -1px ${darken(bg)}, 8px 8px 0 -2px ${darken(bg, .62)}, 0 1px 3px rgba(0,0,0,.25)`;
+
+  function tile(col, inner, style = '') {
+    return `<div class="tile" style="background:${col.bg};${style}">${inner}</div>`;
+  }
+  // A: folhas empilhadas (igual ao tree.js implementado)
+  const tileA = (col, glyph) => tile(col, glyph, `box-shadow:${sheets(col.bg)}`);
+  // B: glifo folhas
+  const tileB = (col) => tile(col, svg('<path d="M4 8h16"/><path d="M4 12h16"/><path d="M4 16h16"/>', col.fg));
+  // C: aba lateral
+  const tileC = (col, glyph) => tile(col, glyph, `background:linear-gradient(90deg, ${darken(col.bg,.55)} 0 7px, ${col.bg} 7px)`);
+  // D: espiral
+  const tileD = (col, glyph) => tile(col, glyph, `background:radial-gradient(circle at 6px 5px, ${darken(col.bg,.5)} 2.2px, transparent 2.8px) 0 0/13px 10px repeat-x, ${col.bg}; border-top:4px solid ${darken(col.bg,.75)}`);
+  // E: pseudo folha no topo
+  const tileE = (col, glyph) => `<div style="position:relative;display:inline-block"><div style="position:absolute;left:7px;top:-6px;width:44px;height:40px;border-radius:10px;background:${darken(col.bg,.6)}"></div>` + tile(col, glyph) + `</div>`;
+  // F: menor
+  const tileF = (col, glyph) => tile(col, glyph, 'width:44px;height:44px');
+
+  const ex = [
+    PALETTE[0], PALETTE[1], PALETTE[2], PALETTE[3], PALETTE[4], PALETTE[5],
+  ];
+  const glyphs = [G_FOLDER, G_CHAT, G_ZAP, G_BOOK, G_CHAT, G_FOLDER];
+
+  function cell(html, cap) {
+    return `<div class="cell">${html}<div class="cap">${cap}</div></div>`;
+  }
+
+  // A/B teste direto
+  document.getElementById('ab-test').innerHTML =
+    tile(PALETTE[0], svg(G_CHAT, PALETTE[0].fg)) +
+    `<span class="label">Ideias aleatórias <span class="badge" style="background:rgba(255,255,255,.09)">conversa — tile plano</span></span>` +
+    `<span style="width:26px"></span>` +
+    tileA(PALETTE[3], svg(G_FOLDER, PALETTE[3].fg)) +
+    `<span class="label">Trabalho <span class="badge b-rec">caderno — folhas</span></span>`;
+
+  // A
+  document.getElementById('row-a').innerHTML = ex.map((c, i) =>
+    cell(tileA(c, svg(glyphs[i], c.fg)), `<b>${c.id}</b><br>folhas herdam a cor`)).join('');
+
+  // B
+  document.getElementById('row-b').innerHTML = ex.map((c) =>
+    cell(tileB(c), `<b>${c.id}</b><br>glifo-padrão "folhas"`)).join('');
+
+  // C
+  document.getElementById('row-c').innerHTML = ex.map((c, i) =>
+    cell(tileC(c, svg(glyphs[i], c.fg)), `<b>${c.id}</b><br>aba lateral`)).join('');
+
+  // D
+  document.getElementById('row-d').innerHTML = ex.map((c, i) =>
+    cell(tileD(c, svg(glyphs[i], c.fg)), `<b>${c.id}</b><br>espiral no topo`)).join('');
+
+  // E
+  document.getElementById('row-e').innerHTML = ex.map((c, i) =>
+    cell(tileE(c, svg(glyphs[i], c.fg)), `<b>${c.id}</b><br>folha deslocada`)).join('');
+
+  // F
+  document.getElementById('row-f').innerHTML = ex.map((c, i) =>
+    cell(tileF(c, svg(glyphs[i], c.fg)), `<b>${c.id}</b><br>menor (44px)`)).join('');
+</script>
+</body>
+</html>

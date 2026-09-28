@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Conectando…</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; display: flex; align-items: center; justify-content: center;
+      background: #17171b; color: #fafafa;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+    }
+    .box { text-align: center; padding: 24px; max-width: 420px; }
+    .logo { width: 44px; height: 44px; margin: 0 auto 18px; display: block; animation: cb-spin 1.2s linear infinite; }
+    @keyframes cb-spin { to { transform: rotate(360deg); } }
+    .t { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+    .d { font-size: 13.5px; color: #9a9aa3; margin-top: 8px; line-height: 1.5; }
+    .err { color: #ff6b6b; font-weight: 600; }
+    .ok-btn {
+      display: none; margin-top: 18px; padding: 11px 22px; border: none; border-radius: 12px;
+      background: #E28D42; color: #fff; font-weight: 700; font-size: 14.5px; cursor: pointer;
+    }
+    .ok-btn:active { transform: scale(.96); }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <svg class="logo" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#E28D42" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+    <div class="t" id="cb-title">Conectando com o Google…</div>
+    <div class="d" id="cb-desc">Só um instante — estamos confirmando sua identidade.</div>
+    <button id="ok-btn" class="ok-btn" type="button">Fechar janela</button>
+  </div>
+
+  <script type="module">
+    // ======================================================================
+    // SaveChat — oauth-callback.html
+    // Página DEDICADA de retorno do OAuth — nunca renderiza o app.
+    //   ?cb=popup (default) → troca o código PKCE, avisa a janela original
+    //                         (BroadcastChannel + postMessage) e se fecha.
+    //   ?cb=page (mobile/redirect) → troca o código e REDIRECIONA ao app
+    //                         na MESMA aba (o Google voltou para cá).
+    // ======================================================================
+    const CB_MODE = new URLSearchParams(location.search).get('cb') === 'page' ? 'page' : 'popup';
+    const BC = ('BroadcastChannel' in window) ? new BroadcastChannel('savechat-oauth') : null;
+    const openerAlive = (() => {
+      try { return !!window.opener && !window.opener.closed; } catch { return false; }
+    })();
+
+    function notify(text, isError) {
+      document.getElementById('cb-title').textContent = text;
+      if (isError) document.getElementById('cb-desc').classList.add('err');
+    }
+
+    // Toda saída converge para cá.
+    function finish(ok, msg) {
+      try { if (BC) BC.postMessage({ type: 'oauth_popup_done', ok, msg: msg || null }); } catch {}
+      try {
+        if (openerAlive) window.opener.postMessage({ type: 'oauth_popup_done', ok, msg: msg || null }, location.origin);
+      } catch {}
+
+      if (CB_MODE === 'page') {
+        // modo redirect (mobile): a sessão já está no localStorage — ir ao app
+        if (ok) { setTimeout(() => { location.replace(location.origin + '/'); }, 400); return; }
+        setTimeout(() => { location.replace(location.origin + '/?autherr=' + encodeURIComponent(msg || 'auth')); }, 400);
+        return;
+      }
+
+      // modo popup: fecha e, se bloqueado, mostra recado (JAMAIS o app)
+      setTimeout(() => { try { window.close(); } catch {} }, 250);
+      setTimeout(() => {
+        notify(ok ? 'Login concluído! Pode fechar esta janela e voltar à anterior.' : (msg || 'Não foi possível concluir o login.'), !ok);
+        const btn = document.getElementById('ok-btn');
+        if (btn) btn.style.display = 'inline-block';
+      }, 350);
+    }
+
+    document.getElementById('ok-btn').addEventListener('click', () => { try { window.close(); } catch {} });
+
+    (async () => {
+      try {
+        const params = new URLSearchParams(location.search);
+        if (params.get('error')) {
+          throw new Error(params.get('error_description') || 'Autorização cancelada no Google.');
+        }
+        const SUPA_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
+        const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
+        if (!SUPA_URL || !SUPA_KEY) throw new Error('Credenciais ausentes na página de callback');
+
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.112.3');
+        const supa = createClient(SUPA_URL, SUPA_KEY, {
+          auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true },
+        });
+
+        // a troca de ?code= por sessão é assíncrona — poll curto no storage
+        let session = null;
+        for (let i = 0; i < 26 && !session; i++) {
+          try { session = (await supa.auth.getSession()).data.session; } catch {}
+          if (!session) await new Promise(r => setTimeout(r, 300));
+        }
+
+        if (session) { finish(true); return; }
+        if (!params.has('code')) { finish(true); return; } // recarga manual: apenas sai
+        finish(false, 'Não foi possível confirmar sua identidade. Tente novamente.');
+      } catch (err) {
+        finish(false, (err && err.message) || 'Falha inesperada no login.');
+      }
+    })();
+  </script>
+</body>
+</html>

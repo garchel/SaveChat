@@ -1,4 +1,4 @@
-import { now, haptic, $, esc } from '../utils.js';
+import { now, uid, haptic, $, esc } from '../utils.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { ICON, wrapSvg } from '../icons.js';
@@ -106,12 +106,16 @@ showReminderModal(clientId) {
           n.remindFired = true; Store.save();
           Sync.send('note:remind', { clientId: n.clientId, remindAt: n.remindAt, remindFired: true });
           const th = Store.getThread(tid);
-          const title = `⏰ ${th ? th.name : 'SaveChat'}`;
+          // voz cozy: o lembrete fala em 1ª pessoa, como pedido pelo usuário
           const body = (n.text || '').slice(0, 120) || 'Lembrete';
+          const cozyTitle = `⏰ Psst! ${th ? th.name : 'SaveChat'}`;
+          const cozyBody = `Você me pediu para lembrar você: ${body}`;
           fired++;
           // notifica (SW no mobile/PWA; Notification API no desktop) e sempre mostra toast in-app
-          this._notifyReminder(title, body, n.clientId, tid);
-          this.toast(`⏰ ${th ? th.name : ''}: ${body}`, { kind: 'pin', duration: 6000 });
+          this._notifyReminder(cozyTitle, cozyBody, n.clientId, tid);
+          // entra no feed do centro de notificações (não-lida)
+          this.pushNotif({ kind: 'reminder', title: th ? th.name : 'SaveChat', body, threadId: tid, clientId: n.clientId });
+          this.toast(`⏰ Psst! Você me pediu para lembrar: ${body}`, { kind: 'pin', duration: 6000 });
           haptic('medium');
           this.queueRenderTree();
         });
@@ -130,6 +134,24 @@ showReminderModal(clientId) {
       if (Notification.permission === 'denied') return false;
       const p = await Notification.requestPermission();
       return p === 'granted';
+    },
+
+    // ---------- Nav: página de lembretes (explorer) ----------
+    showRemindersPage() {
+      const page = document.getElementById('reminders-page');
+      if (!page) return;
+      document.getElementById('messages').classList.add('hidden');
+      document.getElementById('backlinks')?.classList.add('hidden');
+      document.getElementById('search-page')?.classList.add('hidden');
+      document.getElementById('tasks-page')?.classList.add('hidden');
+      page.classList.remove('hidden');
+      this.renderRemindersList();
+    },
+    hideRemindersPage() {
+      const page = document.getElementById('reminders-page');
+      if (page) page.classList.add('hidden');
+      document.getElementById('messages').classList.remove('hidden');
+      document.getElementById('backlinks')?.classList.remove('hidden');
     },
 
     // ---------- Nav: popover de lembretes ----------
@@ -239,10 +261,40 @@ showReminderModal(clientId) {
       });
       return out.sort((a, b) => b.note.remindAt - a.note.remindAt);
     },
+    // ---------- Centro de notificações (feed persistente + lembretes pendentes) ----------
+    // feed em Store.data.ui.notifs: [{ id, kind, title, body, threadId, clientId, ts, read }]
+    allNotifs() {
+      Store.data.ui = Store.data.ui || {};
+      return Store.data.ui.notifs || [];
+    },
+    pushNotif({ kind, title, body, threadId, clientId }) {
+      Store.data.ui = Store.data.ui || {};
+      const arr = Store.data.ui.notifs || [];
+      // dedupe: mesmo evento (thread+nota+tipo) não entra duas vezes
+      if (arr.some((x) => x.kind === kind && x.threadId === threadId && x.clientId === clientId)) return;
+      arr.unshift({ id: uid(), kind, title, body, threadId: threadId || null, clientId: clientId || null, ts: Date.now(), read: false });
+      Store.data.ui.notifs = arr.slice(0, 30); // mantém as 30 mais recentes
+      Store.save();
+      this.updateNotifBadge();
+      const p = document.getElementById('notif-popover');
+      if (p && !p.classList.contains('hidden')) this.renderNotifHistory();
+    },
+    markAllNotifsRead() {
+      const arr = this.allNotifs();
+      if (!arr.some((n) => !n.read)) return;
+      arr.forEach((n) => { n.read = true; });
+      Store.save();
+      this.updateNotifBadge();
+      this.renderNotifHistory();
+    },
+    _notifPermState() {
+      if (!('Notification' in window)) return 'unsupported';
+      return Notification.permission;
+    },
     updateNotifBadge() {
       const badge = document.getElementById('notif-badge');
       if (!badge) return;
-      const count = this.allRemindersHistory().length;
+      const count = this.allNotifs().filter((n) => !n.read).length;
       if (count > 0) { badge.textContent = count > 9 ? '9+' : String(count); badge.classList.remove('hidden'); }
       else badge.classList.add('hidden');
     },
@@ -267,22 +319,101 @@ showReminderModal(clientId) {
     renderNotifHistory() {
       const list = document.getElementById('notif-list');
       if (!list) return;
-      const items = this.allRemindersHistory();
-      if (!items.length) { list.innerHTML = '<div class="rem-empty">Nenhum lembrete ainda</div>'; return; }
-      list.innerHTML = items.map(({ threadId, note }) => {
-        const th = Store.getThread(threadId);
-        const when = new Date(note.remindAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-        const snippet = esc((note.text || '').replace(/^(\s*)\[( |x)\]\s*/gm, '').slice(0, 60)) || 'Lembrete';
-        const fired = note.remindFired;
-        return `<button type="button" class="rem-item" data-tid="${threadId}" data-cid="${note.clientId}">
-                  <span class="rem-when${fired ? '' : ' overdue'}">${fired ? svgAlert() : svgClock()} ${when} ${fired ? '· disparado' : '· pendente'}</span>
-                  <span class="rem-snippet">${snippet}</span>
-                  <span class="rem-thread">${esc(th ? th.name : '')}</span>
-                </button>`;
-      }).join('');
+      // linha de permissão do sistema (ativa se ainda não decidida)
+      const permRow = document.getElementById('notif-perm');
+      if (permRow) {
+        const st = this._notifPermState();
+        if (st === 'default') {
+          permRow.classList.remove('hidden');
+          permRow.innerHTML = '<span>Ative as notificações do sistema para ser avisado mesmo fora do app.</span><button type="button" id="notif-perm-btn">Ativar</button>';
+          permRow.querySelector('#notif-perm-btn').addEventListener('click', async () => {
+            await Notification.requestPermission();
+            this.renderNotifHistory();
+          });
+        } else if (st === 'granted') {
+          permRow.classList.remove('hidden');
+          permRow.innerHTML = '<span>Notificações do sistema ativas neste dispositivo.</span>';
+        } else {
+          permRow.classList.add('hidden');
+        }
+      }
+      const feed = this.allNotifs();
+      const unread = feed.filter((n) => !n.read).length;
+      // botão "marcar lidas" só existe com não-lidas
+      const clearBtn = document.getElementById('notif-clear');
+      if (clearBtn) clearBtn.classList.toggle('hidden', !unread);
+      // pílula de contador no cabeçalho
+      const countEl = document.getElementById('notif-count');
+      if (countEl) {
+        countEl.textContent = unread ? String(unread) : '';
+        countEl.classList.toggle('hidden', !unread);
+      }
+      // hora relativa compacta: agora / 12min / 17:35 / 12/03
+      const timeAgo = (ts) => {
+        const d = Date.now() - ts;
+        if (d < 60e3) return 'agora';
+        if (d < 3600e3) return Math.floor(d / 60e3) + 'min';
+        const dt = new Date(ts), hoje = new Date();
+        if (dt.toDateString() === hoje.toDateString()) return dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      };
+      // tile de ícone por tipo de notificação (SVG, herda a cor do tile)
+      const kindIcon = (n) => {
+        if (n.kind === 'reminder') return wrapSvg(ICON.clock, 15);
+        if (n.kind === 'pin') return wrapSvg(ICON.pin, 15);
+        return wrapSvg(ICON.bubble, 15);
+      };
+      // seção 1: feed de notificações (agrupado por dia)
+      let html = '';
+      if (!feed.length) {
+        html += `<div class="notif-empty">
+                   <span class="notif-empty-ico"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+                   <span class="notif-empty-t">Tudo tranquilo por aqui</span>
+                   <span class="notif-empty-s">Quando um lembrete disparar, o aviso aparece nesta lista.</span>
+                 </div>`;
+      } else {
+        const hojeStr = new Date().toDateString();
+        let grupo = null;
+        feed.forEach((n) => {
+          const g = new Date(n.ts).toDateString() === hojeStr ? 'Hoje' : 'Anteriores';
+          if (g !== grupo) { html += `<div class="notif-subhead">${g}</div>`; grupo = g; }
+          const th = n.threadId ? Store.getThread(n.threadId) : null;
+          const snippet = esc((n.body || '').slice(0, 110));
+          html += `<button type="button" class="rem-item notif-item${n.read ? '' : ' unread'}" data-nid="${n.id}" data-tid="${n.threadId || ''}" title="${th ? esc(th.name) : ''}">
+                    <span class="notif-ico" aria-hidden="true">${kindIcon(n)}</span>
+                    <span class="notif-topline"><span class="notif-title">${esc(n.title)}</span><span class="notif-time">${timeAgo(n.ts)}</span></span>
+                    <span class="notif-body">${snippet}</span>
+                    ${th ? `<span class="notif-thread">${esc(th.name)}</span>` : ''}
+                    <span class="notif-dot" aria-hidden="true"></span>
+                  </button>`;
+        });
+      }
+      // seção 2: lembretes pendentes (ainda não disparados)
+      const pending = this.allRemindersHistory().filter(({ note }) => !note.remindFired);
+      if (pending.length) {
+        html += '<div class="notif-subhead">Lembretes pendentes</div>';
+        html += pending.map(({ threadId, note }) => {
+          const th = Store.getThread(threadId);
+          const when = new Date(note.remindAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          const snippet = esc((note.text || '').replace(/^(\s*)\[( |x)\]\s*/gm, '').slice(0, 60)) || 'Lembrete';
+          return `<button type="button" class="rem-item notif-item" data-tid="${threadId}" data-cid="${note.clientId}">
+                    <span class="notif-ico warn" aria-hidden="true">${svgClock(15)}</span>
+                    <span class="notif-topline"><span class="notif-title">${esc(th ? th.name : 'Lembrete')}</span><span class="notif-time warn">${when}</span></span>
+                    <span class="notif-body">${snippet}</span>
+                    <span class="notif-thread">Lembrete pendente</span>
+                  </button>`;
+        }).join('');
+      }
+      list.innerHTML = html;
       list.querySelectorAll('.rem-item').forEach((b) => b.addEventListener('click', () => {
+        // abre a conversa e marca a notificação como lida (o badge caía só com "Marcar lidas")
+        const nid = b.dataset.nid;
+        if (nid) {
+          const n = this.allNotifs().find((x) => x.id === nid);
+          if (n && !n.read) { n.read = true; Store.save(); this.updateNotifBadge(); }
+        }
         document.getElementById('notif-popover').classList.add('hidden');
-        if (Store.getThread(b.dataset.tid)) this.openThread(b.dataset.tid);
+        if (b.dataset.tid && Store.getThread(b.dataset.tid)) this.openThread(b.dataset.tid);
       }));
     },
 

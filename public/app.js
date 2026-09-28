@@ -11,6 +11,7 @@ import { NavigationMethods } from './js/ui/navigation.js';
 import { MessagesMethods } from './js/ui/messages.js';
 import { MentionMethods } from './js/ui/mentions.js';
 import { ReminderMethods } from './js/ui/reminders.js';
+import { TasksMethods } from './js/ui/tasks.js';
 import { SettingsMethods } from './js/ui/settings.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { TreeMethods } from './js/ui/tree.js';
@@ -45,13 +46,20 @@ async init() {
       this.bindThreadTitle();
       this.bindSync();
       this.bindContextMenu();
-      // Explorer: lembretes no header
+      // Explorer: lembretes + pendências no header
       const expRem = document.getElementById('explorer-reminders');
       if (expRem) {
         expRem.addEventListener('click', () => this.showRemindersPage());
         const backRem = document.getElementById('reminders-back');
         if (backRem) backRem.addEventListener('click', () => this.hideRemindersPage());
         this.updateRemBadge();
+      }
+      const expTasks = document.getElementById('explorer-tasks');
+      if (expTasks) {
+        expTasks.addEventListener('click', () => this.showTasksPage());
+        const backTasks = document.getElementById('tasks-back');
+        if (backTasks) backTasks.addEventListener('click', () => this.hideTasksPage());
+        this.updateTasksBadge();
       }
       const notifBtn = document.getElementById('btn-notifications');
       if (notifBtn) {
@@ -64,6 +72,11 @@ async init() {
         // atualiza badge quando lembretes mudam
         const origCheck = this._checkReminders.bind(this);
         this._checkReminders = () => { origCheck(); this.updateNotifBadge(); };
+        // "Marcar todas como lidas" no centro de notificações
+        document.getElementById('notif-clear')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.markAllNotifsRead();
+        });
       }
       const backSearch = document.getElementById('search-back');
       if (backSearch) backSearch.addEventListener('click', () => this.hideSearchPage());
@@ -74,13 +87,16 @@ async init() {
         profileBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           profilePop.classList.toggle('hidden');
-          // posiciona acima do footer
+          if (profilePop.classList.contains('hidden')) return;
+          // posiciona INTEIRAMENTE acima do botão: mede a altura REAL do
+          // popover (estimativa hardcoded cobria o nome/avatar do login)
           const r = profileBtn.getBoundingClientRect();
-          const pw = 200, ph = 100;
-          let left = r.left;
+          const pw = profilePop.offsetWidth || 200;
+          const ph = profilePop.offsetHeight || 100;
           let top = r.top - ph - 8;
           if (top < 8) top = r.bottom + 8;
-          profilePop.style.left = left + 'px';
+          let left = Math.min(r.left, window.innerWidth - pw - 8);
+          profilePop.style.left = Math.max(8, left) + 'px';
           profilePop.style.top = top + 'px';
         });
         document.addEventListener('click', (e) => {
@@ -263,7 +279,7 @@ showModal(title, bodyHtml, onOk) {
 
   // mescla os grupos de métodos extraídos
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
-    SettingsMethods, AuthMethods, TreeMethods, ComposerMethods, SyncEventsMethods);
+    SettingsMethods, AuthMethods, TreeMethods, ComposerMethods, SyncEventsMethods, TasksMethods);
 
   Store.load();
   // aplica tema salvo antes de montar a UI
@@ -271,8 +287,27 @@ showModal(title, bodyHtml, onOk) {
   document.documentElement.dataset.theme = savedTheme;
   UI.init();
 
+  // diagnose: anel de 200 entradas dos eventos de sincronização/envio. Com isso
+  // qualquer duplicação fica rastreável no console (window.NoteThread.debugLog())
+  const dbg = [];
+  const origEmit = Sync.emit.bind(Sync);
+  Sync.emit = (ev, d) => { dbg.push({ t: Date.now(), kind: 'emit:' + ev, cid: d && d.clientId }); if (dbg.length > 200) dbg.shift(); return origEmit(ev, d); };
+  // captura também os envios (para contar execuções de sendNote no log)
+  const origSend = Sync.send.bind(Sync);
+  Sync.send = async (type, payload) => {
+    dbg.push({ t: UI.activeThread, kind: 'send:' + type, cid: payload && payload.clientId });
+    if (dbg.length > 200) dbg.shift();
+    return origSend(type, payload);
+  };
   // expõe para debugging/inspeção no console
   window.NoteThread = { Store, Sync, UI, Sound };
+  window.NoteThread.debugLog = () => dbg.slice(-50);
+  // marcador de build: torna óbvio no console se o navegador rodou o build novo
+  // (lê o número do cache direto do sw.js para nunca mais destoar da versão real)
+  fetch('./sw.js').then((r) => r.text()).then((t) => {
+    const m = t.match(/notethread-v(\d+)/);
+    console.log('%cSaveChat build v' + (m ? m[1] : '?') + ' — ' + (window.APP_VERSION || '?'), 'background:#0ea5e9;color:#fff;padding:2px 8px;border-radius:4px');
+  }).catch(() => {});
 
   // registra o Service Worker (PWA / offline)
   // kill-switch: adicione ?nosw=1 à URL para desregistrar todos os SWs e limpar caches

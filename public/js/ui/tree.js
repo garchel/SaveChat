@@ -5,19 +5,41 @@ import { Sync } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
 
 export const TreeMethods = {
+
+  // frases fofas ao criar conversa/pasta — uma diferente a cada vez
+  _cozyCongrats() {
+    const pool = [
+      'Caderninho novo criado 🌷',
+      'Prontinho! Aí é com você ✨',
+      'Feito — cantinho criado ☁️',
+      'Tá guardado. Bora encher de ideias! 🌸',
+      'Novo espaço aconchegante pronto 🏡',
+    ];
+    return pool[(Math.random() * pool.length) | 0];
+  },
+
 bindTreeActions() {
       $('#btn-new-thread').addEventListener('click', () => this.createThread());
       $('#btn-new-folder').addEventListener('click', () => this.createFolder());
       $('#btn-back').addEventListener('click', () => $('#app').classList.remove('show-chat'));
     },
 
-    createThread() {
+    createThread(folderId = null) {
       let chosen = 'chat';
       let chosenColor = null;
       let useEmoji = false;
+      // seletor de local: cadernos existentes + raiz; o do contexto vem pré-escolhido
+      const folders = Store.folderList();
+      const locSel = folders.length ? `
+        <label style="display:block;font-size:13px;color:var(--text-dim);margin:14px 0 6px;font-weight:600">Criar em</label>
+        <select id="nt-folder" style="width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;cursor:pointer">
+          <option value="">🌱 Raiz (sem caderno)</option>
+          ${folders.map((f) => `<option value="${esc(f.id)}"${f.id === folderId ? ' selected' : ''}>${esc(f.emoji && GLYPH_ICONS[f.emoji] ? '' : (f.emoji || '') + ' ')}${esc(f.name)}</option>`).join('')}
+        </select>` : '';
       const body = `
         <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;font-weight:600">Nome da conversa</label>
         <input id="nt-name" type="text" placeholder="ex: Ideias de Projetos, Tarefas Diárias…" autofocus />
+        ${locSel}
         <label style="display:block;font-size:13px;color:var(--text-dim);margin:14px 0 6px;font-weight:600">Cor</label>
         ${this._colorSwatchesHTML('nt', null)}
         <div style="display:flex;align-items:center;gap:8px;margin:14px 0 6px">
@@ -30,12 +52,16 @@ bindTreeActions() {
       this.showModal('Nova conversa', body, () => {
         const v = ($('#nt-name').value || '').trim();
         if (!v) { $('#nt-name').focus(); return; }
-        const t = { id: uid(), name: v, emoji: chosen, color: chosenColor || undefined, folderId: this.activeFolderContext || null, favorite: false, createdAt: now(), updatedAt: now(), lastPreview: '', userId: Store.user ? Store.user.mail : 'anon' };
+        // o select MANDA quando existe (usuário decide; pré-escolhido se veio do contexto)
+        const sel = $('#nt-folder');
+        const target = sel ? (sel.value || null) : (folderId || null);
+        const t = { id: uid(), name: v, emoji: chosen, color: chosenColor || undefined, folderId: target, favorite: false, createdAt: now(), updatedAt: now(), lastPreview: '', userId: Store.user ? Store.user.mail : 'anon' };
         Store.upsertThread(t);
         Sync.send('thread:upsert', t);
         this.renderTree();
         this.closeModal();
         Sound.play('create'); haptic('success');
+        this.toast(this._cozyCongrats(), { kind: 'success' });
         this.openThread(t.id);
       });
       this._bindColorSwatches('nt', null, (c) => { chosenColor = c; });
@@ -78,6 +104,7 @@ bindTreeActions() {
         Sync.send('folder:upsert', f);
         this.closeModal();
         Sound.play('create'); haptic('success');
+        this.toast(this._cozyCongrats(), { kind: 'success' });
         this.renderTree();
       });
       this._bindColorSwatches('nf', null, (c) => { chosenColor = c; });
@@ -107,6 +134,32 @@ sortThreads(list) {
 queueRenderTree() { clearTimeout(this._rtTimer); this._rtTimer = setTimeout(() => this.renderTree(), 90); },
 
 renderTree() {
+      // ANTI-FLICK: se nada visível na árvore mudou, NÃO reconstrói. Ecos do
+      // realtime (thread:upsert da própria criação), snapshots de reconexão e
+      // outros eventos chamam renderTree sem mudar nada — reconstruir a lista e
+      // re-animar todos os nós era o flick ao criar conversa/caderno.
+      const threadSig = (t) => [t.id, t.name, t.emoji || '', t.color || '', t.favorite ? 1 : 0, (Store.notesFor(t.id) || []).length, (Store.notesFor(t.id) || []).some((x) => x.remindAt && !x.remindFired) ? 1 : 0].join('~');
+      const fpFolders = Store.folderList();
+      const fpRoots = this.sortThreads(Store.threadList().filter((t) => !t.favorite && !t.folderId));
+      const fp = [
+        'F:' + this.sortThreads(Store.threadList().filter((t) => t.favorite)).map((t) => t.id).join(','),
+        'D:' + fpFolders.map((f) => [f.id, f.name, f.emoji || '', f.color || '', Store.isExpanded(f.id) ? 1 : 0].join('~')).join(','),
+        'R:' + fpRoots.map(threadSig).join(','),
+        ...fpFolders.map((f) => 'K' + f.id + ':' + this.sortThreads(Store.threadList().filter((t) => !t.favorite && t.folderId === f.id)).map(threadSig).join(',')),
+      ].join(';');
+      if (fp === this._lastTreeFp) return;
+
+      // anima SOMENTE nós que não existiam no render anterior (entrada pontual)
+      const prevIds = this._lastTreeThreadIds || new Set();
+      const allIds = new Set();
+      const collect = (t) => allIds.add(t.id);
+      fpRoots.forEach(collect);
+      Store.threadList().filter((t) => t.favorite).forEach(collect);
+      fpFolders.forEach((f) => Store.threadList().filter((t) => !t.favorite && t.folderId === f.id).forEach(collect));
+      this._newTreeIds = new Set([...allIds].filter((id) => !prevIds.has(id)));
+      this._lastTreeThreadIds = allIds;
+      this._lastTreeFp = fp;
+
       this.renderFavorites();
       const tree = this.dom.tree;
       tree.innerHTML = '';
@@ -126,6 +179,9 @@ renderTree() {
       folders.forEach((f) => tree.appendChild(this.folderNode(f)));
       // Threads soltas (raiz)
       this.sortThreads(threads).forEach((t) => tree.appendChild(this.threadNode(t, 0)));
+      // limpa a classe de entrada após a animação (não re-anima em renders futuros)
+      clearTimeout(this._treeNewTimer);
+      this._treeNewTimer = setTimeout(() => document.querySelectorAll('.tree-new').forEach((el) => el.classList.remove('tree-new')), 350);
     },
 
 folderNode(f) {
@@ -133,7 +189,8 @@ folderNode(f) {
       const expanded = Store.isExpanded(f.id);
 
       const row = document.createElement('div');
-      row.className = 'tnode folder-node' + (expanded ? '' : ' collapsed');
+      const fIsNew = !!(this._newTreeIds && this._newTreeIds.has(f.id));
+      row.className = 'tnode folder-node' + (expanded ? '' : ' collapsed') + (fIsNew ? ' tree-new' : '');
       row.dataset.fid = f.id;
       row.setAttribute('draggable', 'true');
       // ícone grande colorido (mesmo estilo dos cadernos); cor salva ou hash
@@ -144,9 +201,21 @@ folderNode(f) {
       const isGlyphF = !!fglyph;
       // alinha com as notas: mesmo padding-left (8px) — a arrow twist já reserva o espaço
       row.style.paddingLeft = '8px';
-      const fico = `<span class="caderno-ico" style="width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:${fcol.bg};color:${fcol.fg};font-size:${isGlyphF ? '0' : '22px'};box-shadow:var(--shadow-sm)">${isGlyphF ? fInner.replace('<svg ', '<svg style="width:26px;height:26px" ') : fInner}</span>`;
+      // PASTA = caderno: aba lateral escura no tile (estilo fichário) —
+      // diferencia de conversa à primeira vista, herda a cor da paleta,
+      // sem markup extra (gradiente inline, à prova de cache).
+      // Compensação ÓTICA do glifo: a aba escura tem peso visual, então o
+      // centro percebido fica entre o centro do tile e o do corpo — usamos
+      // METADE da aba (3.5px), não os 7px inteiros (fica ~2px à direita).
+      // Não gera desalinhho com os filhos: na árvore eles já partem 16px à
+      // direita (indent), então nunca há coluna de glifos pai×filho.
+      const ftab = `linear-gradient(90deg, ${this._darken(fcol.bg, .55)} 0 7px, ${fcol.bg} 7px)`;
+      const fico = `<span class="caderno-ico" style="width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;padding-left:3.5px;background:${ftab};color:${fcol.fg};font-size:${isGlyphF ? '0' : '22px'};box-shadow:var(--shadow-sm)">${isGlyphF ? fInner.replace('<svg ', '<svg style="width:26px;height:26px" ') : fInner}</span>`;
+      // count só quando há conversas — pílula vazia com background virava
+      // uma "linha branca" fantasma à direita do nome
+      const fcount = kids.length ? `<span class="count">${kids.length}</span>` : '';
       row.innerHTML = `<span class="twist">${wrapSvg(ICON.chevron, 10)}</span><span class="ico">${fico}</span>
-                       <span class="label">${esc(f.name)}</span><span class="count">${kids.length || ''}</span>`;
+                       <span class="label">${esc(f.name)}</span>${fcount}`;
       row.addEventListener('click', () => {
         const v = !Store.isExpanded(f.id);
         Store.setExpanded(f.id, v);
@@ -189,9 +258,9 @@ folderNode(f) {
                            <span class="fe-text"><strong>Pasta vazia</strong><small>Clique para criar a primeira conversa</small></span>`;
         empty.addEventListener('click', (e) => {
           e.stopPropagation();
-          this.activeFolderContext = f.id;
-          this.createThread();
-          this.activeFolderContext = null;
+          // folderId capturado no closure AGORA — estado mutável compartilhado
+          // (activeFolderContext) era zerado antes do modal fechar → bug raiz
+          this.createThread(f.id);
         });
         inner.appendChild(empty);
       }
@@ -226,9 +295,19 @@ folderNode(f) {
       for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
       return palette[hash % palette.length];
     },
+    _darken(hex, f = 0.8) {
+      // escurece hex p/ as "folhas" de trás do tile — dá separação visual entre camadas
+      try {
+        const n = parseInt(String(hex).replace('#', ''), 16);
+        const r = Math.round(((n >> 16) & 255) * f), g = Math.round(((n >> 8) & 255) * f), b = Math.round((n & 255) * f);
+        return `rgb(${r},${g},${b})`;
+      } catch { return hex; }
+    },
     threadNode(t, depth) {
       const el = document.createElement('div');
-      el.className = 'tnode cozy-caderno' + (this.activeThread === t.id ? ' active' : '') + (t.favorite ? ' fav' : '');
+      // .tree-new: animação de entrada só no nó realmente novo (anti-flick)
+      const isNew = !!(this._newTreeIds && this._newTreeIds.has(t.id));
+      el.className = 'tnode cozy-caderno' + (this.activeThread === t.id ? ' active' : '') + (t.favorite ? ' fav' : '') + (isNew ? ' tree-new' : '');
       el.dataset.tid = t.id;
       el.setAttribute('draggable', 'true');
       el.style.paddingLeft = (8 + depth * 16) + 'px';
@@ -337,8 +416,10 @@ toggleFavorite(id) {
       if (m.dataset.origHtml) { m.innerHTML = m.dataset.origHtml; delete m.dataset.origHtml; }
       const favBtn = m.querySelector('[data-act="fav"]');
       const unfavBtn = m.querySelector('[data-act="unfav"]');
-      if (favBtn) favBtn.style.display = t.favorite ? 'none' : 'block';
-      if (unfavBtn) unfavBtn.style.display = t.favorite ? 'block' : 'none';
+      // '' remove o estilo inline: o display:flex do CSS volta a valer
+      // ('block' quebrava o flex e o texto caía para a linha de baixo do ícone)
+      if (favBtn) favBtn.style.display = t.favorite ? 'none' : '';
+      if (unfavBtn) unfavBtn.style.display = t.favorite ? '' : 'none';
       m.classList.remove('hidden');
       m.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
       m.style.top = Math.min(e.clientY, window.innerHeight - 220) + 'px';
@@ -349,14 +430,17 @@ toggleFavorite(id) {
       const m = this.dom.ctx;
       // preserva o HTML original do menu de threads para não quebrar o próximo openThreadMenu
       if (!m.dataset.origHtml) m.dataset.origHtml = m.innerHTML;
-      m.innerHTML = `<button data-act="rename-folder">✎ Renomear pasta</button>
-                     <button data-act="delete-folder" class="danger">🗑 Excluir caderno</button>`;
+      // mesmos SVGs do menu de notas (15×15, stroke 2) — coluna de glifos alinhada
+      m.innerHTML = `<button data-act="new-thread-folder"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nova conversa</button>
+                     <button data-act="rename-folder"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Renomear pasta</button>
+                     <button data-act="delete-folder" class="danger"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Excluir caderno</button>`;
       m.classList.remove('hidden');
       m.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
-      m.style.top = Math.min(e.clientY, window.innerHeight - 160) + 'px';
+      m.style.top = Math.min(e.clientY, window.innerHeight - 200) + 'px';
       m.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
         const act = b.dataset.act;
-        if (act === 'rename-folder') this.renameFolder(f.id);
+        if (act === 'new-thread-folder') this.createThread(f.id);
+        else if (act === 'rename-folder') this.renameFolder(f.id);
         else if (act === 'delete-folder') this.confirmDeleteFolder(f.id);
         m.classList.add('hidden');
         // restaura o menu de threads para o próximo uso
@@ -443,7 +527,9 @@ confirmDeleteThread(id) {
           $('#chat-name').textContent = 'Selecione uma conversa';
           $('#messages').querySelectorAll('.bubble,.day-sep').forEach((n) => n.remove());
           $('#empty-state').classList.remove('hidden');
-          $('#composer-input').disabled = true; $('#btn-send').disabled = true;
+          const ci = $('#composer-input');
+          ci.setAttribute('contenteditable', 'false'); ci.classList.add('composer-disabled'); ci.innerHTML = '';
+          $('#btn-send').disabled = true;
           this.dom.btnPin.classList.add('hidden');
           this.setChatActiveUi(false);
         }

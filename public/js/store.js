@@ -1,4 +1,6 @@
 
+import { now } from './utils.js';
+
   // ===================================================================
   // STORE (offline-first, localStorage)
   // data: { user, threads:{}, folders:{}, notes:{}, ui:{expanded:{}} }
@@ -23,8 +25,25 @@
       // migração: limpa flag "pending" de notas antigas (dados de versões anteriores)
       let migrated = false;
       Object.values(d.notes).forEach((arr) => arr.forEach((n) => { if (n.pending) { n.pending = false; migrated = true; } }));
+      // auto-cura: remove notas duplicadas por clientId e garante sortOrder único.
+      // Protege a renderização de dados corrompidos por versões antigas (sintoma:
+      // mensagens aparecendo duas vezes na mesma conversa).
+      Object.entries(d.notes).forEach(([tid, arr]) => {
+        if (!Array.isArray(arr)) return;
+        const seen = new Set();
+        const clean = arr.filter((n) => {
+          if (!n || !n.clientId || seen.has(n.clientId)) return false;
+          seen.add(n.clientId); return true;
+        });
+        if (clean.length !== arr.length) { d.notes[tid] = clean; migrated = true; }
+        clean.forEach((x, idx) => { if (x.sortOrder == null) { x.sortOrder = idx; migrated = true; } });
+      });
       this.data = d;
       if (migrated) this.save();
+      // cura de double-send também nos dados LOCAIS: builds antigos salvavam a
+      // mesma nota com client_id diferente a cada tentativa — gêmeas no localStorage
+      // renderizam duplicadas em todo boot sem nunca passar pelo snapshot
+      Object.keys(this.data.notes).forEach((tid) => this.dedupeIdentical(tid));
       return d;
     },
     save() { try { localStorage.setItem(this.KEY, JSON.stringify(this.data)); } catch (e) {} },
@@ -86,12 +105,50 @@
       this.data.notes[n.threadId] = this.data.notes[n.threadId] || [];
       const arr = this.data.notes[n.threadId];
       const i = arr.findIndex((x) => x.clientId === n.clientId);
-      if (i >= 0) arr[i] = Object.assign({}, arr[i], n); else { arr.push(n); arr.sort((a, b) => (a.sortOrder || a.ts) - (b.sortOrder || b.ts)); }
+      if (i >= 0) {
+        // merge que NUNCA apaga campos com undefined (o eco do servidor vem sem
+        // local/pending — copiar undefined por cima corrompia a nota existente)
+        const cur = arr[i];
+        const localRx = cur.reactions; // estado local ANTES do merge genérico (base da união)
+        const merged = Object.assign({}, cur);
+        Object.keys(n).forEach((k) => { if (n[k] !== undefined) merged[k] = n[k]; });
+        // reações: mescladas por UNIÃO sobre o estado local ORIGINAL — nem o eco
+        // próprio nem a nota de outro usuário podem apagar reações que este device
+        // ainda não viu (remoção tem evento próprio, note:reactions)
+        if (n.reactions !== undefined && n.reactions && Object.keys(n.reactions).length) {
+          const rx = Object.assign({}, localRx || {});
+          Object.entries(n.reactions).forEach(([e2, users]) => {
+            const set = new Set(rx[e2] || []);
+            (users || []).forEach((u) => set.add(u));
+            if (set.size) rx[e2] = Array.from(set);
+          });
+          if (Object.keys(rx).length) merged.reactions = rx;
+        }
+        arr[i] = merged;
+        this.save(); return merged;
+      }
+      else {
+        // guard estrutural anti-double-fire: uma nota NOVA (clientId diferente)
+        // com texto longo idêntico da mesma pessoa em <=2.5s não existe em uso
+        // real — é disparo duplo/triplo (retry, replay de extensão, evento repetido).
+        // Vira merge na existente em vez de inserir a gêmea. Só para texto >=200
+        // chars: mensagens curtas legítimas repetidas ("ok", "kkk") continuam passando.
+        const norm = (s) => String(s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim();
+        if (norm(n.text).length >= 200) {
+          const twin = arr.find((x) => x.userId === n.userId
+            && Math.abs((n.ts || 0) - (x.ts || 0)) <= 2500
+            && norm(x.text) === norm(n.text));
+          if (twin) { arr.sort((a, b) => (a.sortOrder || a.ts) - (b.sortOrder || b.ts)); this.save(); return twin; }
+        }
+        arr.push(n);
+        arr.sort((a, b) => (a.sortOrder || a.ts) - (b.sortOrder || b.ts));
+      }
       // garantir sortOrder em notas antigas
       arr.forEach((x, idx) => { if (x.sortOrder == null) x.sortOrder = idx; });
       const th = this.data.threads[n.threadId];
       if (th) { th.updatedAt = n.ts; th.lastPreview = n.text.slice(0, 60); }
       this.save();
+      return n;
     },
     deleteNote(threadId, clientId) {
       if (!this.data.notes[threadId]) return;
@@ -100,6 +157,88 @@
       const th = this.data.threads[threadId];
       if (th && th.pinnedId === clientId) th.pinnedId = null;
       this.save();
+    },
+    // Reações rápidas (❤️ ✨ 🌸 😊 …) — toggle do usuário atual. Formato:
+    // note.reactions = { "❤️": [userId, ...], "🌸": [userId, ...] }.
+    // Retorna a nota atualizada (ou null se não achou).
+    toggleReaction(threadId, clientId, emoji, userId) {
+      const arr = this.data.notes[threadId]; if (!arr) return null;
+      const n = arr.find((x) => x.clientId === clientId); if (!n) return null;
+      const u = userId || this.getUserId();
+      // parte do mapa JÁ EXISTENTE (não zera outras reações — sync de reações P0:
+      // o objeto chega por referência e era substituído por inteiro)
+      const rx = Object.assign({}, n.reactions || {});
+      const list = (rx[emoji] || []).slice();
+      const i = list.indexOf(u);
+      if (i >= 0) { list.splice(i, 1); if (!list.length) delete rx[emoji]; else rx[emoji] = list; }
+      else { list.push(u); rx[emoji] = list; }
+      if (Object.keys(rx).length) n.reactions = rx; else delete n.reactions;
+      this.save();
+      return n;
+    },
+    // reação remota chegando: mescla por USUÁRIO/EMOJI (união). Sem "último vence"
+    // por nota — quem reagiu por último envia o mapa completo, mas usuários que
+    // reagiram com OUTROS emojis (ou emojis que ainda não chegaram aqui) não somem.
+    updateReaction(threadId, clientId, reactions) {
+      const arr = this.data.notes[threadId]; if (!arr) return null;
+      const n = arr.find((x) => x.clientId === clientId); if (!n) return null;
+      const rx = Object.assign({}, n.reactions || {});
+      Object.entries(reactions || {}).forEach(([e2, users]) => {
+        const set = new Set(rx[e2] || []);
+        (users || []).forEach((u) => set.add(u));
+        if (set.size) rx[e2] = Array.from(set); else delete rx[e2];
+      });
+      if (Object.keys(rx).length) n.reactions = rx; else delete n.reactions;
+      this.save();
+      return n;
+    },
+    // usuários que saíram do mapa remoto (reagiram e desfizeram em outro device):
+    // remove SOMENTE esses pares usuário/emoji e devolve o mapa limpo
+    removeReactions(threadId, clientId, reactions) {
+      const arr = this.data.notes[threadId]; if (!arr) return null;
+      const n = arr.find((x) => x.clientId === clientId); if (!n || !n.reactions) return n;
+      Object.entries(reactions || {}).forEach(([e2, users]) => {
+        if (!n.reactions[e2]) return;
+        const gone = new Set(users || []);
+        n.reactions[e2] = n.reactions[e2].filter((u) => !gone.has(u));
+        if (!n.reactions[e2].length) delete n.reactions[e2];
+      });
+      if (!Object.keys(n.reactions).length) delete n.reactions;
+      this.save();
+      return n;
+    },
+    // mapa esperado pelo servidor a partir do estado local atual (para sync)
+    reactionsOf(threadId, clientId) {
+      const arr = this.data.notes[threadId]; if (!arr) return {};
+      const n = arr.find((x) => x.clientId === clientId);
+      return (n && n.reactions) ? n.reactions : {};
+    },
+    // cura de duplicatas: notas com texto IDÊNTICO, mesmo autor e timestamps quase
+    // iguais (<=2s) são artefatos de double-send (builds antigos reenviavam a nota
+    // com client_id novo — o servidor as guarda como notas legítimas). Mantém a mais
+    // antiga e retorna a lista das removidas (o chamador sincroniza a exclusão).
+    dedupeIdentical(threadId) {
+      const arr = this.data.notes[threadId];
+      if (!arr || arr.length < 2) return [];
+      const kept = new Map();
+      const removed = [];
+      // normalização fofa de comparação: colapsa whitespace e unifica aspas —
+      // gêmeas geradas por replay do Grammarly/retry podem ter espaços ou
+      // aspas levemente diferentes, e a comparação exata as deixava passar
+      const norm = (s) => String(s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, ' ').trim()
+        .replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+      const key = (n) => (n.userId || '') + '\u0000' + norm(n.text);
+      const ord = (n) => (n.sortOrder != null ? n.sortOrder : (n.ts || 0));
+      for (const n of arr.slice().sort((a, b) => ord(a) - ord(b))) {
+        const prev = kept.get(key(n));
+        if (prev && Math.abs((n.ts || 0) - (prev.ts || 0)) <= 2000) { removed.push(n); continue; }
+        kept.set(key(n), n);
+      }
+      if (removed.length) {
+        this.data.notes[threadId] = arr.filter((n) => !removed.includes(n));
+        this.save();
+      }
+      return removed;
     },
     editNote(threadId, clientId, newText) {
       const arr = this.data.notes[threadId]; if (!arr) return null;

@@ -19,9 +19,31 @@ describe('PWA', ()=>{
     assert.ok(m.icons.find(i=>i.src.includes('logo')));
     assert.equal(m.short_name, 'SaveChat');
   });
-  it('sw.js é v83', ()=>{
+  it('precache do SW cobre os ícones do manifest (offline/instalação em device novo)', ()=>{
+    const m = JSON.parse(readFileSync('public/manifest.webmanifest','utf8'));
+    const sw = readFileSync('public/sw.js','utf8');
+    for (const i of m.icons) {
+      const src = "'./" + i.src.replace(/^\.\//, '') + "'";
+      assert.ok(sw.includes(src), `ícone do manifest ausente no precache do SW: ${src}`);
+    }
+  });
+  it('sw.js é v118', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v83/);
+    assert.match(sw, /notethread-v118/);
+    // o próprio SW não pode ser servido do cache (senão o navegador nunca
+    // descobre novas versões e o updater fica sem "waiting" — deadlock)
+    assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);
+    // precache com query-buster: cache novo nunca herda asset do SW anterior
+    assert.match(sw, /precache=' \+ Date\.now\(\)/);
+  });
+  it('APP_VERSION no index.html bate com a 1ª versão do CHANGELOG', ()=>{
+    const html = readFileSync('public/index.html','utf8');
+    const appV = html.match(/APP_VERSION = '(\d+\.\d+\.\d+)'/);
+    assert.ok(appV, 'APP_VERSION não encontrado no index.html');
+    const cl = readFileSync('public/CHANGELOG.md','utf8');
+    const topV = cl.match(/^## \[(\d+\.\d+\.\d+)\]/m);
+    assert.ok(topV, 'versão não encontrada no CHANGELOG');
+    assert.equal(appV[1], topV[1], 'APP_VERSION (' + appV[1] + ') ≠ CHANGELOG (' + topV[1] + ') — o updater marcaria "atualização disponível" para sempre');
   });
   it('SW espera SKIP_WAITING (update controlado pelo botão, não auto-skipWaiting)', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
@@ -50,6 +72,11 @@ describe('PWA', ()=>{
   it('updater.js está no precache do SW', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
     assert.match(sw, /'\.\/js\/updater\.js'/);
+  });
+  it('oauth-callback.html existe e está no precache do SW (popup nunca renderiza o app)', ()=>{
+    assert.ok(existsSync('public/oauth-callback.html'));
+    const sw=readFileSync('public/sw.js','utf8');
+    assert.match(sw, /'\.\/oauth-callback\.html'/);
   });
   it('CHANGELOG é servido pelo site (toast "what\'s new" em prod)', ()=>{
     assert.ok(existsSync('public/CHANGELOG.md'));

@@ -21,5 +21,5 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 4173;
+const PORT = Number(process.env.PORT) || 4173; // Number(): ambiente com PORT=0/"0" cairia no 0 (porta aleatória) e o Playwright nunca acharia o servidor
 server.listen(PORT, () => console.log(`static server em :${PORT}`));

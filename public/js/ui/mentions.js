@@ -3,11 +3,36 @@ import { Store } from '../store.js';
 
 export const MentionMethods = {
 _mentionToken(ta) {
-      // retorna {start, query} se o caret está logo após "@texto"
-      const pos = ta.selectionStart;
-      const before = ta.value.slice(0, pos);
+      // retorna {start(el texto), query} se o caret está logo após "@texto"
+      const sel = getSelection();
+      if (!sel.rangeCount || !ta.contains(sel.anchorNode)) return null;
+      const range = sel.getRangeAt(0);
+      // caminho de texto desde o início do bloco atual até o caret
+      const block = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+      const blk = block && (block.closest && (block.closest('#composer-input > div, #composer-input > ul, #composer-input > ol, #composer-input > .md-check') || block));
+      if (!blk || !ta.contains(blk)) return null;
+      const pre = document.createRange();
+      pre.selectNodeContents(blk);
+      pre.setEnd(range.startContainer, range.startOffset);
+      const before = pre.toString();
       const m = before.match(/(?:^|\s)@([^\s@]{0,30})$/);
-      return m ? { start: pos - m[1].length - 1, query: m[1] } : null;
+      if (!m) return null;
+      // posição real do "@" dentro do bloco: reconstrói o range até o "@"
+      const atRange = document.createRange();
+      atRange.selectNodeContents(blk);
+      atRange.setEnd(range.startContainer, range.startOffset);
+      // recua o fim do range até depois do "@" (m[0].length trás "@query")
+      let tail = m[0];
+      const shrink = () => {
+        const txt = atRange.toString();
+        while (!txt.endsWith(tail) && (atRange.endContainer.nodeType !== 3 || atRange.endOffset > 0)) {
+          // move o fim para trás caractere a caractere
+          if (atRange.endContainer.nodeType === 3 && atRange.endOffset > 0) atRange.setEnd(atRange.endContainer, atRange.endOffset - 1);
+          else break;
+        }
+      };
+      shrink();
+      return { query: m[1], atRange };
     },
     _initMentions(ta) {
       let dd = document.getElementById('mention-dd');
@@ -35,8 +60,10 @@ _mentionToken(ta) {
         dd.style.bottom = (window.innerHeight - r.top + 6) + 'px';
         dd.style.top = 'auto';
         dd.querySelectorAll('.mention-opt').forEach((b) => b.addEventListener('mousedown', (e) => {
-          e.preventDefault(); // evita blur do textarea
-          this._insertMention(ta, token.start, b.dataset.tid, b.dataset.name); close();
+          e.preventDefault(); // evita blur do editor
+          const token = this._mentionToken(ta);
+          if (token) this._insertMention(ta, token, b.dataset.tid, b.dataset.name);
+          close();
         }));
       };
 
@@ -55,66 +82,31 @@ _mentionToken(ta) {
           opts[cur].classList.add('sel');
         } else if (e.key === 'Enter') {
           e.preventDefault(); e.stopImmediatePropagation(); // não envia a nota
+          const token = this._mentionToken(ta);
           const b = opts[Math.max(0, cur)];
-          this._insertMention(ta, this._mentionToken(ta).start, b.dataset.tid, b.dataset.name);
+          if (token) this._insertMention(ta, token, b.dataset.tid, b.dataset.name);
           close();
         } else if (e.key === 'Escape') { e.stopImmediatePropagation(); close(); }
       }, true); // capture: roda antes do handler de envio
       ta.addEventListener('blur', () => setTimeout(close, 120));
     },
-    _insertMention(ta, start, tid, name) {
-      const token = `@[${name}](t:${tid}) `;
-      const pos = ta.selectionStart;
-      ta.value = ta.value.slice(0, start) + token + ta.value.slice(pos);
-      ta.selectionStart = ta.selectionEnd = start + token.length;
+    _insertMention(ta, token, tid, name) {
+      // apaga "@query" (range do token) e insere o chip
+      const r = token.atRange;
+      r.deleteContents();
+      const chip = document.createElement('span');
+      chip.setAttribute('data-mention', ''); chip.setAttribute('data-tid', tid);
+      chip.textContent = '@' + name;
+      r.insertNode(chip);
+      // espaço depois do chip para o caret continuar no fluxo
+      const sp = document.createTextNode('\u00a0');
+      chip.after(sp);
+      const sel = getSelection();
+      const range = document.createRange();
+      range.setStart(sp, 1); range.collapse(true);
+      sel.removeAllRanges(); sel.addRange(range);
       ta.focus();
       ta.dispatchEvent(new Event('input', { bubbles: true }));
-      this._renderMentionHighlight(ta);
-    },
-
-    // ---- Highlight de menções no textarea (camada espelho atrás do texto) ----
-    // Renderiza o mesmo texto num div por baixo; menções viram chips com cara de link.
-    _ensureHighlightLayer(ta) {
-      const wrap = ta.closest('.cozy-input-wrap') || ta.parentElement;
-      let hl = wrap.querySelector('.mention-highlight');
-      if (!hl) {
-        hl = document.createElement('div');
-        hl.className = 'mention-highlight';
-        hl.setAttribute('aria-hidden', 'true');
-        wrap.insertBefore(hl, ta);
-        // espelha a tipografia exata do textarea
-        const sync = () => {
-          const cs = getComputedStyle(ta);
-          ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'padding', 'border', 'boxSizing']
-            .forEach((p) => { hl.style[p] = cs[p]; });
-          hl.style.whiteSpace = 'pre-wrap';
-          hl.style.wordWrap = 'break-word';
-        };
-        sync();
-        this._hlSync = sync;
-      }
-      return hl;
-    },
-    _renderMentionHighlight(ta) {
-      if (!ta || !document.body.contains(ta)) return;
-      const hl = this._ensureHighlightLayer(ta);
-      const val = ta.value || '';
-      let html = esc(val);
-      // menções @[Nome](t:id) → chip clicável
-      html = html.replace(/@\[([^\]]+)\]\(t:[a-z0-9]+\)/gi,
-        (_, name) => `<span class="mh-link">${esc(name)}</span>`);
-      // negrito **...** e __...__ → renderiza em bold
-      html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/(^|\s)__([^_\n]+)__/g, '$1<strong>$2</strong>');
-      // itálico *...* e _..._ (após negrito, evita conflito)
-      html = html.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
-      html = html.replace(/(^|[^_\w])_([^_\n]+)_/g, '$1<em>$2</em>');
-      hl.innerHTML = html + '\n';
-    },
-    clearMentionHighlight(ta) {
-      const wrap = ta && ta.closest && ta.closest('.cozy-input-wrap');
-      const hl = wrap && wrap.querySelector('.mention-highlight');
-      if (hl) hl.innerHTML = '';
     },
 
     // ---------- Lembretes (Notification API) ----------

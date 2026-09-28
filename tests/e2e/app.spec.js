@@ -76,12 +76,16 @@ test('menção @ insere token e renderiza chip clicável', async ({ page }) => {
   await expect(page.locator('#chat-name')).toHaveText('Principal');
 
   const composer = page.locator('#composer-input');
-  await composer.fill('veja @');
+  // editor WYSIWYG: o dropdown de menções depende do caret real — digitação
+  // com teclado (não fill(), que não reposiciona a seleção dentro do editor)
+  await composer.click();
+  await page.keyboard.type('veja @', { delay: 30 });
   // dropdown de menções aparece
   const dd = page.locator('#mention-dd');
   await expect(dd).toBeVisible();
   await dd.locator('.mention-opt', { hasText: 'Alvo' }).click();
-  await expect(composer).toHaveValue(/@\[Alvo\]\(t:/);
+  // chip entra no editor; o token @[Alvo](t:id) só existe no markdown serializado
+  await expect(composer.locator('[data-mention]', { hasText: 'Alvo' })).toBeVisible();
   await composer.press('Enter');
 
   // chip renderizado na bolha

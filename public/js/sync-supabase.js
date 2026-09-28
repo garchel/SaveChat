@@ -119,7 +119,7 @@ import { OfflineQueue } from './offline-queue.js';
       const payload = {
         threads: Object.fromEntries((th.data || []).map(t => [t.id, { id: t.id, name: t.name, emoji: t.emoji, color: t.color || undefined, folderId: t.folder_id, favorite: t.favorite, pinnedId: t.pinned_id, createdAt: new Date(t.created_at).getTime(), updatedAt: new Date(t.updated_at).getTime(), lastPreview: t.last_preview }])),
         folders: Object.fromEntries((fo.data || []).map(f => [f.id, { id: f.id, name: f.name, emoji: f.emoji, color: f.color || undefined, parentId: f.parent_id, createdAt: new Date(f.created_at).getTime() }])),
-        notes: (() => { const m = {}; (no.data || []).forEach(n => { (m[n.thread_id] = m[n.thread_id] || []).push({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images || [], tags: n.tags || [], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, userId: Store.user ? Store.user.mail : 'anon' }); }); return m; })()
+        notes: (() => { const m = {}; (no.data || []).forEach(n => { (m[n.thread_id] = m[n.thread_id] || []).push({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images || [], tags: n.tags || [], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }); }); return m; })()
       };
       this.emit('snapshot', payload);
     },
@@ -134,10 +134,12 @@ import { OfflineQueue } from './offline-queue.js';
             const r = p.new || p.old; if (!r) return;
             if (p.eventType === 'DELETE') this.emit('note:delete', { threadId: r.thread_id, clientId: r.client_id });
             else {
-              const payload = { clientId: r.client_id, threadId: r.thread_id, text: r.text, images: (r.images||[]).slice(0,2), tags: r.tags || [], ts: Number(r.ts), sortOrder: r.sort_order, edited: r.edited, editedAt: r.edited_at, rev: r.rev, userId: r.user_id };
+              const payload = { clientId: r.client_id, threadId: r.thread_id, text: r.text, images: (r.images||[]).slice(0,2), tags: r.tags || [], ts: Number(r.ts), sortOrder: r.sort_order, edited: r.edited, editedAt: r.edited_at, rev: r.rev, ...(r.reactions && Object.keys(r.reactions).length ? { reactions: r.reactions } : {}), userId: r.user_id };
               this.emit('note:upsert', payload);
-              // A6: evento separado para nota de OUTRO usuário (tint de chegada)
-              this.emit('note:remote', payload);
+              // A6: evento separado APENAS para nota de OUTRO usuário (tint de chegada).
+              // Antes disparava também no eco da própria nota → a bolha piscava azul
+              // ~300ms após cada envio (parecia a animação de envio repetindo 2-3x)
+              if (uid && r.user_id && r.user_id !== uid) this.emit('note:remote', payload);
             }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'threads', ...(filt?{filter:filt}:{}) }, (p) => {
@@ -201,12 +203,29 @@ import { OfflineQueue } from './offline-queue.js';
       if (beforeTs != null) q = q.lt('ts', beforeTs);
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []).reverse().map(n => ({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images||[], tags: n.tags||[], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, userId: Store.user ? Store.user.mail : 'anon' }));
+      return (data || []).reverse().map(n => ({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images||[], tags: n.tags||[], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }));
     },
     async _doSend(type, payload) {
       const uid = await this._uid(); if (!uid) throw new Error('sem sessão');
       if (type === 'note:upsert') {
-        const n = payload; await this.supa.from('notes').upsert({ client_id: n.clientId, thread_id: n.threadId, text: n.text, images: n.images || [], tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, user_id: uid }, { onConflict: 'client_id' });
+        const n = payload;
+        const row = { client_id: n.clientId, thread_id: n.threadId, text: n.text, images: n.images || [], tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, reactions: n.reactions || {}, user_id: uid };
+        // (supabase-js devolve { error } em vez de lançar — checar o resultado)
+        let res = await this.supa.from('notes').upsert(row, { onConflict: 'client_id' });
+        // servidor sem a migração reactions (v1.8.0, erro 42703): reenvia SEM a
+        // coluna para não derrubar o sync de notas como um todo
+        if (res.error && (res.error.code === '42703' || /reactions/i.test(res.error.message || ''))) {
+          delete row.reactions;
+          res = await this.supa.from('notes').upsert(row, { onConflict: 'client_id' });
+        }
+        if (res.error) throw res.error;
+      } else if (type === 'note:reactions') {
+        // reações por nota: grava exatamente o mapa local (única fonte de verdade,
+        // o conflito é resolvido pelo merge por usuário/emoji no Store)
+        const res = await this.supa.from('notes').update({ reactions: payload.reactions || {} }).eq('client_id', payload.clientId);
+        // sem a coluna no servidor ainda (42703): não enfileira retry infinito
+        if (res.error && !(res.error.code === '42703' || /reactions/i.test(res.error.message || ''))) throw res.error;
+        else if (res.error) console.warn('[supabase] coluna reactions ausente — rode o supabase.sql atualizado');
       } else if (type === 'note:remind') {
         await this.supa.from('notes').update({ remind_at: payload.remindAt || null, remind_fired: !!payload.remindFired }).eq('client_id', payload.clientId);
       } else if (type === 'thread:upsert') {

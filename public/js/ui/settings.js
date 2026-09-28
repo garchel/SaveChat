@@ -3,6 +3,7 @@ import { CUELUME_SOUNDS, Sound } from '../sound.js';
 import { Store } from '../store.js';
 import { Sync, USE_SUPABASE } from '../sync-supabase.js';
 import { buildPattern } from '../bg-patterns.js';
+import { setPetals } from '../petals.js';
 
 export const SettingsMethods = {
 bindSettings() {
@@ -85,6 +86,16 @@ bindSettings() {
           Store.data.ui = Store.data.ui || {};
           Store.data.ui.headerMatchColor = hm.checked; Store.save();
           if (this.activeThread) this.applyThreadHeaderColor(this.activeThread);
+        });
+      }
+      // ---- Pétalas flutuantes (ambiente cozy, padrão OFF) ----
+      const pt = $('#chk-petals');
+      if (pt) {
+        pt.checked = !!(Store.data.ui && Store.data.ui.petals);
+        pt.addEventListener('change', () => {
+          Store.data.ui = Store.data.ui || {};
+          Store.data.ui.petals = pt.checked; Store.save();
+          setPetals(pt.checked);
         });
       }
       // ---- Fonte da interface ----
@@ -216,9 +227,11 @@ bindSettings() {
     },
 
     applyTheme() {
-      const theme = (Store.data && Store.data.ui && Store.data.ui.theme) || 'peach';
-      // tema Auto foi removido; se o usuário tinha 'auto' salvo, resolve para peach
-      let resolved = theme === 'auto' ? 'peach' : theme;
+      let theme = (Store.data && Store.data.ui && Store.data.ui.theme) || 'peach';
+      // temas removidos: auto → peach; bubblegum → napolitano (muito parecido com sakura)
+      if (theme === 'auto') theme = 'peach';
+      if (theme === 'bubblegum') { theme = 'napolitano'; Store.data.ui.theme = theme; Store.save(); }
+      const resolved = theme;
       document.documentElement.dataset.theme = resolved;
       // logo da sidebar acompanha o tema (variantes em assets/themes/)
       const brandImg = document.querySelector('.brand-mark-img');
@@ -228,7 +241,7 @@ bindSettings() {
       if (fav) fav.href = `assets/themes/logo-${resolved}.svg`;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) {
-        const colors = { lavender:'#7c5cff', dark:'#191622', mint:'#1faa86', peach:'#ff7a59', ocean:'#2b8fd6', midnight:'#0e1525' };
+        const colors = { lavender:'#7c5cff', dark:'#191622', mint:'#1faa86', peach:'#ff7a59', ocean:'#2b8fd6', midnight:'#0e1525', sakura:'#e86a8a', napolitano:'#e0567a' };
         meta.setAttribute('content', colors[resolved] || '#7c5cff');
       }
       // regenera o padrão de fundo com a cor do novo tema (escala clamped, sem estourar o tile)

@@ -57,6 +57,10 @@ alter table notes add column if not exists remind_fired boolean default false;
 alter table threads add column if not exists color text;
 alter table folders add column if not exists color text;
 
+-- v1.8.0: reações por nota ({ "❤️": [userId, ...], ... }) — payloads antigos
+-- sem a coluna não podem zerar as reações locais (merge só sobrescreve se o campo veio)
+alter table notes add column if not exists reactions jsonb default '{}'::jsonb;
+
 -- 2. RLS
 alter table profiles enable row level security;
 alter table folders enable row level security;
