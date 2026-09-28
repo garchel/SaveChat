@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.9.3] — 2026-09-28
+### Corrigido
+- **Ícone do app usa a logo oficial** (balão + lápis, coral): a arte que ia para a tela inicial do celular era um resquício visual da era NoteThread (carretel de linha roxo) referenciado no manifest. Os ícones do launcher são gerados agora da própria logo — glifo grande no tile e variante maskable com o gradiente coral até a borda
+
 ## [1.9.2] — 2026-09-28
 ### Corrigido
 - **Botão "Instalar app" voltou a aparecer depois de desinstalar**: a flag que o escondia ficava presa no armazenamento do site (que sobrevive à desinstalação no Android). Agora o navegador decide — ele só oferece o prompt quando o app realmente não está instalado
