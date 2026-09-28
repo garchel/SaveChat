@@ -73,6 +73,12 @@ Loja:
 
 > **Veredito da auditoria:** tecnicamente maduro — o que falta é configuração de conta/domínio, conformidade legal e validação física, não features.
 
+### Atualização 28/09/2026 (3) — CI verde nas duas esteiras
+
+- ✅ **CI + Lighthouse CI success** no commit `a3f2f30` (as assertions de PWA do LHCI usavam audits removidos no Lighthouse 13 — substituídas; o e2e de menções tinha race de modal em runner lento — click via evaluate + assert de modal fechado; e2e estabilizado 3× seguidas)
+- ✅ Hardening real que a falha revelou: exceção num handler de modal não deixa mais **modal-fantasma** travando o app
+- ℹ️ LHCI em static dist acusa SEO ~0.85 (warning, não bloqueia) — re-medir no domínio real, onde robots/canonical/URL absoluta existem de verdade
+
 ### Atualização 28/09/2026 (2) — v1.9.0: PWA pro, observabilidade no CI
 
 Segunda leva 100% do lado do repo (commitado, sem depender de config externa):
