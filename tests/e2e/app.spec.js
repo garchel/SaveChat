@@ -30,9 +30,14 @@ test('sem conversa selecionada: placeholder aparece e some ao abrir conversa', a
   await expect(page.locator('#modal')).toBeVisible();
   await page.click('#modal-cancel');
   await expect(page.locator('#modal')).toBeHidden();
-  // segundo CTA leva à Diária
-  await page.click('#nt-open-daily');
-  await expect(page.locator('#daily-page')).toBeVisible();
+  // segundo CTA leva à conversa com a IA (com título próprio + tooltip ⓘ)
+  await page.click('#nt-open-ai');
+  await expect(page.locator('#ai-page')).toBeVisible();
+  await expect(page.locator('#chat-name')).toHaveText('Conversa com a IA');
+  await expect(page.locator('#ai-info-btn')).toBeVisible();
+  await page.click('#ai-info-btn');
+  await expect(page.locator('#ai-info-tip')).toHaveClass(/open/);
+  await page.keyboard.press('Escape');
   // criar conversa esconde o placeholder (canvas volta a ser a conversa)
   await page.click('.page-switch[data-page="notes"]');
   await page.evaluate(() => document.getElementById('btn-new-thread').click());

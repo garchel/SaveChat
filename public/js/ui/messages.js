@@ -98,8 +98,8 @@ export const MessagesMethods = {
       // CTAs do placeholder: novo modal unificado e abrir a Diária
       const ntNew = document.getElementById('nt-new');
       if (ntNew && !ntNew.dataset.bound) { ntNew.dataset.bound = '1'; ntNew.addEventListener('click', () => this.createItem()); }
-      const ntDaily = document.getElementById('nt-open-daily');
-      if (ntDaily && !ntDaily.dataset.bound) { ntDaily.dataset.bound = '1'; ntDaily.addEventListener('click', () => this.showWorkspaceTab('daily')); }
+      const ntAi = document.getElementById('nt-open-ai');
+      if (ntAi && !ntAi.dataset.bound) { ntAi.dataset.bound = '1'; ntAi.addEventListener('click', () => this.showWorkspaceTab('ai')); }
       if (show) this._bindChatTitleMenu();
     },
 

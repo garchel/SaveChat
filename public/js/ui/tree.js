@@ -26,14 +26,38 @@ bindTreeActions() {
       const row = document.querySelector('.explorer-row');
       const panel = document.getElementById('explorer-search-panel');
       if (sBtn && row && panel) {
+        const input = document.getElementById('search-input');
+        // placeholder animado: digita exemplos para ensinar a sintaxe da busca
+        const PHRASES = ['Buscar notas…', 'experimente: #urgente', 'experimente: in:Compras', 'o que você está procurando?'];
+        let phTimer = null, phIdx = 0, phPos = 0, phDeleting = false;
+        const phTick = () => {
+          phTimer = null;
+          if (!input) return;
+          if (input.value) { phTimer = setTimeout(phTick, 900); return; } // usuário digitou: segura
+          const phrase = PHRASES[phIdx % PHRASES.length];
+          phPos += phDeleting ? -1 : 1;
+          input.placeholder = phrase.slice(0, phPos);
+          let delay = phDeleting ? 26 : 58;
+          if (!phDeleting && phPos >= phrase.length) { phDeleting = true; delay = 1700; }
+          else if (phDeleting && phPos <= 0) { phDeleting = false; phIdx++; delay = 380; }
+          phTimer = setTimeout(phTick, delay);
+        };
+        const phStart = () => { if (!phTimer) phTick(); };
+        const phStop = () => {
+          if (phTimer) { clearTimeout(phTimer); phTimer = null; }
+          phIdx = 0; phPos = 0; phDeleting = false;
+          if (input) input.placeholder = PHRASES[0];
+        };
         sBtn.addEventListener('click', () => {
           const open = panel.classList.toggle('open');
           row.classList.toggle('searching', open);
           sBtn.classList.toggle('active', open);
           sBtn.setAttribute('aria-expanded', String(open));
-          const input = document.getElementById('search-input');
-          if (open) setTimeout(() => input && input.focus(), 230);
-          else if (input) { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); }
+          if (open) { phStart(); setTimeout(() => input && input.focus(), 230); }
+          else {
+            phStop();
+            if (input) { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); }
+          }
         });
       }
       $('#btn-back').addEventListener('click', () => $('#app').classList.remove('show-chat'));

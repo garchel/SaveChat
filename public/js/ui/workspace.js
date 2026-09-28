@@ -87,6 +87,17 @@ export const WorkspaceMethods = {
       if (e.target.closest('.daily-del')) this.deleteDailyItem(li.dataset.id);
       else if (e.target.closest('.daily-check')) this.toggleDailyItem(li.dataset.id);
     });
+    // tooltip "o que a IA pode fazer": clique fixa/solta, hover é CSS;
+    // fecha com clique-fora e Escape
+    const aiBtn = document.getElementById('ai-info-btn');
+    const aiTip = document.getElementById('ai-info-tip');
+    if (aiBtn && aiTip) {
+      aiBtn.addEventListener('click', (e) => { e.stopPropagation(); aiTip.classList.toggle('open'); });
+      document.addEventListener('click', (e) => {
+        if (aiTip.classList.contains('open') && !aiTip.contains(e.target) && !aiBtn.contains(e.target)) aiTip.classList.remove('open');
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') aiTip.classList.remove('open'); });
+    }
     // swipe entre páginas + carrossel temporário durante o gesto
     this._bindWorkspaceSwipe();
     this._workspaceTab = 'conversations';
@@ -119,6 +130,15 @@ export const WorkspaceMethods = {
       button.tabIndex = active ? 0 : -1;
     });
     if (tab !== 'conversations') document.getElementById(pageIds[tab])?.classList.remove('hidden');
+    // cabeçalho e tooltip informativa na página da IA
+    const aiInfoBtn = document.getElementById('ai-info-btn');
+    const aiInfoTip = document.getElementById('ai-info-tip');
+    if (aiInfoBtn) aiInfoBtn.classList.toggle('hidden', tab !== 'ai');
+    if (aiInfoTip && tab !== 'ai') aiInfoTip.classList.remove('open');
+    if (tab === 'ai') {
+      const chatName = document.getElementById('chat-name');
+      if (chatName) chatName.textContent = 'Conversa com a IA';
+    }
     if (tab === 'ai') this.prepareAiPage();
     if (tab === 'reminders') this.renderRemindersList();
     if (tab === 'daily') this.renderDailyPage();

@@ -2,6 +2,12 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.13.2] — 2026-09-28
+### Modificado
+- **Placeholder aponta para a IA**: o segundo atalho virou **✦ Conversar com a IA** (antes, Abrir Diária) e o texto ensina que ela lê notas, responde e cria notas
+- **Página da IA com identidade**: o cabeçalho mostra **“Conversa com a IA”** (era o genérico “Selecione uma conversa”) com um **ⓘ** que abre a lista do que ela é capaz de fazer — clique fixa, hover mostra, Esc/clique-fora fecha
+- **Placeholder animado na busca**: o campo digita exemplos em loop (`#urgente`, `in:Compras`…) para ensinar a sintaxe; para de digitar quando você começa a escrever
+
 ## [1.13.1] — 2026-09-28
 ### Adicionado
 - **Placeholder “Nenhuma conversa selecionada”**: ao abrir o app (ou excluir/apagar tudo) o canvas mostra logo animada, mensagem e atalhos **+ Nova conversa** e **Abrir Diária** — sem mais tela em branco. Some sozinho ao abrir uma conversa (e não compete com as páginas IA/Diária)
