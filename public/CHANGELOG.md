@@ -2,6 +2,15 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.9.1] — 2026-09-28
+### Adicionado
+- **Splash de abertura**: tela de boot com a marca, barra de progresso animada e fundo do tema substitui o flash em branco na primeira carga (mobile/PWA); some com fade assim que a interface está pronta
+### Corrigido
+- **Ícone do launcher**: o glifo agora ocupa o tile inteiro — variante maskable própria (fundo até a borda, glifo na safe zone) e o logo retangular não é mais usado como ícone de app; sem compressão na tela inicial do Android
+- **Botão de mensagem fixada** não aparece mais sobre a lista de cadernos no celular nem por cima das páginas de Busca/Lembretes/Pendências
+- **Pendências e Lembretes funcionam no celular**: as páginas deslizam o canvas para frente (ficavam escondidas atrás da lista de cadernos) e o botão Voltar devolve ao explorer
+- Modal de Nova conversa/caderno ancorado no topo no mobile — o conteúdo fica visível mesmo com o teclado aberto
+
 ## [1.9.0] — 2026-09-28
 ### Adicionado
 - **Instalar app**: botão novo no menu do perfil aparece quando o navegador oferece a instalação do PWA (Chrome/Android/Edge) e some para sempre depois que você instala. No iOS o caminho continua sendo Compartilhar → "Adicionar à Tela"

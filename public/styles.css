@@ -2575,3 +2575,65 @@ button:focus { outline: none; }
   width: 44px; height: 44px;
   transform: translate(-50%, -50%);
 }
+
+/* ===================== BOOT SPLASH (primeira carga / PWA) =====================
+   Cobriu o flash em branco antes do JS montar a UI. Escondido o quanto antes
+   via JS inline no <head>; removeSplash() dá o fade quando o app está pronto. */
+#boot-splash {
+  background: var(--bg); /* fallback p/ browsers sem color-mix */
+  position: fixed; inset: 0; z-index: 9998;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px;
+  background:
+    radial-gradient(560px 420px at 18% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    radial-gradient(520px 460px at 88% 96%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 72%),
+    var(--bg-login, var(--bg));
+  transition: opacity .35s ease;
+}
+#boot-splash.boot-done { opacity: 0; pointer-events: none; }
+#boot-splash .boot-mark {
+  width: 112px; height: 112px; border-radius: 28px;
+  display: grid; place-items: center;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: bootFloat 2.6s ease-in-out infinite;
+}
+#boot-splash .boot-mark img { width: 88px; height: 88px; border-radius: 20px; display: block; }
+#boot-splash .boot-name {
+  font-family: var(--font-display, inherit);
+  font-size: 26px; font-weight: 800; letter-spacing: .2px; color: var(--text);
+}
+#boot-splash .boot-bar {
+  width: 148px; height: 5px; border-radius: 999px; overflow: hidden;
+  background: var(--border); position: relative;
+}
+#boot-splash .boot-bar span {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent-2, var(--accent)) 65%, transparent);
+  animation: bootSweep 1.25s cubic-bezier(.45,0,.25,1) infinite;
+}
+#boot-splash .boot-tag { font-size: 13px; font-weight: 600; color: var(--text-dim); }
+@keyframes bootFloat { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
+@keyframes bootSweep { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+@media (prefers-reduced-motion: reduce) {
+  #boot-splash .boot-mark, #boot-splash .boot-bar span { animation: none; }
+  #boot-splash .boot-bar span { opacity: .55; }
+}
+
+/* btn-pin (mensagem fixada): pertence ao chat — não vaza para Busca/Lembretes/Pendências
+   nem aparece sobre a lista de cadernos no mobile */
+.btn-pin { z-index: 5; }
+@media (max-width: 760px) {
+  .app:not(.show-chat) .btn-pin { display: none; } /* lista de cadernos */
+}
+.chat:has(.search-page:not(.hidden)) .btn-pin,
+.chat:has(.reminders-page:not(.hidden)) .btn-pin,
+.chat:has(.tasks-page:not(.hidden)) .btn-pin { display: none; }
+
+/* Modal acima do teclado no mobile: âncora no topo (não no centro) e scroll
+   interno — o input focado fica visível com o teclado aberto */
+@media (max-width: 760px) {
+  .modal { place-items: start center; padding-top: calc(7vh + env(safe-area-inset-top, 0px)); }
+  .modal-card { max-height: calc(92vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+}

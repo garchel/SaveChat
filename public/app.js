@@ -47,18 +47,18 @@ async init() {
       this.bindSync();
       this.bindContextMenu();
       // Explorer: lembretes + pendências no header
-      const expRem = document.getElementById('explorer-reminders');
+        const expRem = document.getElementById('explorer-reminders');
       if (expRem) {
-        expRem.addEventListener('click', () => this.showRemindersPage());
+        expRem.addEventListener('click', () => { this.showRemindersPage(); this._mobileRevealCanvas(); });
         const backRem = document.getElementById('reminders-back');
-        if (backRem) backRem.addEventListener('click', () => this.hideRemindersPage());
+        if (backRem) backRem.addEventListener('click', () => { this.hideRemindersPage(); this._mobileBackToExplorer(); });
         this.updateRemBadge();
       }
       const expTasks = document.getElementById('explorer-tasks');
       if (expTasks) {
-        expTasks.addEventListener('click', () => this.showTasksPage());
+        expTasks.addEventListener('click', () => { this.showTasksPage(); this._mobileRevealCanvas(); });
         const backTasks = document.getElementById('tasks-back');
-        if (backTasks) backTasks.addEventListener('click', () => this.hideTasksPage());
+        if (backTasks) backTasks.addEventListener('click', () => { this.hideTasksPage(); this._mobileBackToExplorer(); });
         this.updateTasksBadge();
       }
       const notifBtn = document.getElementById('btn-notifications');
@@ -193,11 +193,29 @@ async init() {
           }
         } catch (e) { /* offline/timeout, mantém Store.user local */ }
       }
+      this.removeSplash();
       this.renderAuthOrApp();
       // check de atualização na abertura do app (indicador no popover do perfil)
       Updater.check({ silent: true });
       // atualiza o rótulo de "última sincronização" a cada 15s
       setInterval(() => this.updateSyncLabel(), 15000);
+    },
+
+removeSplash() {
+      // tira o boot splash (primeira carga no mobile/PWA): fade rápido + remoção
+      const sp = document.getElementById('boot-splash');
+      if (!sp) return;
+      sp.classList.add('boot-done');
+      setTimeout(() => sp.remove(), 400);
+    },
+
+    // Pendências/Lembretes/Busca são páginas do canvas: no mobile a sidebar
+    // cobre o canvas até o primeiro .show-chat — sem isso o clique "não faz nada"
+    _mobileRevealCanvas() {
+      if (window.matchMedia('(max-width: 760px)').matches) document.getElementById('app').classList.add('show-chat');
+    },
+    _mobileBackToExplorer() {
+      if (window.matchMedia('(max-width: 760px)').matches) document.getElementById('app').classList.remove('show-chat');
     },
 
 updateSyncLabel() {

@@ -1,6 +1,6 @@
 // NoteThread Service Worker — app shell offline + cache-first para assets.
 // Bump CACHE (vN) a cada deploy para invalidar versões anteriores.
-const CACHE = 'notethread-v119';
+const CACHE = 'notethread-v120';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './CHANGELOG.md',
   './assets/logo.svg', './assets/logo.png',
@@ -12,7 +12,8 @@ const ASSETS = [
   './js/ui/settings.js', './js/ui/auth.js', './js/ui/tree.js', './js/ui/tasks.js',
   './js/ui/composer.js', './js/ui/sync-events.js',
   './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-1024.png', './favicon-32.png',
-  './icons/icon-512.png', './icons/icon-maskable-512.png',
+  './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-192.png', './icons/icon-maskable-512.png',
+  './icons/icon-src.svg', './icons/icon-maskable-src.svg',
   './assets/logo.svg', './assets/logo.png',
   './assets/themes/logo-cozy.svg', './assets/themes/logo-dark.svg', './assets/themes/logo-lavender.svg', './assets/themes/logo-midnight.svg',
   './assets/themes/logo-mint.svg', './assets/themes/logo-mono.svg', './assets/themes/logo-napolitano.svg', './assets/themes/logo-ocean.svg',
