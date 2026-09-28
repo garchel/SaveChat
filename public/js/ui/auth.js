@@ -340,20 +340,43 @@ _clearAuthMsg() { const el = $('#auth-msg'); if (el) { el.textContent = ''; el.c
             if (session && session.user) {
               // "lembrar-me" desmarcado → encerra a sessão local (não auto-loga)
               if (Store.data.ui && Store.data.ui.rememberMe === false) { supa.auth.signOut(); return; }
-              const wasLogged = !!Store.user;
               applyRemember();
-              Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id });
-              if (!wasLogged) this.renderAuthOrApp();
+              // A conta da sessão pode ser DIFERENTE da que ficou no storage
+              // (ex.: criou conta nova, verificou o e-mail e reabriu o app).
+              // O Store troca o bucket de dados; a UI precisa ser remontada.
+              if (this._applySessionUser(session.user)) this.renderAuthOrApp();
             }
           });
           supa.auth.onAuthStateChange((_ev, sess) => {
-            if (sess && sess.user && (!Store.user || Store.user.mail !== sess.user.email)) {
-              Store.setUser({ name: sess.user.email.split('@')[0], mail: sess.user.email, provider: 'supabase', id: sess.user.id });
-              this.renderAuthOrApp();
-            }
+            if (sess && sess.user && this._applySessionUser(sess.user)) this.renderAuthOrApp();
           });
         });
       }
+    },
+
+    // Aplica o usuário da sessão ao Store. Devolve true quando a conta mudou
+    // (nova sessão logada no lugar de outra), para o caller remontar a UI.
+    _applySessionUser(u) {
+      const next = { name: (u.email || 'u').split('@')[0], mail: u.email, provider: 'supabase', id: u.id };
+      const cur = Store.user;
+      const changed = !cur || cur.id !== next.id || cur.mail !== next.mail;
+      if (changed) {
+        // conta diferente: zera o estado de UI que é por-conta (thread aberta,
+        // pins, diário, chat da IA) antes de o Store trocar o bucket
+        this.activeThread = null;
+        this.renderedClientIds = new Set();
+        this.oldestTs = null;
+        this._workspaceTab = 'conversations';
+        const msgs = document.getElementById('messages');
+        if (msgs) msgs.querySelectorAll('.bubble,.day-sep').forEach((n) => n.remove());
+        const empty = document.getElementById('empty-state');
+        if (empty) empty.classList.remove('hidden');
+        const aiList = document.getElementById('ai-messages');
+        if (aiList) aiList.innerHTML = '';
+        this.dom && this.dom.btnPin && this.dom.btnPin.classList.add('hidden');
+      }
+      Store.setUser(next);
+      return changed;
     },
 
 renderAuthOrApp() {

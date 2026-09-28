@@ -96,10 +96,14 @@ test('diária: rotina persiste e o check do dia não vaza para "amanhã"', async
   await expect(page.locator('.daily-item')).toHaveCount(1);
   await expect(page.locator('.daily-item.done')).toHaveCount(1);
   // simulando o dia seguinte (meia-noite limpa o log de checks): item fica desmarcado
+  // a rotina mora no bucket da conta (v1.13.3), não mais na raiz
   await page.evaluate(() => {
-    const d = JSON.parse(localStorage.getItem('notethread.v2'));
-    d.ui.dailyRoutine.log = {};
-    localStorage.setItem('notethread.v2', JSON.stringify(d));
+    const KEY = 'notethread.v2';
+    const root = JSON.parse(localStorage.getItem(KEY));
+    const bucketKey = KEY + '::u::' + (root.user.id || root.user.mail);
+    const b = JSON.parse(localStorage.getItem(bucketKey));
+    b.scope.dailyRoutine.log = {};
+    localStorage.setItem(bucketKey, JSON.stringify(b));
   });
   await page.reload();
   await page.waitForTimeout(2000);

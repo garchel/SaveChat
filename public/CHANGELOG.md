@@ -2,6 +2,24 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.13.4] — 2026-09-28
+### Corrigido
+- **As contas pararam de compartilhar notas** (a causa de verdade): a fila de envio offline era única para o dispositivo inteiro. Uma nota escrita offline pela conta A era reenviada assim que **qualquer** conta entrasse — e gravada no servidor com o `user_id` da conta B (o RLS aceitava, então a nota aparecia na conta errada). Agora cada item da fila pertence a uma conta e só é enviado quando ela está online
+- **Itens antigos da fila** (enfileirados antes desta correção) não vazam mais: só sobem se a conversa a que se referem existir na conta que está entrando
+- **Edições, tags, reações, exclusões e pinos** passes a levar o `user_id` no filtro, além do RLS — uma segunda barreira caso a policy do servidor mude
+- **Realtime sem sessão não abre mais canal**: um canal sem filtro por `user_id` continua recebendo as linhas de todo mundo (o RLS não protege o Realtime como protege o REST)
+- **Logout derruba o canal**: ao sair, o app deixa de receber as notas da conta que saiu
+
+## [1.13.3] — 2026-09-28
+### Corrigido
+- **Contas não se misturam mais**: criar uma conta nova com outro e-mail e reabrir o app já não mostra as conversas da conta anterior. O que é seu (conversas, cadernos, chave da IA, rotina da Diária) agora fica guardado **por conta** neste dispositivo; o que é do aparelho (tema, som, fonte, densidade) continua compartilhado
+- **Troca de conta remonta a tela**: a conversa aberta, o chat com a IA e os pins da conta anterior não ficam mais pendurados ao entrar com outra conta
+
+### Modificado
+- **Diária com data e contador em destaque**: o cabeçalho da página mostra o ícone 🗓️ e o card inicial virou data (dia da semana, dia do mês, mês/ano) com contador `2/5 concluídas` que fica verde no dia completo
+- **Modal de tarefa diária**: botão **Nova tarefa** abre um modal com o texto, o **horário** e um switch **Avisar neste horário** — o aviso vira notificação no dia, no horário escolhido. A entrada rápida continua na página
+- **Ícone da página no cabeçalho**: cada página do workspace (IA, Diária, Lembretes) mostra seu ícone à esquerda do título
+
 ## [1.13.2] — 2026-09-28
 ### Modificado
 - **Placeholder aponta para a IA**: o segundo atalho virou **✦ Conversar com a IA** (antes, Abrir Diária) e o texto ensina que ela lê notas, responde e cria notas

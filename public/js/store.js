@@ -6,14 +6,64 @@ import { now } from './utils.js';
   // data: { user, threads:{}, folders:{}, notes:{}, ui:{expanded:{}} }
   // thread: { id, name, emoji, folderId|null, favorite:bool, createdAt, updatedAt, lastPreview }
   // folder: { id, name, parentId|null, createdAt }
+  // ---------------------------------------------------------------------
+  // ISOLAMENTO POR CONTA (v1.13.3)
+  // Antes, TODO o conteúdo vivia em uma única chave `notethread.v2`, junto com
+  // o usuário logado. Consequência: entrar com outra conta no mesmo navegador
+  // reusava as conversas da conta anterior (e a chave da IA vazava junto).
+  // Agora o conteúdo é particionado por conta:
+  //   notethread.v2           → sessão + preferências DO DISPOSITIVO (tema, som…)
+  //   notethread.v2::u::<id> → { threads, folders, notes, scope } da conta
+  // `scope` guarda o que é pessoal e NÃO é preference: chave da IA, histórico
+  // do chat com a IA e a rotina da Diária.
   // ===================================================================
   export const Store = {
     KEY: 'notethread.v2',
+    // chaves que pertencem à CONTA (viajam no bucket) e não ao dispositivo
+    SCOPE_KEYS: ['aiKey', 'aiModel', 'aiChat', 'dailyRoutine'],
     data: null,
+    _uid: null,
+
+    // id estável da conta ativa (id do Supabase > e-mail > 'anon')
+    _accountId(user) {
+      if (!user) return 'anon';
+      return String(user.id || user.mail || 'anon');
+    },
+    _bucketKey(uid) { return this.KEY + '::u::' + uid; },
+    _read(key) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } },
+    _write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} },
 
     load() {
-      let d = { user: null, threads: {}, folders: {}, notes: {}, ui: { expanded: {} } };
-      try { const raw = localStorage.getItem(this.KEY); if (raw) d = Object.assign(d, JSON.parse(raw)); } catch (e) {}
+      const root = this._read(this.KEY) || {};
+      const uid = this._accountId(root.user);
+      this._uid = uid;
+
+      // migração do formato antigo (conteúdo na raiz) para o bucket da conta
+      if (root.threads || root.folders || root.notes) {
+        const prev = this._read(this._bucketKey(uid)) || { threads: {}, folders: {}, notes: {}, scope: {} };
+        this._write(this._bucketKey(uid), {
+          threads: Object.assign({}, prev.threads, root.threads),
+          folders: Object.assign({}, prev.folders, root.folders),
+          notes: Object.assign({}, prev.notes, root.notes),
+          scope: prev.scope || {},
+        });
+        delete root.threads; delete root.folders; delete root.notes;
+        this._write(this.KEY, root);
+      }
+
+      const bucket = this._read(this._bucketKey(uid)) || {};
+      // `ui` = preferências do dispositivo + o escopo da conta re-injetado, para
+      // que o código existente leia Store.data.ui.dailyRoutine sem mudar.
+      const ui = Object.assign({}, root.ui || {});
+      Object.assign(ui, bucket.scope || {});
+
+      const d = {
+        user: root.user || null,
+        threads: bucket.threads || {},
+        folders: bucket.folders || {},
+        notes: bucket.notes || {},
+        ui,
+      };
       d.threads = d.threads || {}; d.folders = d.folders || {}; d.notes = d.notes || {};
       d.ui = d.ui || {}; d.ui.expanded = d.ui.expanded || {};
       // sons padrão para novos usuários (mapeamento de ação -> som cuelume)
@@ -46,18 +96,79 @@ import { now } from './utils.js';
       Object.keys(this.data.notes).forEach((tid) => this.dedupeIdentical(tid));
       return d;
     },
-    save() { try { localStorage.setItem(this.KEY, JSON.stringify(this.data)); } catch (e) {} },
-    setUser(u) { this.data.user = u; this.save(); },
+
+    // grava: raiz = sessão + prefs do dispositivo; bucket = conteúdo da conta
+    save() {
+      const root = this._read(this.KEY) || {};
+      root.user = this.data.user || null;
+      const ui = {};
+      const scope = {};
+      Object.keys(this.data.ui || {}).forEach((k) => {
+        if (this.SCOPE_KEYS.indexOf(k) >= 0) scope[k] = this.data.ui[k];
+        else ui[k] = this.data.ui[k];
+      });
+      root.ui = ui;
+      this._write(this.KEY, root);
+      this._write(this._bucketKey(this._uid || this._accountId(this.data.user)), {
+        threads: this.data.threads,
+        folders: this.data.folders,
+        notes: this.data.notes,
+        scope,
+      });
+    },
+
+    // TROCA DE CONTA: descarrega o conteúdo da conta anterior no bucket dela e
+    // carrega o da nova. Sem isso, logar com outro e-mail no mesmo navegador
+    // herdava as conversas da conta antiga.
+    setUser(u) {
+      const nextUid = this._accountId(u);
+      const cur = this.data && this.data.user;
+      const sameAccount = nextUid === this._accountId(cur);
+      this.data.user = u || null;
+      if (sameAccount) { this.save(); return; }
+
+      // 1) persiste o conteúdo atual no bucket da conta que está saindo
+      this._uid = this._accountId(cur);
+      this.save();
+
+      // 2) reinicia o estado em memória (listas, contadores, pins). As
+      //    preferências do DISPOSITIVO (tema, som, fonte, densidade) são
+      //    preservadas: não pertencem à conta, são do aparelho.
+      const devicePrefs = {};
+      Object.keys(this.data.ui || {}).forEach((k) => {
+        if (this.SCOPE_KEYS.indexOf(k) < 0) devicePrefs[k] = this.data.ui[k];
+      });
+      this.data.threads = {};
+      this.data.folders = {};
+      this.data.notes = {};
+      this.data.ui = Object.assign({ expanded: {} }, devicePrefs);
+
+      // 3) carrega o bucket da nova conta
+      this._uid = nextUid;
+      const bucket = this._read(this._bucketKey(nextUid)) || {};
+      this.data.threads = bucket.threads || {};
+      this.data.folders = bucket.folders || {};
+      this.data.notes = bucket.notes || {};
+      // o escopo da conta tem precedência; o resto vem das prefs do dispositivo
+      this.data.ui = Object.assign({}, devicePrefs, bucket.scope || {});
+      this.data.ui.expanded = this.data.ui.expanded || {};
+      this.save();
+    },
     get user() { return this.data.user; },
 
-    // userId estável por dispositivo — usado para isolar dados no sync server.
-    // Em produção, trocar pelo ID real do usuário autenticado (OAuth).
+    // userId estável por DISPOSITIVO — usado para marcar reações. Mora na raiz
+    // (fora do bucket) de propósito: trocar de conta não pode gerar um id novo,
+    // senão as reações que o usuário já deu aparecem como de outra pessoa.
     getUserId() {
-      if (!this.data.userId) {
-        this.data.userId = (crypto.randomUUID ? crypto.randomUUID() : 'u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-        this.save();
+      const root = this._read(this.KEY) || {};
+      if (!root.deviceId) {
+        root.deviceId = (crypto.randomUUID ? crypto.randomUUID() : 'u-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+        // preserva o resto da raiz (user, ui) ao gravar
+        this._write(this.KEY, Object.assign(root, { user: this.data.user || null, ui: (() => {
+          const ui = {}; Object.keys(this.data.ui || {}).forEach((k) => { if (this.SCOPE_KEYS.indexOf(k) < 0) ui[k] = this.data.ui[k]; }); return ui;
+        })() }));
       }
-      return this.data.userId;
+      return root.deviceId;
     },
 
     // ---- folders ----

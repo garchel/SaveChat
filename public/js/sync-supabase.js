@@ -22,6 +22,7 @@ import { OfflineQueue } from './offline-queue.js';
   // ===================================================================
   export const SupaSync = {
     supa: null, channel: null, handlers: {}, lastSync: 0, connected: false,
+    _subscribedUid: null,
     on(type, fn) { this.handlers[type] = fn; },
     emit(type, payload) { this.lastSync = Date.now(); if (this.handlers[type]) this.handlers[type](payload); },
     _connecting: false,
@@ -87,16 +88,31 @@ import { OfflineQueue } from './offline-queue.js';
         this._uidCache = session && session.user ? session.user.id : null;
         this.supa.auth.onAuthStateChange((_ev, sess) => {
           if (sess && sess.user) {
-            Store.setUser({ name: sess.user.email.split('@')[0], mail: sess.user.email, provider: 'supabase', id: sess.user.id });
+            // delega ao UI: ele detecta troca de conta, limpa o estado por-conta
+            // e remonta a UI (o Store troca o bucket de dados local)
+            const ui = window.NoteThread && window.NoteThread.UI;
+            if (ui && typeof ui._applySessionUser === 'function') ui._applySessionUser(sess.user);
+            else Store.setUser({ name: sess.user.email.split('@')[0], mail: sess.user.email, provider: 'supabase', id: sess.user.id });
             this._uidCache = sess.user.id;
             this.ensureProfile(sess.user);
-            if (window.NoteThread && window.NoteThread.UI) window.NoteThread.UI.renderMe();
+            // canal precisa ser refeito com o filtro do novo user_id
+            if (this.connected) { this._subscribedUid = null; this.subscribe(); }
+            if (ui && typeof ui.renderMe === 'function') ui.renderMe();
           } else {
+            // SIGNED_OUT: derruba o canal da conta que saiu, senão o Realtime
+            // continua entregando as notas dela para a tela de login
             this._uidCache = null;
+            this._subscribedUid = null;
+            if (this.channel) { try { this.supa.removeChannel(this.channel); } catch {} }
+            this.channel = null;
+            this.connected = false;
+            this.setStatus('offline');
           }
         });
         if (session && session.user) {
-          Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id });
+          const ui = window.NoteThread && window.NoteThread.UI;
+          if (ui && typeof ui._applySessionUser === 'function') ui._applySessionUser(session.user);
+          else Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id });
           this.ensureProfile(session.user);
         }
         this.connected = true; this.setStatus('online'); clearTimeout(t); this._connecting = false;
@@ -110,12 +126,22 @@ import { OfflineQueue } from './offline-queue.js';
       } catch (e) { clearTimeout(t); this._connecting = false; console.warn('[supabase] connect fail', e); this.setStatus('offline'); }
     },
     async loadSnapshot() {
+      // captura a conta ANTES do fetch: se ela mudar enquanto a rede responde,
+      // o snapshot é da conta antiga e não pode ser aplicado na nova
+      const uidAtStart = (Store.user && Store.user.id) || null;
       // paginado: só últimas 200 notas para não pesar Brave (base64) — infinite scroll carrega resto sob demanda
       const [th, fo, no] = await Promise.all([
         this.supa.from('threads').select('*').order('updated_at', { ascending: false }).limit(100),
         this.supa.from('folders').select('*').limit(100),
         this.supa.from('notes').select('*').order('ts', { ascending: false }).limit(200)
       ]);
+      // a conta trocou no meio do fetch → descarta (senão as conversas da conta
+      // antiga cairiam na nova, que é exatamente o bug reportado)
+      const uidNow = (Store.user && Store.user.id) || null;
+      if (uidAtStart !== uidNow) return;
+      // sem sessão, não aplica nada (RLS já devolveria vazio, mas o cache do
+      // cliente do supabase-js pode responder com a última consulta)
+      if (!uidNow) return;
       const payload = {
         threads: Object.fromEntries((th.data || []).map(t => [t.id, { id: t.id, name: t.name, emoji: t.emoji, color: t.color || undefined, folderId: t.folder_id, favorite: t.favorite, pinnedId: t.pinned_id, createdAt: new Date(t.created_at).getTime(), updatedAt: new Date(t.updated_at).getTime(), lastPreview: t.last_preview }])),
         folders: Object.fromEntries((fo.data || []).map(f => [f.id, { id: f.id, name: f.name, emoji: f.emoji, color: f.color || undefined, parentId: f.parent_id, createdAt: new Date(f.created_at).getTime() }])),
@@ -125,10 +151,17 @@ import { OfflineQueue } from './offline-queue.js';
     },
     subscribe() {
       if (this.channel) try { this.supa.removeChannel(this.channel); } catch {}
+      this.channel = null;
       // usa sessão local (sem rede); filtra por user_id
       this.supa.auth.getSession().then(({ data: { session } }) => {
         const uid = session && session.user ? session.user.id : null;
-        const filt = uid ? `user_id=eq.${uid}` : undefined;
+        // sem sessão: NÃO abre canal. Um canal sem filtro traria as linhas de
+        // qualquer usuário para o app logado (o RLS não se aplica ao Realtime
+        // do mesmo jeito que no REST) — era assim que as contas se enxergavam.
+        if (!uid) return;
+        if (this._subscribedUid === uid && this.channel) return;
+        this._subscribedUid = uid;
+        const filt = `user_id=eq.${uid}`;
         const ch = this.supa.channel('notethread')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', ...(filt?{filter:filt}:{}) }, (p) => {
             const r = p.new || p.old; if (!r) return;
@@ -158,16 +191,30 @@ import { OfflineQueue } from './offline-queue.js';
     },
     // fila offline robusta — IndexedDB com backoff exponencial + Background Sync
     async _enqueue(type, payload) {
-      await OfflineQueue.add(type, payload);
+      // carimba com a conta dona do item (ver OfflineQueue.add)
+      const owner = this._uidCache || (Store.user && Store.user.id) || null;
+      await OfflineQueue.add(type, payload, owner);
       OfflineQueue.registerSync();
       // fallback para offline: tenta reenviar quando voltar online
       window.addEventListener('online', () => this.flushQueue(), { once: true });
     },
     async flushQueue() {
-      const q = await OfflineQueue.getAll();
-      if (!q.length || !this.supa) return;
+      if (!this.supa) return;
+      const curUid = await this._uid();
+      if (!curUid) return;
+      const all = await OfflineQueue.getAll();
+      // Só drena o que pertence a ESTA conta. Item de outra conta fica na fila
+      // (será reenviado quando ela voltar), nunca é enviado com o uid errado.
+      // Item SEM owner veio de uma versão antiga do app (não carimbado): só sai
+      // se o objeto referenciado existir no bucket da conta atual — se não
+      // existir, é dado de outra conta e fica esperando.
+      const mine = all.filter((i) => {
+        if (i.owner) return i.owner === curUid;
+        return this._queueItemBelongsToCurrentAccount(i);
+      });
+      if (!mine.length) return;
       const nowTs = Date.now();
-      for (const item of q) {
+      for (const item of mine) {
         if (item.nextRetry && item.nextRetry > nowTs) continue;
         try {
           this.lastSync = Date.now();
@@ -178,10 +225,24 @@ import { OfflineQueue } from './offline-queue.js';
         }
       }
       const rest = await OfflineQueue.getAll();
-      if (!q.length || !rest.length) {
+      const restMine = rest.filter((i) => (i.owner ? i.owner === curUid : this._queueItemBelongsToCurrentAccount(i)));
+      if (!restMine.length) {
         if (window.NoteThread && window.NoteThread.UI) window.NoteThread.UI.toast('Sincronização restaurada', { kind: 'success' });
         this._warnedFail = false;
       }
+    },
+
+    // item legado (sem owner): pertence à conta atual só se o que ele referencia
+    // existir no bucket local dela. Sem essa checagem, uma nota enfileirada pela
+    // conta A seria enviada com o user_id da conta B.
+    _queueItemBelongsToCurrentAccount(item) {
+      const p = item.payload || {};
+      if (p.threadId && Store.getThread(p.threadId)) return true;
+      if (p.clientId && p.threadId && (Store.notesFor(p.threadId) || []).some((n) => n.clientId === p.clientId)) return true;
+      if (p.id && Store.getThread(p.id)) return true;
+      if (p.id && Store.getFolder(p.id)) return true;
+      if (!p.threadId && !p.id) return true; // sem referência: não dá para saber, envia
+      return false;
     },
     async send(type, payload) {
       if (!this.supa) return;
@@ -221,33 +282,35 @@ import { OfflineQueue } from './offline-queue.js';
         if (res.error) throw res.error;
       } else if (type === 'note:reactions') {
         // reações por nota: grava exatamente o mapa local (única fonte de verdade,
-        // o conflito é resolvido pelo merge por usuário/emoji no Store)
-        const res = await this.supa.from('notes').update({ reactions: payload.reactions || {} }).eq('client_id', payload.clientId);
+        // o conflito é resolvido pelo merge por usuário/emoji no Store).
+        // O .eq('user_id', uid) é redundante com o RLS, mas garante o escopo
+        // mesmo se a policy mudar no servidor.
+        const res = await this.supa.from('notes').update({ reactions: payload.reactions || {} }).eq('client_id', payload.clientId).eq('user_id', uid);
         // sem a coluna no servidor ainda (42703): não enfileira retry infinito
         if (res.error && !(res.error.code === '42703' || /reactions/i.test(res.error.message || ''))) throw res.error;
         else if (res.error) console.warn('[supabase] coluna reactions ausente — rode o supabase.sql atualizado');
       } else if (type === 'note:remind') {
-        await this.supa.from('notes').update({ remind_at: payload.remindAt || null, remind_fired: !!payload.remindFired }).eq('client_id', payload.clientId);
+        await this.supa.from('notes').update({ remind_at: payload.remindAt || null, remind_fired: !!payload.remindFired }).eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'thread:upsert') {
         const t = payload; await this.supa.from('threads').upsert({ id: t.id, name: t.name, emoji: t.emoji, color: t.color || null, folder_id: t.folderId || null, favorite: !!t.favorite, pinned_id: t.pinnedId || null, updated_at: new Date().toISOString(), last_preview: t.lastPreview || '', user_id: uid }, { onConflict: 'id' });
       } else if (type === 'thread:delete') {
-        await this.supa.from('threads').delete().eq('id', payload.id);
+        await this.supa.from('threads').delete().eq('id', payload.id).eq('user_id', uid);
       } else if (type === 'folder:upsert') {
         const f = payload; await this.supa.from('folders').upsert({ id: f.id, name: f.name, emoji: f.emoji, color: f.color || null, parent_id: f.parentId || null, user_id: uid }, { onConflict: 'id' });
       } else if (type === 'folder:delete') {
-        await this.supa.from('folders').delete().eq('id', payload.id);
+        await this.supa.from('folders').delete().eq('id', payload.id).eq('user_id', uid);
       } else if (type === 'note:delete') {
-        await this.supa.from('notes').delete().eq('client_id', payload.clientId);
+        await this.supa.from('notes').delete().eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'note:edit') {
-        await this.supa.from('notes').update({ text: payload.text, edited: payload.edited !== undefined ? !!payload.edited : true, edited_at: payload.editedAt, rev: payload.rev }).eq('client_id', payload.clientId);
+        await this.supa.from('notes').update({ text: payload.text, edited: payload.edited !== undefined ? !!payload.edited : true, edited_at: payload.editedAt, rev: payload.rev }).eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'note:tags') {
-        await this.supa.from('notes').update({ tags: payload.tags }).eq('client_id', payload.clientId);
+        await this.supa.from('notes').update({ tags: payload.tags }).eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'note:pin') {
         // usa estado explícito do payload (não recomputa — Store local já foi flipado)
         const cur = payload.pinned ? payload.clientId : null;
-        await this.supa.from('threads').update({ pinned_id: cur }).eq('id', payload.threadId);
+        await this.supa.from('threads').update({ pinned_id: cur }).eq('id', payload.threadId).eq('user_id', uid);
       } else if (type === 'thread:move') {
-        await this.supa.from('threads').update({ folder_id: payload.folderId || null }).eq('id', payload.threadId);
+        await this.supa.from('threads').update({ folder_id: payload.folderId || null }).eq('id', payload.threadId).eq('user_id', uid);
       }
     },
 

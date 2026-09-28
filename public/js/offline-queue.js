@@ -31,8 +31,13 @@ async function withStore(mode, fn) {
 }
 
 export const OfflineQueue = {
-  async add(type, payload) {
-    const item = { type, payload, ts: Date.now(), tries: 0, nextRetry: 0 };
+  // `owner` = id da conta que criou o item. A fila é GLOBAL no dispositivo, mas
+  // cada item pertence a UMA conta: ao trocar de usuário no mesmo navegador, os
+  // itens da conta anterior NÃO podem ser enviados com o user_id da nova (o RLS
+  // aceitaria, e a nota vazaria para a conta errada). Eles ficam na fila até a
+  // conta dona voltar a ficar online.
+  async add(type, payload, owner) {
+    const item = { type, payload, ts: Date.now(), tries: 0, nextRetry: 0, owner: owner || null };
     const ok = await withStore('readwrite', (s) => s.add(item));
     if (ok !== null) return;
     // fallback localStorage

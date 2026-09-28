@@ -1,4 +1,5 @@
 import { esc, haptic, uid, now } from '../utils.js';
+import { ICON, wrapSvg } from '../icons.js';
 import { renderMarkdown } from '../markdown.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
@@ -73,20 +74,26 @@ export const WorkspaceMethods = {
     }
     document.getElementById('ai-mic')?.addEventListener('click', () => this._toggleAiRecording());
     // ----- Diária (rotina que se renova) -----
+    document.getElementById('daily-new-task')?.addEventListener('click', () => this.openDailyTaskModal());
     document.getElementById('daily-add-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const input = document.getElementById('daily-input');
       const text = (input && input.value.trim()) || '';
       if (text) { this.addDailyItem(text); input.value = ''; input.focus(); }
     });
-    // delegação: concluir / excluir itens da rotina
+    // delegação: concluir / editar / excluir itens da rotina
     const dailyList = document.getElementById('daily-list');
     if (dailyList) dailyList.addEventListener('click', (e) => {
       const li = e.target.closest('.daily-item');
       if (!li) return;
       if (e.target.closest('.daily-del')) this.deleteDailyItem(li.dataset.id);
+      else if (e.target.closest('.daily-edit')) this.openDailyTaskModal(li.dataset.id);
       else if (e.target.closest('.daily-check')) this.toggleDailyItem(li.dataset.id);
     });
+    // checagem de avisos horários (roda junto com os lembretes do app)
+    this.checkDailyNotifications();
+    this._dailyTimer = setInterval(() => this.checkDailyNotifications(), 20000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { this.checkDailyNotifications(); this.renderDailyPage(); } });
     // tooltip "o que a IA pode fazer": clique fixa/solta, hover é CSS;
     // fecha com clique-fora e Escape
     const aiBtn = document.getElementById('ai-info-btn');
@@ -138,20 +145,20 @@ export const WorkspaceMethods = {
     // título do cabeçalho global por página (evita "Conversa com a IA" presa na Diária)
     const chatName = document.getElementById('chat-name');
     const threadMenuBtn = document.getElementById('btn-thread-menu');
-    if (tab === 'ai') {
-      if (chatName) chatName.textContent = 'Conversa com a IA';
-      if (threadMenuBtn) threadMenuBtn.classList.add('hidden');
-    } else if (tab === 'daily') {
-      if (chatName) chatName.textContent = 'Diária';
-      if (threadMenuBtn) threadMenuBtn.classList.add('hidden');
-    } else if (tab === 'reminders') {
-      if (chatName) chatName.textContent = 'Lembretes';
-      if (threadMenuBtn) threadMenuBtn.classList.add('hidden');
-    } else {
-      // de volta às conversas: restaura o nome da thread aberta
-      const t = this.activeThread && Store.getThread(this.activeThread);
-      if (chatName) chatName.textContent = t ? t.name : 'Selecione uma conversa';
-      if (threadMenuBtn) threadMenuBtn.classList.remove('hidden');
+    const pageIcon = document.getElementById('page-icon');
+    const PAGE_ICON = { ai: ICON.sparkle, daily: ICON.calendar, reminders: ICON.clock };
+    // título do cabeçalho por página (a IA tem rótulo próprio, mais descritivo)
+    const PAGE_TITLE = { ai: 'Conversa com a IA', daily: 'Diária', reminders: 'Lembretes' };
+    if (chatName) chatName.textContent = PAGE_TITLE[tab] || 'Selecione uma conversa';
+    if (threadMenuBtn) threadMenuBtn.classList.toggle('hidden', tab === 'conversations' ? !this.activeThread : true);
+    if (pageIcon) {
+      const glyph = PAGE_ICON[tab];
+      if (glyph) { pageIcon.innerHTML = wrapSvg(glyph, 18); pageIcon.classList.remove('hidden'); }
+      else pageIcon.classList.add('hidden');
+    }
+    if (tab === 'conversations' && this.activeThread) {
+      const t = Store.getThread(this.activeThread);
+      if (chatName && t) chatName.textContent = t.name;
     }
     if (tab === 'ai') this.prepareAiPage();
     if (tab === 'reminders') this.renderRemindersList();
@@ -511,7 +518,8 @@ export const WorkspaceMethods = {
   },
 
   // ================= Diária — rotina que se renova todo dia =================
-  // itens: [{id, text, createdAt}] · log: { 'YYYY-MM-DD': { done: [id] } }
+  // itens: [{id, text, createdAt, time?: 'HH:MM', notify?: bool}]
+  // log:  { 'YYYY-MM-DD': { done: [id], notified: [id] } }
   _daily() {
     Store.data.ui = Store.data.ui || {};
     Store.data.ui.dailyRoutine = Store.data.ui.dailyRoutine || { items: [], log: {} };
@@ -520,21 +528,113 @@ export const WorkspaceMethods = {
     return Store.data.ui.dailyRoutine;
   },
 
-  addDailyItem(text) {
+  _dailyLog(d, key = todayKey()) {
+    d.log[key] = d.log[key] || { done: [], notified: [] };
+    d.log[key].done = d.log[key].done || [];
+    d.log[key].notified = d.log[key].notified || [];
+    return d.log[key];
+  },
+
+  addDailyItem(text, opts = {}) {
     const d = this._daily();
-    d.items.push({ id: uid(), text: String(text).slice(0, 160), createdAt: now() });
+    d.items.push({
+      id: uid(),
+      text: String(text).slice(0, 160),
+      createdAt: now(),
+      time: /^\d{2}:\d{2}$/.test(opts.time || '') ? opts.time : '',
+      notify: !!(opts.time && opts.notify),
+    });
     Store.save();
     this.renderDailyPage();
     haptic('light');
   },
 
+  // ---------- Modal de criação/edição de tarefa diária ----------
+  openDailyTaskModal(id = null) {
+    const d = this._daily();
+    const item = id ? d.items.find((x) => x.id === id) : null;
+    const editing = !!item;
+    const curTime = item ? (item.time || '') : '';
+    const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
+    const permNote = perm === 'granted'
+      ? '<p class="dly-perm ok">✓ Notificações ativas neste dispositivo</p>'
+      : perm === 'denied'
+        ? '<p class="dly-perm warn">⚠ Notificações bloqueadas no navegador — o aviso aparecerá dentro do app</p>'
+        : '<p class="dly-perm">Ao ativar o aviso, pediremos permissão para notificá-lo.</p>';
+    const body = `
+      <div class="dly-field">
+        <label class="dly-label" for="dly-text">Tarefa da rotina</label>
+        <input id="dly-text" type="text" maxlength="160" autocomplete="off"
+               placeholder="ex.: beber 2L de água" value="${item ? esc(item.text) : ''}" />
+      </div>
+      <div class="dly-field">
+        <label class="dly-label" for="dly-time">Horário <span class="dly-hint">opcional</span></label>
+        <input id="dly-time" type="time" value="${curTime}" />
+        <p class="dly-help">Sem horário, a tarefa só aparece na lista do dia. Com horário, ela ganha um lembrete.</p>
+      </div>
+      <label class="dly-switch-row" for="dly-notify">
+        <span class="dly-switch-text">
+          <span class="dly-switch-title">${wrapSvg(ICON.bell, 15)} Avisar neste horário</span>
+          <span class="dly-switch-sub">Recebe uma notificação no dia, no horário escolhido</span>
+        </span>
+        <span class="switch"><input type="checkbox" id="dly-notify" ${item && item.notify ? 'checked' : ''} /><span class="slider"></span></span>
+      </label>
+      ${permNote}`;
+    this.showModal(editing ? 'Editar tarefa' : 'Nova tarefa diária', body, () => {
+      const text = (document.getElementById('dly-text').value || '').trim();
+      if (!text) { this.toast('Escreva a tarefa primeiro', { kind: 'error' }); return; }
+      const time = document.getElementById('dly-time').value || '';
+      const notify = !!(time && document.getElementById('dly-notify').checked);
+      if (editing) {
+        item.text = text.slice(0, 160);
+        item.time = time;
+        item.notify = notify;
+        Store.save();
+      } else {
+        this.addDailyItem(text, { time, notify });
+      }
+      this.closeModal();
+      this.renderDailyPage();
+      if (notify) {
+        this._ensureNotifPermissionSilent().then((granted) => {
+          if (!granted) this.toast('Aviso ativado — o lembrete aparece dentro do app', { kind: 'info', duration: 4000 });
+        });
+      }
+      this.toast(editing ? 'Tarefa atualizada' : `Tarefa adicionada${time ? ` · ${time}` : ''}`, { kind: 'success' });
+    });
+    // rótulo do botão de confirmação + foco no campo de texto
+    const okBtn = this.dom.modalOk;
+    if (okBtn) okBtn.textContent = editing ? 'Salvar' : 'Adicionar';
+    const textField = document.getElementById('dly-text');
+    if (textField) setTimeout(() => { textField.focus(); textField.select && textField.select(); }, 40);
+    // o switch só faz sentido com horário definido
+    const timeInput = document.getElementById('dly-time');
+    const notifyBox = document.getElementById('dly-notify');
+    if (timeInput && notifyBox) {
+      const sync = () => {
+        const has = !!timeInput.value;
+        notifyBox.disabled = !has;
+        if (!has) notifyBox.checked = false;
+      };
+      timeInput.addEventListener('change', sync);
+      timeInput.addEventListener('input', sync);
+      sync();
+    }
+    // Enter no campo de texto confirma (sem o tab Away do foco)
+    if (textField) {
+      textField.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (okBtn) okBtn.click();
+      });
+    }
+  },
+
   toggleDailyItem(id) {
     const d = this._daily();
-    const key = todayKey();
-    d.log[key] = d.log[key] || { done: [] };
-    const done = d.log[key].done;
-    const i = done.indexOf(id);
-    if (i >= 0) done.splice(i, 1); else done.push(id);
+    const entry = this._dailyLog(d);
+    const i = entry.done.indexOf(id);
+    if (i >= 0) entry.done.splice(i, 1); else entry.done.push(id);
     Store.save();
     this.renderDailyPage();
     haptic('light');
@@ -543,7 +643,10 @@ export const WorkspaceMethods = {
   deleteDailyItem(id) {
     const d = this._daily();
     d.items = d.items.filter((x) => x.id !== id);
-    Object.values(d.log).forEach((entry) => { if (entry.done) entry.done = entry.done.filter((x) => x !== id); });
+    Object.values(d.log).forEach((entry) => {
+      if (entry.done) entry.done = entry.done.filter((x) => x !== id);
+      if (entry.notified) entry.notified = entry.notified.filter((x) => x !== id);
+    });
     Store.save();
     this.renderDailyPage();
   },
@@ -556,16 +659,31 @@ export const WorkspaceMethods = {
     const doneToday = (d.log[key] && d.log[key].done) || [];
     const total = d.items.length;
     const doneCount = d.items.filter((x) => doneToday.includes(x.id)).length;
+    const pct = total ? Math.round((doneCount / total) * 100) : 0;
+    // data em 3 blocos: dia da semana / dia do mês / mês-ano
+    const now2 = new Date();
+    const weekday = now2.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const monthYear = now2.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setTxt('daily-weekday', weekday);
+    setTxt('daily-daynum', String(now2.getDate()));
+    setTxt('daily-monthyear', monthYear);
+    setTxt('daily-done-count', String(doneCount));
+    setTxt('daily-total-count', String(total));
     // progresso
     const bar = document.getElementById('daily-progress-bar');
-    if (bar) bar.style.width = total ? `${Math.round((doneCount / total) * 100)}%` : '0%';
+    if (bar) bar.style.width = `${pct}%`;
+    const prog = document.getElementById('daily-progress');
+    if (prog) prog.setAttribute('aria-valuenow', String(pct));
+    const counter = document.getElementById('daily-counter');
+    if (counter) counter.classList.toggle('complete', total > 0 && doneCount >= total);
     const sub = document.getElementById('daily-sub');
     if (sub) {
-      const today = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-      const todayCap = today.charAt(0).toUpperCase() + today.slice(1);
-      sub.textContent = total
-        ? (doneCount >= total && total > 0 ? `${todayCap} · tudo concluído — amanhã ela recomeça. 🎉` : `${todayCap} · ${doneCount} de ${total} concluídas — amanhã a lista recomeça.`)
-        : `${todayCap} · cadastre sua rotina uma vez — ela se renova todo dia.`;
+      sub.textContent = !total
+        ? 'Cadastre sua rotina uma vez — ela se renova todo dia.'
+        : doneCount >= total
+          ? `Tudo concluído hoje (${pct}%) — amanhã a lista recomeça. 🎉`
+          : `${pct}% concluído · ${total - doneCount} ${total - doneCount === 1 ? 'tarefa restante' : 'tarefas restantes'}.`;
     }
     // streak: dias seguidos (até ontem) com tudo concluído
     const streakEl = document.getElementById('daily-streak');
@@ -579,21 +697,69 @@ export const WorkspaceMethods = {
         if (total && entry && entry.done && entry.done.length >= total) streak++; else break;
       }
       streakEl.innerHTML = `🔥 <strong>${streak}</strong>`;
-      streakEl.title = streak === 1 ? '1 dia seguido completando toda a rotina' : `${streak} dias seguidos completando toda a rotina`;
+      streakEl.classList.toggle('zero', streak === 0);
+      streakEl.title = streak === 0
+        ? 'Nenhum dia seguido ainda — conclua a rotina inteira hoje para começar'
+        : (streak === 1 ? '1 dia seguido completando toda a rotina' : `${streak} dias seguidos completando toda a rotina`);
     }
     // lista
     if (!total) {
-      list.innerHTML = '<li class="daily-empty">Nenhuma tarefa da rotina ainda. Adicione a primeira acima — por exemplo: <em>beber 2L de água</em>, <em>exercício</em>, <em>ler 10 páginas</em>.</li>';
+      list.innerHTML = '<li class="daily-empty">Nenhuma tarefa da rotina ainda. Use <strong>Nova tarefa</strong> para cadastrar com horário e aviso — por exemplo: <em>beber 2L de água</em>, <em>exercício</em>, <em>ler 10 páginas</em>.</li>';
       return;
     }
+    const nowMin = now2.getHours() * 60 + now2.getMinutes();
     list.innerHTML = d.items.map((item) => {
       const done = doneToday.includes(item.id);
+      const hasTime = /^\d{2}:\d{2}$/.test(item.time || '');
+      const hasNotify = hasTime && !!item.notify;
+      let timeState = '';
+      if (hasTime) {
+        const [hh, mm] = item.time.split(':').map(Number);
+        const mins = hh * 60 + mm;
+        timeState = done ? 'done' : (mins < nowMin ? 'late' : 'soon');
+      }
+      const timeChip = hasTime
+        ? `<span class="daily-time ${timeState}">${hasNotify ? wrapSvg(ICON.bell, 11) : ''}${esc(item.time)}</span>`
+        : '';
       return `<li class="daily-item${done ? ' done' : ''}" data-id="${item.id}">` +
         `<button type="button" class="daily-check" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Desmarcar' : 'Concluir'}: ${esc(item.text)}">` +
         `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 12.5l4 4 9-9"/></svg></button>` +
+        `<span class="daily-main">` +
         `<span class="daily-text">${esc(item.text)}</span>` +
-        `<button type="button" class="daily-del" aria-label="Excluir ${esc(item.text)}">×</button></li>`;
+        `${timeChip}` +
+        `</span>` +
+        `<span class="daily-item-actions">` +
+        `<button type="button" class="daily-edit" aria-label="Editar ${esc(item.text)}" title="Editar">${wrapSvg(ICON.pencil, 13)}</button>` +
+        `<button type="button" class="daily-del" aria-label="Excluir ${esc(item.text)}" title="Excluir">${wrapSvg(ICON.trash, 13)}</button>` +
+        `</span></li>`;
     }).join('');
+  },
+
+  // avisa (notificação + toast) as tarefas com horário e notificação ligada
+  checkDailyNotifications() {
+    const d = this._daily();
+    if (!d.items.some((i) => i.time && i.notify)) return;
+    const now3 = new Date();
+    const key = todayKey(now3);
+    const mins = now3.getHours() * 60 + now3.getMinutes();
+    // só grava o log de hoje quando algo realmente for disparado
+    const entry = d.log[key] || { done: [], notified: [] };
+    let fired = 0;
+    d.items.forEach((item) => {
+      if (!item.time || !item.notify) return;
+      if ((entry.done || []).includes(item.id) || (entry.notified || []).includes(item.id)) return;
+      const [hh, mm] = item.time.split(':').map(Number);
+      // janela de 1 minuto de tolerância; se o app ficou fechado, avisa na primeira checagem
+      if (hh * 60 + mm > mins || mins - (hh * 60 + mm) > 60) return;
+      entry.notified = entry.notified || [];
+      entry.done = entry.done || [];
+      entry.notified.push(item.id);
+      fired++;
+      this._notifyReminder('🗓️ Diária', `É hora de: ${item.text}`, `daily-${key}-${item.id}`);
+      this.toast(`🗓️ Diária — ${item.text}`, { kind: 'pin', duration: 6000 });
+      haptic('medium');
+    });
+    if (fired) { d.log[key] = entry; Store.save(); }
   },
 };
 

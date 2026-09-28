@@ -1,6 +1,6 @@
 {
   "name": "notethread",
-  "version": "1.13.2",
+  "version": "1.13.4",
   "description": "NoteThread — bloco de notas em formato de chat/threads infinitas com sync em tempo real e offline-first.",
   "scripts": {
     "check": "node --check public/app.js && node --check public/sw.js && node --check public/js/utils.js && node --check public/js/icons.js && node --check public/js/emojis.js && node --check public/js/markdown.js && node --check public/js/store.js && node --check public/js/sound.js && node --check public/js/sync-supabase.js && node --check public/js/ui/picker.js && node --check public/js/ui/navigation.js && node --check public/js/ui/messages.js && node --check public/js/ui/mentions.js && node --check public/js/ui/reminders.js && node --check public/js/ui/settings.js && node --check public/js/ui/auth.js && node --check public/js/ui/tree.js && node --check public/js/ui/composer.js && node --check public/js/ui/sync-events.js && node --check public/js/ui/workspace.js && node --check public/js/updater.js && echo \"syntax ok\"",

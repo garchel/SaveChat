@@ -177,6 +177,7 @@
         <header id="chat-header" class="chat-header cozy-banner" data-friendly-name="Cabeçalho Banner (Título do Caderno)">
           <button id="btn-back" class="btn-icon mobile-only" title="Voltar" aria-label="Voltar para a lista de cadernos">‹</button>
           <div class="chat-title">
+            <span id="page-icon" class="page-icon hidden" aria-hidden="true"></span>
             <div class="chat-name clickable" id="chat-name">Selecione uma conversa</div>
             <button type="button" id="ai-info-btn" class="ai-info-btn hidden" aria-label="O que a IA pode fazer" title="O que a IA pode fazer"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.8" r=".4"/></svg></button>
             <div id="ai-info-tip" class="ai-info-tip hidden" role="tooltip">
@@ -238,19 +239,33 @@
         </section>
         <section id="daily-page" class="workspace-page daily-page hidden" role="tabpanel" aria-labelledby="tab-daily">
           <div class="daily-editor-wrap">
-            <div class="daily-heading">
-              <div>
-                <h2>Diária</h2>
-                <p id="daily-sub">Cadastre sua rotina uma vez — ela se renova todo dia.</p>
+            <div class="daily-head-card">
+              <div class="daily-date">
+                <span class="daily-weekday" id="daily-weekday">sexta-feira</span>
+                <strong class="daily-daynum" id="daily-daynum">1</strong>
+                <span class="daily-monthyear" id="daily-monthyear">de janeiro</span>
               </div>
-              <div id="daily-streak" class="daily-streak" title="Dias seguidos completando toda a rotina">🔥 <strong>0</strong></div>
+              <div class="daily-head-side">
+                <div class="daily-counter" id="daily-counter" aria-live="polite">
+                  <b id="daily-done-count">0</b><i>/</i><span id="daily-total-count">0</span>
+                  <small>concluídas</small>
+                </div>
+                <div id="daily-streak" class="daily-streak" title="Dias seguidos completando toda a rotina">🔥 <strong>0</strong></div>
+              </div>
             </div>
-            <div class="daily-progress" role="progressbar" aria-label="Progresso da rotina de hoje"><div id="daily-progress-bar"></div></div>
+            <div class="daily-progress" id="daily-progress" role="progressbar" aria-label="Progresso da rotina de hoje" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="daily-progress-bar"></div></div>
+            <p id="daily-sub" class="daily-sub">Cadastre sua rotina uma vez — ela se renova todo dia.</p>
             <ul id="daily-list" class="daily-list" aria-label="Tarefas da rotina de hoje"></ul>
-            <form id="daily-add-form" class="daily-add">
-              <input id="daily-input" type="text" maxlength="160" placeholder="Adicionar tarefa à rotina…  ex.: beber 2L de água" autocomplete="off" />
-              <button type="submit" aria-label="Adicionar tarefa">+</button>
-            </form>
+            <div class="daily-actions">
+              <button type="button" id="daily-new-task" class="daily-new-task">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova tarefa
+              </button>
+              <form id="daily-add-form" class="daily-add">
+                <input id="daily-input" type="text" maxlength="160" placeholder="Adicionar rápido…  ex.: beber 2L de água" autocomplete="off" />
+                <button type="submit" aria-label="Adicionar tarefa">+</button>
+              </form>
+            </div>
             <p class="daily-status">Os itens são fixos; a marcação de “concluído” vale só para hoje — à meia-noite a lista recomeça.</p>
             <p id="daily-status" class="sr-only" aria-live="polite"></p>
           </div>
@@ -461,7 +476,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.13.2</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.13.4</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -531,7 +546,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.13.2';
+    window.APP_VERSION = '1.13.4';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

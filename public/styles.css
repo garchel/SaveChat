@@ -1280,7 +1280,16 @@ body::before {
   padding: 16px 20px; background: var(--bg-chat);
   backdrop-filter: blur(10px);
 }
-.chat-title { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; gap: 4px; }
+/* Ícone da página atual à esquerda do título no cabeçalho (Diária/IA/Lembretes) */
+.page-icon {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 34px; height: 34px; border-radius: 11px;
+  background: var(--accent-soft); color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+.page-icon.hidden { display: none; }
+.page-icon .svg-ic { display: block; }
+.chat-title { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; gap: 10px; }
 .chat-name { font-weight: 800; font-size: var(--text-lg); text-wrap: balance; }
 /* ⓘ da página da IA + tooltip "o que a IA pode fazer" */
 .ai-info-btn {
@@ -2798,18 +2807,30 @@ button:focus { outline: none; }
 
 /* Diária — checklist de rotina que se renova todo dia */
 .daily-page .daily-editor-wrap { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px 16px 20px; overflow-y: auto; max-width: 720px; margin: 0 auto; width: 100%; }
-.daily-heading {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
-  padding: 14px 16px; box-shadow: var(--shadow-sm);
+/* Card de data + contador ( substitui o antigo título "Diária" ) */
+.daily-head-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  background: linear-gradient(135deg, var(--bg-elev), var(--accent-soft));
+  border: 1px solid var(--border); border-radius: 18px;
+  padding: 14px 18px; box-shadow: var(--shadow-sm);
 }
-.daily-heading h2 { margin: 0 0 2px; font-size: 19px; font-weight: 800; letter-spacing: -.3px; display: flex; align-items: center; gap: 8px; }
-.daily-heading h2::before { content: "🗓️"; font-size: 18px; }
-.daily-heading p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-dim); }
-.daily-streak { font-size: 13.5px; font-weight: 700; color: var(--text-dim); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 7px 13px; white-space: nowrap; align-self: center; }
+.daily-date { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.daily-weekday { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .9px; color: var(--accent); }
+.daily-daynum { font-family: var(--heading-font); font-size: 40px; font-weight: 800; line-height: 1; letter-spacing: -1px; color: var(--text); font-variant-numeric: tabular-nums; }
+.daily-monthyear { font-size: 12.5px; font-weight: 600; color: var(--text-dim); text-transform: capitalize; }
+.daily-head-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.daily-counter { display: flex; align-items: baseline; gap: 2px; color: var(--text-dim); }
+.daily-counter b { font-family: var(--heading-font); font-size: 26px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.daily-counter i { font-style: normal; font-size: 18px; opacity: .5; }
+.daily-counter span { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.daily-counter small { font-size: 11px; font-weight: 700; color: var(--text-dim); margin-left: 5px; }
+.daily-counter.complete b, .daily-counter.complete span { color: var(--ok); }
+.daily-streak { font-size: 13px; font-weight: 700; color: var(--text-dim); background: var(--bg-elev); border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; white-space: nowrap; }
 .daily-streak strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.daily-streak.zero { opacity: .6; }
 .daily-progress { height: 10px; border-radius: 999px; background: var(--bg-elev); border: 1px solid var(--border); overflow: hidden; }
 .daily-progress > div { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-teal)); transition: width .35s cubic-bezier(.2,.8,.25,1); }
+.daily-sub { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text-dim); }
 .daily-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .daily-item {
   display: flex; align-items: flex-start; gap: 11px;
@@ -2830,17 +2851,44 @@ button:focus { outline: none; }
 .daily-item .daily-check svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
 .daily-item.done .daily-check { background: var(--accent); border-color: var(--accent); }
 .daily-item.done .daily-check svg { opacity: 1; transform: scale(1); }
-.daily-item .daily-text { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; padding-top: 2px; }
+.daily-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding-top: 2px; }
+.daily-item .daily-text { font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; word-break: break-word; }
 .daily-item.done .daily-text { text-decoration: line-through; color: var(--text-dim); font-weight: 500; }
-.daily-item .daily-del {
-  border: none; background: transparent; color: var(--text-dim); font-size: 18px; line-height: 1;
-  cursor: pointer; padding: 4px 8px; border-radius: 8px; opacity: 0; transition: opacity .15s, background .15s;
-  align-self: center;
+/* chip de horário: "soon" = ainda hoje, "late" = horário já passou */
+.daily-time {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 800; font-variant-numeric: tabular-nums;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid transparent;
 }
-.daily-item:hover .daily-del, .daily-item .daily-del:focus-visible { opacity: 1; }
-.daily-item .daily-del:hover { background: var(--bg); color: #e5484d; }
-@media (hover: none) { .daily-item .daily-del { opacity: .55; } }
-.daily-add { display: flex; gap: 8px; position: sticky; bottom: 0; padding: 4px 0; }
+.daily-time.late { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.daily-time.done { background: var(--bg); color: var(--text-dim); }
+.daily-time .svg-ic { display: block; }
+.daily-item-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; align-self: center; opacity: 0; transition: opacity .15s; }
+.daily-item:hover .daily-item-actions, .daily-item .daily-item-actions:focus-within { opacity: 1; }
+@media (hover: none) { .daily-item-actions { opacity: .7; } }
+.daily-item .daily-edit, .daily-item .daily-del {
+  width: 32px; height: 32px; border: none; background: transparent; color: var(--text-dim);
+  border-radius: 9px; cursor: pointer; display: grid; place-items: center;
+  transition: background .15s, color .15s, transform .1s;
+}
+.daily-item .daily-edit:hover { background: var(--accent-soft); color: var(--accent); }
+.daily-item .daily-del:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.daily-item .daily-edit:active, .daily-item .daily-del:active { transform: scale(.92); }
+/* Ações: botão "Nova tarefa" (modal) + entrada rápida */
+.daily-actions { display: flex; flex-direction: column; gap: 8px; }
+.daily-new-task {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 12px 18px; border: none; border-radius: 14px;
+  background: var(--accent); color: var(--on-accent);
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform .1s ease, filter .15s, box-shadow .2s;
+}
+.daily-new-task svg { width: 17px; height: 17px; }
+.daily-new-task:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.daily-new-task:active { transform: scale(var(--press-scale, .96)); }
+.daily-add { display: flex; gap: 8px; }
 .daily-add input {
   flex: 1; min-width: 0; background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text);
   border-radius: 14px; padding: 12px 14px; font: inherit; font-size: 14px; outline: none;
@@ -2850,13 +2898,40 @@ button:focus { outline: none; }
 .daily-add input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .daily-add button {
   width: 46px; height: 46px; flex: 0 0 46px; border: none; border-radius: 14px;
-  background: var(--accent); color: var(--on-accent); font-size: 22px; font-weight: 700; cursor: pointer;
-  box-shadow: var(--shadow-sm); transition: transform .1s, filter .15s;
+  background: var(--bg); border: 1.5px solid var(--border); color: var(--text-dim);
+  font-size: 22px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s, transform .1s;
 }
-.daily-add button:hover { filter: brightness(1.06); }
+.daily-add button:hover { background: var(--accent-soft); color: var(--accent); }
 .daily-add button:active { transform: scale(.94); }
 .daily-empty { color: var(--text-dim); font-size: 13.5px; line-height: 1.6; padding: 20px 14px; border: 1.5px dashed var(--border); border-radius: 16px; text-align: center; background: var(--bg-elev); }
 .daily-status { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-dim); text-align: center; }
+/* Campos do modal de tarefa diária */
+.dly-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.dly-label { font-size: 12.5px; font-weight: 800; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.dly-hint { font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-light); background: var(--bg); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; }
+.dly-field input {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
+  border-radius: 12px; padding: 12px 14px; font-size: 15px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.dly-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.dly-help { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-dim); }
+.dly-switch-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 12px 14px; margin-bottom: 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
+  cursor: pointer; transition: border-color .15s, opacity .15s;
+}
+.dly-switch-row:hover { border-color: var(--accent); }
+.dly-switch-row:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.dly-switch-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dly-switch-title { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.dly-switch-title .svg-ic { display: block; color: var(--accent); }
+.dly-switch-sub { font-size: 11.5px; line-height: 1.4; color: var(--text-dim); }
+.dly-switch-row .switch { flex: 0 0 auto; }
+.dly-perm { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--text-dim); }
+.dly-perm.ok { color: var(--ok); }
+.dly-perm.warn { color: var(--danger); }
 
 /* Mobile: páginas já responsivas (abas do canvas removidas na v1.12.0) */
 @media (prefers-reduced-motion: reduce) {
