@@ -202,26 +202,37 @@
               <summary>Configurar IA <span aria-hidden="true">⌄</span></summary>
               <label for="ai-key">Chave da API Gemini</label>
               <input id="ai-key" type="password" autocomplete="off" placeholder="Cole sua chave do Google AI Studio" />
-              <small>A chave fica somente neste dispositivo e não é sincronizada.</small>
-              <label for="ai-model">Modelo</label>
-              <select id="ai-model">
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-              </select>
+              <small>A chave fica somente neste dispositivo e não é sincronizada. A IA lê suas notas recentes e pode criar notas quando você pedir.</small>
             </details>
+            <div id="ai-rec-status" class="ai-rec-status hidden" aria-live="polite">
+              <span class="ai-rec-dot" aria-hidden="true"></span>
+              <span class="ai-rec-text">Gravando… <span id="ai-rec-timer">0:00</span></span>
+              <span class="ai-rec-hint">toque no microfone para parar</span>
+            </div>
             <div class="ai-composer">
-              <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Converse com a IA…"></textarea>
+              <button type="button" id="ai-mic" aria-label="Gravar áudio" aria-pressed="false" title="Gravar áudio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button>
+              <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Peça algo à IA — ela conhece suas notas…"></textarea>
               <button type="button" id="ai-send" aria-label="Enviar mensagem para a IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
             </div>
           </div>
         </section>
         <section id="daily-page" class="workspace-page daily-page hidden" role="tabpanel" aria-labelledby="tab-daily">
           <div class="daily-editor-wrap">
-            <div class="daily-heading"><div><h2>Diária</h2><p>Um espaço privado para registrar seu dia.</p></div><input id="daily-date" type="date" aria-label="Data da entrada diária" /></div>
-            <textarea id="daily-editor" aria-label="Escreva na sua diária" placeholder="O que está passando pela sua cabeça hoje?"></textarea>
-            <p id="daily-status" class="daily-status" aria-live="polite"></p>
+            <div class="daily-heading">
+              <div>
+                <h2>Diária</h2>
+                <p id="daily-sub">Cadastre sua rotina uma vez — ela se renova todo dia.</p>
+              </div>
+              <div id="daily-streak" class="daily-streak" title="Dias seguidos completando toda a rotina">🔥 <strong>0</strong></div>
+            </div>
+            <div class="daily-progress" role="progressbar" aria-label="Progresso da rotina de hoje"><div id="daily-progress-bar"></div></div>
+            <ul id="daily-list" class="daily-list" aria-label="Tarefas da rotina de hoje"></ul>
+            <form id="daily-add-form" class="daily-add">
+              <input id="daily-input" type="text" maxlength="160" placeholder="Adicionar tarefa à rotina…  ex.: beber 2L de água" autocomplete="off" />
+              <button type="submit" aria-label="Adicionar tarefa">+</button>
+            </form>
+            <p class="daily-status">Os itens são fixos; a marcação de “concluído” vale só para hoje — à meia-noite a lista recomeça.</p>
+            <p id="daily-status" class="sr-only" aria-live="polite"></p>
           </div>
         </section>
 
@@ -430,7 +441,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.12.1</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.13.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -500,7 +511,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.12.1';
+    window.APP_VERSION = '1.13.0';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

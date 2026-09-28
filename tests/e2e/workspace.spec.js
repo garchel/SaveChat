@@ -42,8 +42,12 @@ test('seletor de páginas: IA, Diária e volta para Cadernos', async ({ page }) 
 
   await page.click('.page-switch[data-page="daily"]');
   await expect(page.locator('#daily-page')).toBeVisible();
-  await page.fill('#daily-editor', 'hoje foi um bom dia');
-  await expect(page.locator('#daily-status')).toContainText('Salvo');
+  await page.fill('#daily-input', 'exercício 30 min');
+  await page.press('#daily-input', 'Enter');
+  await expect(page.locator('.daily-item')).toHaveCount(1);
+  await page.click('.daily-item .daily-check');
+  await expect(page.locator('.daily-item.done')).toHaveCount(1);
+  await expect(page.locator('#daily-progress-bar')).toHaveCSS('width', /[1-9]/);
 
   await page.click('.page-switch[data-page="notes"]');
   await expect(page.locator('#messages')).toBeVisible();
@@ -77,15 +81,31 @@ test('lupa: NOVO some em fade, painel abre e a lupa não se move', async ({ page
   await expect(novo).toHaveCSS('opacity', '1');
 });
 
-test('diária persiste no dispositivo após reload', async ({ page }) => {
+test('diária: rotina persiste e o check do dia não vaza para "amanhã"', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(2000);
   await page.click('.page-switch[data-page="daily"]');
-  await page.fill('#daily-editor', 'segunda entrada');
+  await page.fill('#daily-input', 'ler 10 páginas');
+  await page.press('#daily-input', 'Enter');
+  await page.click('.daily-item .daily-check');
+  await expect(page.locator('.daily-item.done')).toHaveCount(1);
   await page.reload();
   await page.waitForTimeout(2000);
   await page.click('.page-switch[data-page="daily"]');
-  await expect(page.locator('#daily-editor')).toHaveValue(/segunda entrada/);
+  // item sobrevive ao reload (rotina fixa) e continua marcado (mesmo dia)
+  await expect(page.locator('.daily-item')).toHaveCount(1);
+  await expect(page.locator('.daily-item.done')).toHaveCount(1);
+  // simulando o dia seguinte (meia-noite limpa o log de checks): item fica desmarcado
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('notethread.v2'));
+    d.ui.dailyRoutine.log = {};
+    localStorage.setItem('notethread.v2', JSON.stringify(d));
+  });
+  await page.reload();
+  await page.waitForTimeout(2000);
+  await page.click('.page-switch[data-page="daily"]');
+  await expect(page.locator('.daily-item')).toHaveCount(1);
+  await expect(page.locator('.daily-item.done')).toHaveCount(0);
 });
 
 test('IA sem chave: pede a chave e não chama a API', async ({ page }) => {

@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.13.0] — 2026-09-28
+### IA — assistente das suas notas
+- **A IA agora lê suas notas**: as conversas recentes entram como contexto automático — peça resumos, planos e perguntas sobre o que você já anotou
+- **A IA cria notas de verdade**: pediu “crie uma nota na conversa Compras com a lista do churrasco”? Ela cria na conversa certa (com confirmação e chip na resposta) e a nota sincroniza como qualquer outra
+- **Áudio no chat**: botão de microfone grava, **transcreve com a Gemini** (mesma chave) e cola o texto no campo para revisão antes de enviar — com timer, pulso vermelho e status
+### Diária — rotina que se renova
+- **Checklist de rotina**: cadastre tarefas fixas (ex.: beber 2L de água) e marque como concluído **por dia** — à meia-noite a lista recomeça, o item fica
+- **Progresso do dia** com barra e **streak** 🔥 de dias seguidos completando tudo
+- Removido o diário de texto livre (a essência agora vive nas conversas)
+
 ## [1.12.1] — 2026-09-28
 ### Corrigido
 - **Busca no lugar exato do NOVO**: o painel virou overlay na mesma área do botão (crossfade) — não empurra mais o layout nem abre “abaixo”

@@ -2713,31 +2713,80 @@ button:focus { outline: none; }
   border-radius: 14px; padding: 11px 14px; font: inherit; font-size: 14px; outline: none;
 }
 .ai-composer textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-#ai-send {
+#ai-mic, #ai-send {
   width: 44px; height: 44px; flex: 0 0 44px; border: none; border-radius: 14px;
-  background: var(--accent); color: var(--on-accent); cursor: pointer;
-  display: grid; place-items: center; transition: transform .1s, opacity .15s;
+  background: var(--bg); border: 1.5px solid var(--border); color: var(--text); cursor: pointer;
+  display: grid; place-items: center; transition: transform .1s, opacity .15s, background .15s, color .15s;
 }
-#ai-send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-#ai-send:active { transform: scale(.94); }
+#ai-mic svg, #ai-send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#ai-mic:active, #ai-send:active { transform: scale(.94); }
+#ai-send { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 #ai-send:disabled { opacity: .5; cursor: default; }
+#ai-mic.rec { background: #e5484d; border-color: #e5484d; color: #fff; animation: ai-rec-pulse 1.4s ease-in-out infinite; }
+#ai-mic.busy { opacity: .6; pointer-events: none; }
+@keyframes ai-rec-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,72,77,.45); } 50% { box-shadow: 0 0 0 9px rgba(229,72,77,0); } }
+.ai-rec-status {
+  display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: #e5484d;
+  background: color-mix(in srgb, #e5484d 9%, transparent); border: 1px solid color-mix(in srgb, #e5484d 28%, transparent);
+  border-radius: 12px; padding: 8px 12px;
+}
+.ai-rec-status.hidden { display: none; }
+.ai-rec-dot { width: 9px; height: 9px; border-radius: 50%; background: #e5484d; animation: ai-rec-blink 1.1s steps(2, start) infinite; }
+@keyframes ai-rec-blink { to { visibility: hidden; } }
+.ai-rec-hint { margin-left: auto; font-weight: 500; opacity: .75; font-size: 11.5px; }
+.ai-action-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin: 0 0 6px; padding: 4px 10px; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+  font-size: 12px; font-weight: 700;
+}
+.ai-message.user .ai-action-chip { background: rgba(255,255,255,.22); color: inherit; }
 
-/* Diária */
-.daily-page .daily-editor-wrap { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow-y: auto; }
+/* Diária — checklist de rotina que se renova todo dia */
+.daily-page .daily-editor-wrap { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow-y: auto; max-width: 720px; margin: 0 auto; width: 100%; }
 .daily-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .daily-heading h2 { margin: 0 0 2px; font-size: 19px; font-weight: 800; }
 .daily-heading p { margin: 0; font-size: 12.5px; color: var(--text-dim); }
-.daily-heading input[type="date"] {
-  background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text);
-  border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 13px;
+.daily-streak { font-size: 14px; color: var(--text-dim); background: var(--bg-elev); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+.daily-streak strong { color: var(--text); }
+.daily-progress { height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; }
+.daily-progress > div { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-teal)); transition: width .35s cubic-bezier(.2,.8,.25,1); }
+.daily-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.daily-item {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+  padding: 11px 12px; transition: opacity .2s;
 }
-#daily-editor {
-  flex: 1; min-height: 220px; resize: none;
-  background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text);
-  border-radius: 16px; padding: 14px; font: inherit; font-size: 14px; line-height: 1.6; outline: none;
+.daily-item .daily-check {
+  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 9px;
+  border: 2px solid var(--border); background: transparent; cursor: pointer;
+  display: grid; place-items: center; transition: background .15s, border-color .15s;
 }
-#daily-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.daily-status { margin: 0; font-size: 11.5px; color: var(--text-dim); text-align: right; }
+.daily-item .daily-check svg { width: 15px; height: 15px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(.5); transition: opacity .15s, transform .15s; }
+.daily-item.done .daily-check { background: var(--accent); border-color: var(--accent); }
+.daily-item.done .daily-check svg { opacity: 1; transform: scale(1); }
+.daily-item .daily-text { flex: 1; font-size: 14px; font-weight: 600; }
+.daily-item.done .daily-text { text-decoration: line-through; color: var(--text-dim); font-weight: 500; }
+.daily-item .daily-del {
+  border: none; background: transparent; color: var(--text-dim); font-size: 18px; line-height: 1;
+  cursor: pointer; padding: 4px 8px; border-radius: 8px; opacity: 0; transition: opacity .15s, background .15s;
+}
+.daily-item:hover .daily-del, .daily-item .daily-del:focus-visible { opacity: 1; }
+.daily-item .daily-del:hover { background: var(--bg); color: #e5484d; }
+@media (hover: none) { .daily-item .daily-del { opacity: .55; } }
+.daily-add { display: flex; gap: 8px; }
+.daily-add input {
+  flex: 1; min-width: 0; background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text);
+  border-radius: 14px; padding: 11px 14px; font: inherit; font-size: 14px; outline: none;
+}
+.daily-add input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.daily-add button {
+  width: 44px; height: 44px; flex: 0 0 44px; border: none; border-radius: 14px;
+  background: var(--accent); color: var(--on-accent); font-size: 22px; font-weight: 700; cursor: pointer;
+}
+.daily-add button:active { transform: scale(.94); }
+.daily-empty { color: var(--text-dim); font-size: 13.5px; padding: 14px; border: 1.5px dashed var(--border); border-radius: 14px; text-align: center; }
+.daily-status { margin: 0; font-size: 11.5px; color: var(--text-dim); text-align: center; }
 
 /* Mobile: páginas já responsivas (abas do canvas removidas na v1.12.0) */
 @media (prefers-reduced-motion: reduce) {
