@@ -100,36 +100,36 @@
           <div class="brand-name">SaveChat</div>
           <div class="brand-sub">Suas ideias, organizadas</div>
         </div>
-        <!-- Seletor de páginas do explorador: Cadernos | IA | Diária (a IA e a
-             Diária do workspace abrem no canvas; o espaço do carrinho de botões
-             antigo foi reaproveitado) -->
-        <div class="page-switcher" role="tablist" aria-label="Páginas">
-          <button type="button" class="page-switch active" data-page="notes" aria-label="Cadernos e conversas" title="Cadernos e conversas">📓</button>
-          <button type="button" class="page-switch" data-page="ai" aria-label="IA" title="IA">✦</button>
-          <button type="button" class="page-switch" data-page="daily" aria-label="Diária" title="Diária">🗓️</button>
-        </div>
         <button id="explorer-tasks" class="btn-icon-sm" title="Pendências (checklists de todas as conversas)" aria-label="Pendências" data-friendly-name="Explorer: Pendências"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M5.2 7.2l1.4 1.6 2.6-3"/><line x1="14" y1="7.5" x2="21" y2="7.5"/><rect x="3" y="13.5" width="7" height="7" rx="1.5"/><path d="M5.2 16.7l1.4 1.6 2.6-3"/><line x1="14" y1="17" x2="21" y2="17"/></svg><span class="nav-badge hidden" id="tasks-badge"></span></button>
         <button id="explorer-reminders" class="btn-icon-sm" title="Lembretes" aria-label="Lembretes" data-friendly-name="Explorer: Lembretes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="nav-badge hidden" id="rem-badge"></span></button>
         <button id="btn-notifications" class="btn-icon-sm" title="Notificações" aria-label="Notificações" data-friendly-name="Explorer: Notificações"><!-- sino de notificação (traço estilo Hugeicons: stroke 1.5, cantos arredondados) --><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="nav-badge hidden" id="notif-badge"></span></button>
       </div>
-      <div id="explorer-search-panel" class="explorer-search-panel">
-        <div class="search-box" data-friendly-name="Campo de Busca (Busca)">
-        <span class="search-ic" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-tip" role="tooltip">
-          <div class="tip-title">Busca avançada</div>
-          <code>#tag</code> filtra por tag<br/>
-          <code>in:conversa</code> busca numa conversa<br/>
-          Texto livre busca em todas as notas
-        </span></span>
-        <input id="search-input" type="search" placeholder="Buscar notas…  #tag · in:conversa" autocomplete="off" />
-        <button id="search-clear" class="search-clear hidden" title="Limpar" aria-label="Limpar busca">×</button>
-        </div>
-        <div id="search-results" class="search-results hidden"></div>
+      <!-- Seletor de páginas: faixa própria abaixo da marca, acima do NOVO.
+           Rótulos completos (sem depender de emoji) e estado ativo legível. -->
+      <div class="page-switcher" role="tablist" aria-label="Páginas">
+        <button type="button" class="page-switch active" data-page="notes" aria-label="Cadernos" title="Cadernos e conversas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v17.5H7.5A2.5 2.5 0 0 0 5 22V4.5Z"/><path d="M9 7h6M9 10.5h6"/></svg><span>Cadernos</span></button>
+        <button type="button" class="page-switch" data-page="ai" aria-label="IA" title="IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg><span>IA</span></button>
+        <button type="button" class="page-switch" data-page="daily" aria-label="Diária" title="Diária"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg><span>Diária</span></button>
       </div>
 
       <div class="explorer-actions" data-friendly-name="Ações Principais (Botões)">
         <div class="explorer-row">
           <button id="btn-new-thread" class="btn-explorer primary grow" data-friendly-name="Botão NOVO"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> NOVO</button>
           <button id="btn-explorer-search" class="btn-explorer-icon" aria-expanded="false" aria-controls="explorer-search-panel" title="Buscar" aria-label="Buscar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        </div>
+        <!-- Painel de busca ABAIXO da linha (não empurra a lupa; abre por baixo) -->
+        <div id="explorer-search-panel" class="explorer-search-panel">
+          <div class="search-box" data-friendly-name="Campo de Busca (Busca)">
+          <span class="search-ic" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-tip" role="tooltip">
+            <div class="tip-title">Busca avançada</div>
+            <code>#tag</code> filtra por tag<br/>
+            <code>in:conversa</code> busca numa conversa<br/>
+            Texto livre busca em todas as notas
+          </span></span>
+          <input id="search-input" type="search" placeholder="Buscar notas…  #tag · in:conversa" autocomplete="off" />
+          <button id="search-clear" class="search-clear hidden" title="Limpar" aria-label="Limpar busca">×</button>
+          </div>
+          <div id="search-results" class="search-results hidden"></div>
         </div>
       </div>
 
@@ -171,13 +171,9 @@
           <div id="backlinks" class="backlinks hidden" data-friendly-name="Backlinks (Mencionado em)"></div>
           <button id="btn-thread-menu" class="btn-thread-menu" title="Opções da conversa" aria-label="Opções da conversa"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
         </header>
-        <nav id="workspace-tabs" class="workspace-tabs" role="tablist" aria-label="Seções do SaveChat">
-          <button type="button" id="tab-conversations" class="workspace-tab active" role="tab" aria-selected="true" aria-controls="messages" data-workspace-tab="conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-5.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 10h8M8 14h5"/></svg><span>Conversas</span></button>
-          <button type="button" id="tab-ai" class="workspace-tab" role="tab" aria-selected="false" aria-controls="ai-page" data-workspace-tab="ai" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg><span>IA</span></button>
-          <button type="button" id="tab-reminders" class="workspace-tab" role="tab" aria-selected="false" aria-controls="reminders-page" data-workspace-tab="reminders" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M5 3 2 6M19 3l3 3"/></svg><span>Lembretes</span></button>
-          <button type="button" id="tab-daily" class="workspace-tab" role="tab" aria-selected="false" aria-controls="daily-page" data-workspace-tab="daily" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg><span>Diária</span></button>
-        </nav>
-        <div id="workspace-swipe-hint" class="hidden" aria-hidden="true"></div>
+      <!-- Seletor removido da conversa aberta (v1.12.0): a navegação de páginas
+           vive só na sidebar do explorador. -->
+      <div id="workspace-swipe-hint" class="hidden" aria-hidden="true"></div>
         <!-- Menu popover da nota (backlinks, convidar, renomear, excluir) -->
         <div id="chat-title-menu" class="popover chat-title-menu hidden" role="menu">
           <button type="button" id="menu-backlinks" class="ctm-item hidden" data-act="backlinks"><span class="ctm-icon">@</span> Mencionado em <span id="menu-backlinks-count" class="ctm-badge"></span></button>
@@ -433,7 +429,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.11.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.12.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -503,7 +499,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.11.0';
+    window.APP_VERSION = '1.12.0';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

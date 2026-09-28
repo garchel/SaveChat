@@ -2,6 +2,15 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.12.0] — 2026-09-28
+### Modificado
+- **Seletor de páginas redesenhado**: virou uma faixa própria **abaixo da marca e acima do NOVO**, com rótulos completos (Cadernos · IA · Diária), ícones e estado ativo claro — navegação principal do app
+- **Menu removido das conversas abertas**: a faixa de abas dentro do canvas saiu; a conversa fica limpa, sem navegação duplicada — voltar para a lista segue pelo ‹ ou pelo seletor
+- **Toggle lupa ↔ busca refeito**: o NOVO agora **desaparece em fade out** (sem encolher), o painel de busca **aparece em fade in** e **a lupa não se move um pixel**
+
+### Removido
+- Abas do workspace dentro da conversa e CSS/JS órfãos (o seletor da sidebar assumiu a navegação)
+
 ## [1.11.0] — 2026-09-28
 ### Adicionado
 - **Botão “+ NOVO” unificado**: um só botão cria conversa **ou** caderno — o modal ganhou o seletor `💬 Conversa | 📁 Caderno` e troca o formulário na hora (mantendo o que você já digitou)

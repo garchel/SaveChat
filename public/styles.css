@@ -2577,15 +2577,32 @@ button:focus { outline: none; }
 }
 
 /* ===================== EXPLORER: Novo + Lupa · painel de busca · seletor de páginas ===================== */
-.explorer-row { display: flex; gap: 8px; align-items: stretch; }
-.explorer-row .grow { flex: 1; }
-.explorer-row .grow span, .explorer-row .grow { transition: opacity .25s ease, transform .25s ease, flex .25s ease; }
-/* modo busca: o botão Novo encolhe e some (fade) — a busca ocupa o espaço */
-.explorer-row.searching .grow {
-  flex: 0; width: 0; min-width: 0; padding-left: 0; padding-right: 0;
-  opacity: 0; pointer-events: none; border-width: 0; transform: translateX(-8px);
-  overflow: hidden;
+.explorer-row { display: flex; gap: 8px; align-items: center; }
+.explorer-row .grow { flex: 1; min-width: 0; }
+/* Modo busca: o botão NOVO some em fade OUT puro (largura fixa, sem encolher)
+   e a lupa fica exatamente no lugar — só o NOVO desaparece. */
+#btn-new-thread { transition: opacity .22s ease, transform .22s ease, filter .15s, box-shadow .2s; }
+.explorer-row.searching #btn-new-thread {
+  opacity: 0;
+  transform: translateX(6px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
 }
+/* Painel de busca: entra com fade IN + leve slide, ABAIXO da linha NOVO/lupa
+   (recolhido não ocupa layout — a lupa nunca se move) */
+.explorer-search-panel {
+  visibility: hidden; opacity: 0; max-height: 0; overflow: hidden;
+  transform: translateY(-4px);
+  transition: opacity .24s ease .06s, transform .24s ease .06s, max-height .28s cubic-bezier(.2,.8,.25,1), visibility 0s linear .3s;
+}
+.explorer-search-panel.open {
+  visibility: visible; opacity: 1; max-height: 60vh; overflow-y: auto;
+  transform: translateY(0);
+  transition: opacity .24s ease, transform .24s ease, max-height .28s cubic-bezier(.2,.8,.25,1);
+}
+.explorer-search-panel .search-box { margin: 0; }
+.explorer-search-panel .search-results { margin: 8px 0 0; }
 .btn-explorer-icon {
   width: 44px; flex: 0 0 44px; border-radius: 14px;
   background: transparent; color: var(--text); border: 1.5px solid var(--border);
@@ -2600,66 +2617,40 @@ button:focus { outline: none; }
   background: var(--accent); border-color: var(--accent); color: var(--on-accent);
 }
 
-/* Painel de busca (colapsado por padrão) */
-.explorer-search-panel {
-  max-height: 0; overflow: hidden;
-  transition: max-height .28s cubic-bezier(.2,.8,.25,1);
-}
-.explorer-search-panel.open { max-height: 60vh; overflow-y: auto; }
-.explorer-search-panel .search-box { margin: 8px 14px 0; }
-.explorer-search-panel .search-results { margin: 8px 10px 0; }
 
-/* Seletor de páginas do explorador (Cadernos | IA | Diária) */
+/* Seletor de páginas do explorador (Cadernos | IA | Diária):
+   faixa própria abaixo da marca, acima do NOVO — navegação principal. */
 .page-switcher {
-  display: flex; gap: 3px; margin-left: auto;
+  display: flex; gap: 4px;
+  margin: 10px 14px 2px;
+  padding: 4px;
   background: color-mix(in srgb, var(--bg) 72%, transparent);
-  border: 1px solid var(--border); border-radius: 12px; padding: 3px;
+  border: 1px solid var(--border); border-radius: 14px;
 }
 .page-switch {
-  width: 32px; height: 32px; border: none; border-radius: 9px;
-  background: transparent; cursor: pointer; font-size: 14px; line-height: 1;
-  display: grid; place-items: center; color: var(--text-dim);
+  flex: 1; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: none; border-radius: 10px;
+  background: transparent; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .2px;
+  color: var(--text-dim);
   transition: background .15s, color .15s, transform .1s;
   position: relative;
 }
-.page-switch::after { content: ""; position: absolute; inset: -6px; }
+.page-switch svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .page-switch:hover { background: var(--bg-elev); color: var(--text); }
-.page-switch:active { transform: scale(.92); }
+.page-switch:active { transform: scale(.95); }
 .page-switch.active { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-sm); }
 @media (max-width: 760px) {
-  /* mobile: o nome cede espaço ao seletor (a logo carrega a marca) */
-  .explorer-brand .brand-text { display: none; }
-  .page-switch { width: 30px; height: 30px; }
+  /* mobile: o sub do brand cede, mas marca e seletor continuam legíveis */
+  .explorer-brand .brand-sub { display: none; }
+  .explorer-brand { padding: 12px 12px 8px; }
+  .page-switcher { margin: 8px 12px 0; }
+  .page-switch span { font-size: 11px; }
 }
 
-/* ===================== WORKSPACE (abas Conversas · IA · Lembretes · Diária) ===================== */
-.workspace-tabs {
-  display: flex; gap: 4px; margin: 8px 12px 0;
-  padding: 4px; border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-elev) 72%, transparent);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
-  position: relative; z-index: 6;
-  /* navegação global: sempre clicável, mesmo dentro de #chat-active-ui
-     antes do primeiro .visible (o pai tem pointer-events:none sem thread) */
-  pointer-events: auto;
-}
-.workspace-tab {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 7px 4px 6px; border: none; border-radius: 10px;
-  background: transparent; color: var(--text-dim);
-  font: inherit; font-size: 10.5px; font-weight: 700; letter-spacing: .2px;
-  cursor: pointer; min-height: 44px;
-  transition: background .15s, color .15s, transform .1s;
-}
-.workspace-tab svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.workspace-tab:hover { background: var(--bg); color: var(--text); }
-.workspace-tab:active { transform: scale(.95); }
-.workspace-tab.active {
-  background: var(--accent); color: var(--on-accent);
-  box-shadow: var(--shadow-sm);
-}
-.workspace-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* ===================== WORKSPACE (páginas IA · Lembretes · Diária) =====================   (as abas do canvas foram removidas na v1.12.0 — a navegação vive no seletor
+   da sidebar do explorador) */
 
 /* Indicador de swipe (carrossel temporário) */
 #workspace-swipe-hint {
@@ -2741,12 +2732,7 @@ button:focus { outline: none; }
 #daily-editor:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .daily-status { margin: 0; font-size: 11.5px; color: var(--text-dim); text-align: right; }
 
-/* Mobile: abas compactas; pages já responsivas */
-@media (max-width: 760px) {
-  .workspace-tabs { margin: 6px 10px 0; }
-  .workspace-tab { font-size: 9.5px; padding: 6px 2px 5px; }
-  .workspace-tab svg { width: 17px; height: 17px; }
-}
+/* Mobile: páginas já responsivas (abas do canvas removidas na v1.12.0) */
 @media (prefers-reduced-motion: reduce) {
   #workspace-swipe-hint { transition: none; }
 }

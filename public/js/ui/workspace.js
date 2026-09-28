@@ -2,17 +2,18 @@ import { esc, haptic } from '../utils.js';
 import { renderMarkdown } from '../markdown.js';
 import { Store } from '../store.js';
 
-// ---------- Workspace: abas Conversas · IA · Lembretes · Diária ----------
-// Design acordado (2026-09-28): faixa compacta de abas abaixo do cabeçalho —
-// "conversa aberta" é tela dentro de Conversas (com Voltar), não aba. O swipe
-// horizontal continua como atalho e mostra um indicador momentâneo
-// (#workspace-swipe-hint) com o destino enquanto o dedo se move (ideia do
-// carrossel temporário); ao soltar além do limiar, a aba correspondente ativa.
+// ---------- Workspace: páginas Conversas · IA · Lembretes · Diária ----------
+// Design v1.12.0: a navegação de páginas é o seletor da SIDEBAR do explorador
+// (.page-switcher: Cadernos | IA | Diária, + Pendências/Lembretes por atalhos
+// e deep links). "Conversa aberta" é tela dentro de Cadernos (com Voltar).
+// O swipe horizontal continua como atalho e mostra um indicador momentâneo
+// (#workspace-swipe-hint) com o destino enquanto o dedo se move (carrossel
+// temporário); ao soltar além do limiar, a página correspondente ativa.
 // IA = chat próprio (chave Gemini do usuário, salva só neste dispositivo).
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 const TABS = ['conversations', 'ai', 'reminders', 'daily'];
-const TAB_LABEL = { conversations: '💬 Conversas', ai: '✦ IA', reminders: '⏰ Lembretes', daily: '📓 Diária' };
+const TAB_LABEL = { conversations: 'Cadernos', ai: 'IA', reminders: 'Lembretes', daily: 'Diária' };
 const todayKey = () => {
   const date = new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -20,11 +21,21 @@ const todayKey = () => {
 
 export const WorkspaceMethods = {
   bindWorkspace() {
-    document.querySelectorAll('[data-workspace-tab]').forEach((button) => {
-      button.addEventListener('click', () => this.showWorkspaceTab(button.dataset.workspaceTab));
+    // Navegação de páginas: seletor da sidebar do explorador (Cadernos | IA | Diária)
+    document.querySelectorAll('.page-switch').forEach((button) => {
+      button.addEventListener('click', () => {
+        const page = button.dataset.page;
+        if (page === 'notes') {
+          this.showWorkspaceTab('conversations');
+          const app = document.getElementById('app');
+          if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+        } else {
+          this.showWorkspaceTab(page);
+        }
+      });
     });
-    // teclado nas abas (role=tab): setas movem, Home/End atalhos
-    const tablist = document.getElementById('workspace-tabs');
+    // teclado no seletor (role=tab): setas movem, Home/End atalhos
+    const tablist = document.querySelector('.page-switcher');
     if (tablist) tablist.addEventListener('keydown', (e) => {
       const idx = TABS.indexOf(this._workspaceTab || 'conversations');
       let next = null;
@@ -32,7 +43,7 @@ export const WorkspaceMethods = {
       else if (e.key === 'ArrowLeft') next = TABS[(idx - 1 + TABS.length) % TABS.length];
       else if (e.key === 'Home') next = TABS[0];
       else if (e.key === 'End') next = TABS[TABS.length - 1];
-      if (next) { e.preventDefault(); this.showWorkspaceTab(next); document.querySelector(`[data-workspace-tab="${next}"]`)?.focus(); }
+      if (next) { e.preventDefault(); this.showWorkspaceTab(next); document.querySelector(`.page-switch[data-page="${next === 'conversations' ? 'notes' : next}"]`)?.focus(); }
     });
     document.getElementById('daily-date')?.addEventListener('change', () => this.renderDailyEntry());
     document.getElementById('daily-editor')?.addEventListener('input', () => this.saveDailyEntry());
@@ -69,8 +80,11 @@ export const WorkspaceMethods = {
     // clicável mesmo sem conversa aberta (o .visible é o gate do container);
     // em Conversas, volta ao estado normal (visível só com thread aberta)
     cui?.classList.toggle('visible', tab !== 'conversations' || !!this.activeThread);
-    document.querySelectorAll('[data-workspace-tab]').forEach((button) => {
-      const active = button.dataset.workspaceTab === tab;
+    // sincroniza o seletor da sidebar (Cadernos fica ativo também em conversas
+    // abertas e na página de Lembretes — é o destino "de volta" ali)
+    document.querySelectorAll('.page-switch').forEach((button) => {
+      const page = button.dataset.page;
+      const active = page === tab || (page === 'notes' && tab === 'conversations');
       button.classList.toggle('active', active);
       button.setAttribute('aria-selected', String(active));
       button.tabIndex = active ? 0 : -1;
