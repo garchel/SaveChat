@@ -2575,7 +2575,7 @@ button:focus { outline: none; }
 }
 
 /* ===================== EXPLORER: Novo + Lupa · painel de busca · seletor de páginas ===================== */
-.explorer-row { display: flex; gap: 8px; align-items: center; }
+.explorer-row { display: flex; gap: 8px; align-items: stretch; }
 .explorer-row .grow { flex: 1; min-width: 0; }
 /* Modo busca: o botão NOVO some em fade OUT puro (largura fixa, sem encolher)
    e a lupa fica exatamente no lugar — só o NOVO desaparece. */
