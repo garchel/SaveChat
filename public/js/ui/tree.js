@@ -19,9 +19,107 @@ export const TreeMethods = {
   },
 
 bindTreeActions() {
-      $('#btn-new-thread').addEventListener('click', () => this.createThread());
-      $('#btn-new-folder').addEventListener('click', () => this.createFolder());
+      $('#btn-new-thread').addEventListener('click', () => this.createItem());
+      // Lupa: revela a busca com fade no botão Novo (os três componentes antigos
+      // — 2 botões + busca — vivem no mesmo espaço, um de cada vez)
+      const sBtn = document.getElementById('btn-explorer-search');
+      const row = document.querySelector('.explorer-row');
+      const panel = document.getElementById('explorer-search-panel');
+      if (sBtn && row && panel) {
+        sBtn.addEventListener('click', () => {
+          const open = panel.classList.toggle('open');
+          row.classList.toggle('searching', open);
+          sBtn.classList.toggle('active', open);
+          sBtn.setAttribute('aria-expanded', String(open));
+          const input = document.getElementById('search-input');
+          if (open) setTimeout(() => input && input.focus(), 230);
+          else if (input) { input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true })); }
+        });
+      }
       $('#btn-back').addEventListener('click', () => $('#app').classList.remove('show-chat'));
+    },
+
+    // Botão unificado "+ NOVO": escolhe Conversa ou Caderno no mesmo modal
+    createItem() {
+      let type = 'thread'; // 'thread' | 'folder'
+      let chosen = 'chat';
+      let chosenColor = null;
+      const $id = (i) => document.getElementById(i);
+      const isFolder = () => type === 'folder';
+      const body = `
+        <div class="seg" id="ni-type" role="tablist" aria-label="Tipo do item" style="margin-bottom:14px">
+          <button type="button" class="seg-btn active" data-type="thread">💬 Conversa</button>
+          <button type="button" class="seg-btn" data-type="folder">📁 Caderno</button>
+        </div>
+        <div id="ni-body"></div>`;
+      this.showModal('Nova conversa', body, () => {
+        const v = ($id('nt-name').value || '').trim();
+        if (!v) { $id('nt-name').focus(); return; }
+        if (isFolder()) {
+          const f = { id: uid(), name: v, emoji: chosen, color: chosenColor || undefined, parentId: null, createdAt: now(), userId: Store.user ? Store.user.mail : 'anon' };
+          Store.upsertFolder(f);
+          Store.setExpanded(f.id, true);
+          Sync.send('folder:upsert', f);
+          this.renderTree(); this.closeModal();
+          Sound.play('create'); haptic('success');
+          this.toast(this._cozyCongrats(), { kind: 'success' });
+        } else {
+          const sel = $id('nt-folder');
+          const target = sel ? (sel.value || null) : null;
+          const t = { id: uid(), name: v, emoji: chosen, color: chosenColor || undefined, folderId: target, favorite: false, createdAt: now(), updatedAt: now(), lastPreview: '', userId: Store.user ? Store.user.mail : 'anon' };
+          Store.upsertThread(t);
+          Sync.send('thread:upsert', t);
+          this.renderTree(); this.closeModal();
+          Sound.play('create'); haptic('success');
+          this.toast(this._cozyCongrats(), { kind: 'success' });
+          this.openThread(t.id);
+        }
+      });
+      const renderType = () => {
+        const wrap = $id('ni-body'); if (!wrap) return;
+        const folders = Store.folderList();
+        const locSel = (!isFolder() && folders.length) ? `
+          <label style="display:block;font-size:13px;color:var(--text-dim);margin:14px 0 6px;font-weight:600">Criar em</label>
+          <select id="nt-folder" style="width:100%;background:var(--bg);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;cursor:pointer">
+            <option value="">🌱 Raiz (sem caderno)</option>
+            ${folders.map((f) => `<option value="${esc(f.id)}">${esc(f.emoji && GLYPH_ICONS[f.emoji] ? '' : (f.emoji || '') + ' ')}${esc(f.name)}</option>`).join('')}
+          </select>` : '';
+        const prev = $id('nt-name') ? $id('nt-name').value : '';
+        wrap.innerHTML = `
+          <label style="display:block;font-size:13px;color:var(--text-dim);margin-bottom:6px;font-weight:600">${isFolder() ? 'Nome do caderno' : 'Nome da conversa'}</label>
+          <input id="nt-name" type="text" placeholder="${isFolder() ? 'ex: Trabalho, Pessoal, Estudos…' : 'ex: Ideias de Projetos, Tarefas Diárias…'}" value="${esc(prev)}" autofocus />
+          ${locSel}
+          <label style="display:block;font-size:13px;color:var(--text-dim);margin:14px 0 6px;font-weight:600">Cor</label>
+          ${this._colorSwatchesHTML('nt', null)}
+          <div style="display:flex;align-items:center;gap:8px;margin:14px 0 6px">
+            <label style="font-size:13px;color:var(--text-dim);font-weight:600;flex:1">Ícone</label>
+            <label class="switch" style="transform:scale(0.85)"><input type="checkbox" id="nt-emoji-toggle"/><span class="slider"></span></label>
+            <span style="font-size:12px;color:var(--text-dim)">Emojis</span>
+          </div>
+          <div id="nt-glyphs">${this._glyphPickerHTML('nt', chosen)}</div>
+          <div id="nt-emojis" class="hidden"><div class="ep">${this._pickerHTML('nt-emoji', isFolder() ? '📁' : '💬')}</div></div>`;
+        document.getElementById('modal-title').textContent = isFolder() ? 'Novo caderno' : 'Nova conversa';
+        chosen = isFolder() ? 'folder' : 'chat'; chosenColor = null;
+        this._bindColorSwatches('nt', null, (c) => { chosenColor = c; });
+        this._bindGlyphPicker('nt', (g) => { chosen = g; });
+        const tgl = $id('nt-emoji-toggle');
+        if (tgl) tgl.addEventListener('change', () => {
+          const on = tgl.checked;
+          $id('nt-glyphs').classList.toggle('hidden', on);
+          $id('nt-emojis').classList.toggle('hidden', !on);
+          if (on) { this._bindPicker('nt-emoji', isFolder() ? '📁' : '💬', (e) => { chosen = e; }); this.ensureEmojiCats && this.ensureEmojiCats('nt-emoji', isFolder() ? '📁' : '💬'); }
+        });
+        this._bindPicker('nt-emoji', isFolder() ? '📁' : '💬', (e) => { chosen = e; });
+        this.ensureEmojiCats && this.ensureEmojiCats('nt-emoji', isFolder() ? '📁' : '💬');
+        setTimeout(() => { const i = $id('nt-name'); if (i) { i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch {} } }, 50);
+      };
+      $id('ni-type').querySelectorAll('.seg-btn').forEach((b) => b.addEventListener('click', () => {
+        if (b.dataset.type === type) return;
+        type = b.dataset.type;
+        $id('ni-type').querySelectorAll('.seg-btn').forEach((x) => x.classList.toggle('active', x === b));
+        renderType();
+      }));
+      renderType();
     },
 
     createThread(folderId = null) {

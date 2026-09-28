@@ -100,11 +100,20 @@
           <div class="brand-name">SaveChat</div>
           <div class="brand-sub">Suas ideias, organizadas</div>
         </div>
+        <!-- Seletor de páginas do explorador: Cadernos | IA | Diária (a IA e a
+             Diária do workspace abrem no canvas; o espaço do carrinho de botões
+             antigo foi reaproveitado) -->
+        <div class="page-switcher" role="tablist" aria-label="Páginas">
+          <button type="button" class="page-switch active" data-page="notes" aria-label="Cadernos e conversas" title="Cadernos e conversas">📓</button>
+          <button type="button" class="page-switch" data-page="ai" aria-label="IA" title="IA">✦</button>
+          <button type="button" class="page-switch" data-page="daily" aria-label="Diária" title="Diária">🗓️</button>
+        </div>
         <button id="explorer-tasks" class="btn-icon-sm" title="Pendências (checklists de todas as conversas)" aria-label="Pendências" data-friendly-name="Explorer: Pendências"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M5.2 7.2l1.4 1.6 2.6-3"/><line x1="14" y1="7.5" x2="21" y2="7.5"/><rect x="3" y="13.5" width="7" height="7" rx="1.5"/><path d="M5.2 16.7l1.4 1.6 2.6-3"/><line x1="14" y1="17" x2="21" y2="17"/></svg><span class="nav-badge hidden" id="tasks-badge"></span></button>
         <button id="explorer-reminders" class="btn-icon-sm" title="Lembretes" aria-label="Lembretes" data-friendly-name="Explorer: Lembretes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="nav-badge hidden" id="rem-badge"></span></button>
         <button id="btn-notifications" class="btn-icon-sm" title="Notificações" aria-label="Notificações" data-friendly-name="Explorer: Notificações"><!-- sino de notificação (traço estilo Hugeicons: stroke 1.5, cantos arredondados) --><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="nav-badge hidden" id="notif-badge"></span></button>
       </div>
-      <div class="search-box" data-friendly-name="Campo de Busca (Busca)">
+      <div id="explorer-search-panel" class="explorer-search-panel">
+        <div class="search-box" data-friendly-name="Campo de Busca (Busca)">
         <span class="search-ic" tabindex="0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span class="search-tip" role="tooltip">
           <div class="tip-title">Busca avançada</div>
           <code>#tag</code> filtra por tag<br/>
@@ -113,12 +122,15 @@
         </span></span>
         <input id="search-input" type="search" placeholder="Buscar notas…  #tag · in:conversa" autocomplete="off" />
         <button id="search-clear" class="search-clear hidden" title="Limpar" aria-label="Limpar busca">×</button>
+        </div>
+        <div id="search-results" class="search-results hidden"></div>
       </div>
-      <div id="search-results" class="search-results hidden"></div>
 
       <div class="explorer-actions" data-friendly-name="Ações Principais (Botões)">
-        <button id="btn-new-thread" class="btn-explorer primary" data-friendly-name="Botão NOVA CONVERSA"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> NOVA CONVERSA</button>
-        <button id="btn-new-folder" class="btn-explorer outline" data-friendly-name="Botão NOVO CADERNO"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg> NOVO CADERNO</button>
+        <div class="explorer-row">
+          <button id="btn-new-thread" class="btn-explorer primary grow" data-friendly-name="Botão NOVO"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> NOVO</button>
+          <button id="btn-explorer-search" class="btn-explorer-icon" aria-expanded="false" aria-controls="explorer-search-panel" title="Buscar" aria-label="Buscar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        </div>
       </div>
 
       <div id="fav-section" class="fav-section hidden">
@@ -421,7 +433,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.10.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.11.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -491,7 +503,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.10.0';
+    window.APP_VERSION = '1.11.0';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

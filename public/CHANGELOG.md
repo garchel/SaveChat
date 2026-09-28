@@ -2,6 +2,12 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.11.0] — 2026-09-28
+### Adicionado
+- **Botão “+ NOVO” unificado**: um só botão cria conversa **ou** caderno — o modal ganhou o seletor `💬 Conversa | 📁 Caderno` e troca o formulário na hora (mantendo o que você já digitou)
+- **Lupa no explorador**: o botão de busca recolheu o “+ NOVO” com fade e abre o campo de busca no mesmo espaço — um componente de cada vez, mais espaço para a lista
+- **Seletor de páginas no explorador**: os três botões antigos viraram um seletor **📓 Cadernos · ✦ IA · 🗓️ Diária** ao lado da marca — alterna para a IA ou a Diária direto de qualquer lugar, sem precisar abrir uma conversa antes
+
 ## [1.10.0] — 2026-09-28
 ### Adicionado
 - **Workspace com abas**: faixa compacta de abas **Conversas · IA · Lembretes · Diária** abaixo do cabeçalho (a conversa aberta continua sendo tela dentro de Conversas, com Voltar). No celular, o **swipe horizontal** alterna as páginas e mostra por um instante o **indicador do destino** (seu carrossel temporário) enquanto o dedo se move

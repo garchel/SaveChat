@@ -82,6 +82,20 @@ async init() {
       }
       const backSearch = document.getElementById('search-back');
       if (backSearch) backSearch.addEventListener('click', () => this.hideSearchPage());
+      // Seletor de páginas do explorador (Cadernos | IA | Diária)
+      document.querySelectorAll('.page-switch').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const page = btn.dataset.page;
+          document.querySelectorAll('.page-switch').forEach((b) => b.classList.toggle('active', b === btn));
+          if (page === 'notes') {
+            this.showWorkspaceTab('conversations');
+            const app = document.getElementById('app');
+            if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+          } else {
+            this.showWorkspaceTab(page);
+          }
+        });
+      });
       // Perfil popover
       const profileBtn = document.getElementById('profile-btn');
       const profilePop = document.getElementById('profile-popover');

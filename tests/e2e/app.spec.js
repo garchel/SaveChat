@@ -71,7 +71,7 @@ test('menção @ insere token e renderiza chip clicável', async ({ page }) => {
   await expect(page.locator('#chat-name')).toHaveText('Alvo');
   await expect(page.locator('#modal')).toBeHidden();
 
-  // cria thread principal e menciona a Alvo
+  // cria thread principal e menciona a Alvo (modal unificado: Conversa já é o padrão)
   await page.evaluate(() => document.getElementById('btn-new-thread').click());
   await page.fill('#nt-name', 'Principal');
   await page.evaluate(() => document.getElementById('modal-ok').click());

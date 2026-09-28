@@ -2576,6 +2576,63 @@ button:focus { outline: none; }
   transform: translate(-50%, -50%);
 }
 
+/* ===================== EXPLORER: Novo + Lupa · painel de busca · seletor de páginas ===================== */
+.explorer-row { display: flex; gap: 8px; align-items: stretch; }
+.explorer-row .grow { flex: 1; }
+.explorer-row .grow span, .explorer-row .grow { transition: opacity .25s ease, transform .25s ease, flex .25s ease; }
+/* modo busca: o botão Novo encolhe e some (fade) — a busca ocupa o espaço */
+.explorer-row.searching .grow {
+  flex: 0; width: 0; min-width: 0; padding-left: 0; padding-right: 0;
+  opacity: 0; pointer-events: none; border-width: 0; transform: translateX(-8px);
+  overflow: hidden;
+}
+.btn-explorer-icon {
+  width: 44px; flex: 0 0 44px; border-radius: 14px;
+  background: transparent; color: var(--text); border: 1.5px solid var(--border);
+  cursor: pointer; display: grid; place-items: center;
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
+  position: relative;
+}
+.btn-explorer-icon::after { content: ""; position: absolute; inset: -6px; } /* hit-area 56px */
+.btn-explorer-icon:hover { background: var(--bg); border-color: var(--text-dim); }
+.btn-explorer-icon:active { transform: scale(.94); }
+.btn-explorer-icon.active {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+}
+
+/* Painel de busca (colapsado por padrão) */
+.explorer-search-panel {
+  display: grid; grid-template-rows: 0fr; overflow: hidden;
+  transition: grid-template-rows .28s cubic-bezier(.2,.8,.25,1);
+}
+.explorer-search-panel > * { min-height: 0; overflow: hidden; }
+.explorer-search-panel.open { grid-template-rows: 1fr; overflow: visible; }
+.explorer-search-panel .search-box { margin: 8px 14px 0; }
+.explorer-search-panel .search-results { margin: 8px 10px 0; }
+
+/* Seletor de páginas do explorador (Cadernos | IA | Diária) */
+.page-switcher {
+  display: flex; gap: 3px; margin-left: auto;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border: 1px solid var(--border); border-radius: 12px; padding: 3px;
+}
+.page-switch {
+  width: 32px; height: 32px; border: none; border-radius: 9px;
+  background: transparent; cursor: pointer; font-size: 14px; line-height: 1;
+  display: grid; place-items: center; color: var(--text-dim);
+  transition: background .15s, color .15s, transform .1s;
+  position: relative;
+}
+.page-switch::after { content: ""; position: absolute; inset: -6px; }
+.page-switch:hover { background: var(--bg-elev); color: var(--text); }
+.page-switch:active { transform: scale(.92); }
+.page-switch.active { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-sm); }
+@media (max-width: 760px) {
+  /* mobile: o nome cede espaço ao seletor (a logo carrega a marca) */
+  .explorer-brand .brand-text { display: none; }
+  .page-switch { width: 30px; height: 30px; }
+}
+
 /* ===================== WORKSPACE (abas Conversas · IA · Lembretes · Diária) ===================== */
 .workspace-tabs {
   display: flex; gap: 4px; margin: 8px 12px 0;
