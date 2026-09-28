@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.9.2] — 2026-09-28
+### Corrigido
+- **Botão "Instalar app" voltou a aparecer depois de desinstalar**: a flag que o escondia ficava presa no armazenamento do site (que sobrevive à desinstalação no Android). Agora o navegador decide — ele só oferece o prompt quando o app realmente não está instalado
+
 ## [1.9.1] — 2026-09-28
 ### Adicionado
 - **Splash de abertura**: tela de boot com a marca, barra de progresso animada e fundo do tema substitui o flash em branco na primeira carga (mobile/PWA); some com fade assim que a interface está pronta

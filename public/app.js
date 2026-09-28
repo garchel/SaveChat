@@ -131,14 +131,17 @@ async init() {
         const installLabel = document.getElementById('install-label');
         if (installBtn) {
           let deferredPrompt = null;
+          // o browser só dispara beforeinstallprompt quando o app NÃO está
+          // instalado — exibir incondicionalmente (flag persistida ficava
+          // presa após desinstalar: dados do site sobrevivem ao uninstall)
           window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            if (!Store.data.ui.hasInstalled) installBtn.classList.remove('hidden');
+            installBtn.classList.remove('hidden');
           });
-          // instalado de verdade (aceitou o prompt) → nunca mais oferecer
+          // aceitou o prompt agora → esconde já (antes do reload)
           window.addEventListener('appinstalled', () => {
-            Store.data.ui.hasInstalled = true; Store.save();
+            deferredPrompt = null;
             installBtn.classList.add('hidden');
           });
           // já rodando instalado (standalone) → nunca oferecer de novo
