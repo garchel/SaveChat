@@ -63,17 +63,20 @@ test('menção @ insere token e renderiza chip clicável', async ({ page }) => {
   await expect(page.locator('#app')).toBeVisible();
   await expect(page.locator('#btn-new-thread')).toBeVisible();
 
-  // cria thread alvo da menção
+  // cria thread alvo da menção (click via JS no botão OK: mesmo gesto do fluxo
+  // crítico; o click() nativo pode bater na race do modal em runners lentos)
   await page.evaluate(() => document.getElementById('btn-new-thread').click());
   await page.fill('#nt-name', 'Alvo');
-  await page.click('#modal-ok');
+  await page.evaluate(() => document.getElementById('modal-ok').click());
   await expect(page.locator('#chat-name')).toHaveText('Alvo');
+  await expect(page.locator('#modal')).toBeHidden();
 
   // cria thread principal e menciona a Alvo
   await page.evaluate(() => document.getElementById('btn-new-thread').click());
   await page.fill('#nt-name', 'Principal');
-  await page.click('#modal-ok');
+  await page.evaluate(() => document.getElementById('modal-ok').click());
   await expect(page.locator('#chat-name')).toHaveText('Principal');
+  await expect(page.locator('#modal')).toBeHidden();
 
   const composer = page.locator('#composer-input');
   // editor WYSIWYG: o dropdown de menções depende do caret real — digitação

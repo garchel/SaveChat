@@ -260,11 +260,15 @@ toast(msg, opts) {
       document.body.appendChild(t);
       requestAnimationFrame(() => { t.classList.add('show'); });
       hideTimer = setTimeout(hide, opts.duration || 2600);
-    },
-
-bindModal() {
+    },    bindModal() {
       this.dom.modalCancel.addEventListener('click', () => this.closeModal());
-      this.dom.modalOk.addEventListener('click', () => this.modalOkHandler && this.modalOkHandler());
+      this.dom.modalOk.addEventListener('click', () => {
+        if (!this.modalOkHandler) return;
+        try { this.modalOkHandler(); }
+        // exceção num handler não pode deixar modal-fantasma preso na tela
+        // (trava o app inteiro); fecha e registra para diagnóstico
+        catch (err) { console.error('[modal] handler falhou', err); this.closeModal(); }
+      });
       // Focus trap (a11y): Tab circula só dentro do modal; Esc fecha
       this.dom.modal.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { e.stopPropagation(); this.closeModal(); return; }
