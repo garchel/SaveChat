@@ -32,6 +32,8 @@ async function openApp(page) {
 
 test('busca sem resultados mostra dica contextual', async ({ page }) => {
   await openApp(page);
+  // v1.12.0: a busca vive num painel recolhido — abre pela lupa primeiro
+  await page.click('#btn-explorer-search');
   await page.fill('#search-input', 'in:naoexiste nada');
   await page.locator('#search-results').waitFor({ state: 'visible' });
   await expect(page.locator('.sr-empty-title')).toContainText('Nenhum resultado');
