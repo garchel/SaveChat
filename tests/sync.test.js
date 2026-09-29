@@ -55,6 +55,19 @@ describe('PWA', ()=>{
     assert.match(css, /\.friendly-toggle\s*\{[^}]*display:\s*none/);
     assert.match(css, /\.friendly-toggle\.is-dev\s*\{\s*display:\s*flex/);
   });
+  it('preview local de staging existe e cobre o gate do service worker', ()=>{
+    const pkg = JSON.parse(readFileSync('package.json','utf8'));
+    const prev = readFileSync('scripts/preview.mjs','utf8');
+    // `npm run preview` e `npm run staging` são o mesmo caminho
+    assert.match(pkg.scripts.preview, /preview\.mjs/);
+    assert.match(pkg.scripts.staging, /preview\.mjs/);
+    // escolhe a porta ANTES de servir: `serve` troca de porta em silêncio
+    assert.match(prev, /isFree/);
+    assert.match(prev, /PREVIEW_PORT/);
+    // serve help.html LITERALMENTE (sem clean URL) — é assim que o SW
+    // precacha './help.html' e assim que a Vercel entrega em produção
+    assert.ok(!/cleanUrl|clean-url|rewrite/i.test(prev), 'preview não deve fazer clean URLs');
+  });
   it('sw.js é v142', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
     assert.match(sw, /notethread-v142/);

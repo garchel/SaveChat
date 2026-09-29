@@ -42,6 +42,8 @@ git merge --no-ff feature/ia-melhorias
 git push origin staging
 ```
 
+A promoção para `main` passa por **PR** (ver `### Proteção da main`).
+
 Três regras que evitam problema passado:
 
 - **`main` nunca recebe commit direto.** Nem-doc, nem hotfix: entra por
@@ -53,29 +55,68 @@ Três regras que evitam problema passado:
   `staging` e em `main`. Merge de branch desatualizada é origem de
   conflito silencioso.
 
-⚠️ **O CI só roda em `main`.** Push para `staging` ou para branch de
-feature não dispara `CI` nem `Lighthouse CI` (ambos filtrados por
-`branches: [main]`). Isso é proposital — os jobs ficam caros para rodar
-a cada rascunho — mas significa que **a branch pode passar com o CI
-vermelho e você só descobre no merge**. Rode local:
+### Testar localmente antes do merge
+
+Você não precisa da Vercel para testar a branch. O preview local serve o
+**mesmo build de produção** (`dist/`, com `sw.js`, minificação e
+versão):
+
+```bash
+git switch staging && git pull --ff-only
+npm run preview     # build + serve em http://localhost:3002
+```
+
+O script imprime a **porta real**, a **versão** e a **branch** servida —
+nunca muda de porta em silêncio. Se a 3002 estiver ocupada, ele avisa e
+pega a próxima livre; para forçar:
+
+```bash
+PREVIEW_PORT=3100 npm run preview
+```
+
+> Duas diferenças entre o preview e a Vercel, para não se enganar: o
+> preview serve `help.html` literalmente (sem redirect para `/help`) e
+> manda `Cache-Control: no-cache` — a Vercel é a referência final. Se
+> algo só falha no preview, provavelmente é cache: clique em
+> **Atualizar app** (menu do perfil), porque hard refresh não
+> substitui o service worker.
+
+Depois do seu teste, promova via PR:
+
+```bash
+git switch staging && git pull --ff-only
+git push origin staging
+gh pr create --base main --head staging --title "…" --body "…"
+gh pr merge --squash --auto
+```
+
+### `staging` no CI
+
+`CI` e `Lighthouse CI` rodam em `main` **e** `staging`. A branch de
+homologação tem o mesmo gate de qualidade da produção — se o CI
+estiver vermelho em `staging`, não promova.
+
+Branch de *feature* não dispara workflow (só `main` e `staging` estão
+no filtro) — nela, valide local:
 
 ```bash
 npm run check && npm test && npm run e2e
 ```
 
-Se quiser feedback automático também no `staging`, acrescente a branch ao
-filtro `push` de cada workflow (uma linha em cada arquivo):
+### Proteção da `main`
 
-```yaml
-on:
-  push:
-    branches: [main, staging]
+A `main` está protegida: push direto é recusado (`GH006`). Todo
+promoção passa por **pull request** com o check `CI` verde e **uma
+aprovação**. Ou seja, `git push origin main` falha — o caminho é:
+
+```bash
+git switch staging && git pull --ff-only
+git push origin staging
+gh pr create --base main --head staging --title "…" --body "…"
+gh pr merge --squash --auto
 ```
 
-> A `main` **não está protegida** no GitHub hoje: nada impede um push
-> direto. Se quiser que a regra seja automática em vez de convenção,
-> ative branch protection exigindo PR + CI verde. É configuração do
-> repositório, não deste arquivo.
+Force-push e deleção da `main` também estão bloqueados.
 
 ### Branches de subsistema
 

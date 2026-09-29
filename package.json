@@ -8,8 +8,9 @@
     "e2e": "playwright test",
     "dev": "serve public -l 3000",
     "build": "node scripts/build.mjs",
-    "preview": "npm run build && serve dist -l 3002",
-    "start": "serve public -l 3000"
+    "preview": "node scripts/preview.mjs",
+    "start": "serve public -l 3000",
+    "staging": "node scripts/preview.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",

@@ -25,7 +25,15 @@ npm run check      # node --check em todo JS público
 npm run test       # node:test unit (8 specs, inclui versão do SW)
 npm run e2e        # Playwright: fluxo crítico + menções
 npm run build      # minifica para dist/ (preview de prod)
+npm run preview    # build + serve dist/ em :3002 — teste local de staging
 ```
+
+### Branches
+
+`main` é produção. `staging` é a homologação: as branches de trabalho
+(`feature/…`, `fix/…`, `chore/…`) nascem de `staging`, são mergeadas
+nela, e só sobem para `main` por **pull request** depois do seu teste
+com `npm run preview`. Detalhes em [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Documentação
 
