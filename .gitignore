@@ -12,3 +12,6 @@ dist/
 .freebuff/
 *.tmp.mjs
 shot-*.png
+
+# worktrees de tarefa (um por agente) — nunca versionado
+.worktrees/
