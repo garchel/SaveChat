@@ -101,23 +101,36 @@ if (!wait) { console.log('  (--no-wait: CI não aguardado)\n'); process.exit(0);
 
 console.log('  Acompanhando o CI…\n');
 let last = '';
+let runId = '';
 for (let i = 0; i < 60; i++) {
   let out;
   try {
-    out = sh(`gh run list --branch ${TARGET} --limit 1 --json databaseId,status,conclusion,headSha -q ".[0] | \\(.databaseId) \\(.status) \\(.conclusion) \\(.headSha)"`);
+    // sem jq: o --jq com interpolação é finalizado pelo cmd do Windows.
+    // --json sem formatador + parse do próprio node é portável.
+    const raw = sh('gh run list --branch ' + TARGET + ' --limit 1 --json databaseId,status,conclusion,headSha');
+    const run = JSON.parse(raw)[0];
+    out = run ? `${run.databaseId} ${run.status} ${run.conclusion} ${run.headSha}` : 'sem run';
   } catch {
     out = 'sem gh cli';
   }
-  if (out !== last && out && !out.startsWith('sem gh')) {
-    console.log('    ' + out);
-    last = out;
-  }
-  const [runId, , conclusion] = out.split(' ');
-  if (conclusion === 'success') { console.log(`\n  ✔ CI verde em ${TARGET} — pode testar com: npm run preview\n`); process.exit(0); }
-  if (conclusion === 'failure' || conclusion === 'cancelled') {
-    console.log(`\n  ✖ CI ${conclusion} em ${TARGET}\n`);
-    console.log(`    Logs: gh run view ${runId} --log-failed\n`);
-    process.exit(1);
+  const parts = out.split(' ');
+  // só acompanha o run do commit que acabamos de subir: um run anterior
+  // ainda em voo não é o nosso (e nem entra no log de status)
+  if (parts[3] && parts[3].startsWith(sha)) {
+    runId = parts[0];
+    if (out !== last && !out.startsWith('sem gh')) {
+      console.log('    ' + parts.slice(0, 3).join(' '));
+      last = out;
+    }
+    if (parts[2] === 'success') {
+      console.log(`\n  ✔ CI verde em ${TARGET} — pode testar com: npm run preview\n`);
+      process.exit(0);
+    }
+    if (parts[2] === 'failure' || parts[2] === 'cancelled') {
+      console.log(`\n  ✖ CI ${parts[2]} em ${TARGET}\n`);
+      console.log(`    Logs: gh run view ${runId} --log-failed\n`);
+      process.exit(1);
+    }
   }
   await new Promise((r) => setTimeout(r, 5000));
 }
