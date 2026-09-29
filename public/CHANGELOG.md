@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.18.0] — 2026-09-29
+### Modificado
+- versao sobe na promocao via scripts/release.mjs
+
 ## [1.17.0] — 2026-09-29
 ### Corrigido
 - **Aviso de lista completa sumia com "ocultar itens concluídos" ligado**: marcar a última caixa de um checklist saía por um caminho que retornava antes de disparar o aviso, então a lista ficava completa sem nenhuma confirmação — badge, confete e toast. O aviso agora sai nos dois caminhos, sem repetir a cada re-render
