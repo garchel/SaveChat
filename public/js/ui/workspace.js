@@ -29,6 +29,11 @@ const todayKey = (d = new Date()) =>
 
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+// Glifos do botão único da IA — os MESMOS paths do composer (composer.js), para
+// que o botão seja visualmente indistinguível do da conversa.
+const MIC_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+const SEND_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+
 export const WorkspaceMethods = {
   bindWorkspace() {
     // Navegação de páginas: seletor da sidebar do explorador (Cadernos | IA | Diária)
@@ -64,19 +69,22 @@ export const WorkspaceMethods = {
       Store.data.ui = Store.data.ui || {};
       Store.data.ui.aiModel = event.target.value.trim() || DEFAULT_MODEL; Store.save();
     });
-    document.getElementById('ai-send')?.addEventListener('click', () => this.sendAiMessage());
+    const aiSend = document.getElementById('ai-send');
+    aiSend?.addEventListener('click', () => {
+      // vazio => grava áudio; com texto => envia. Mesma regra do composer.
+      if (this._aiAudioMode) { this._toggleAiRecording(); return; }
+      this.sendAiMessage();
+    });
     const aiPrompt = document.getElementById('ai-prompt');
     if (aiPrompt) {
       aiPrompt.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.sendAiMessage(); }
       });
-      // mesmo comportamento do composer da conversa: cresce até um teto.
-      // O botão NÃO é desabilitado quando vazio — igual ao da conversa, que
-      // só desabilita antes de abrir uma thread (e no vazio vira microfone).
-      // Desabilitar aqui deixava o componente visualmente diferente.
-      aiPrompt.addEventListener('input', () => this._growAiPrompt(aiPrompt));
+      // mesmo comportamento do composer da conversa: cresce até um teto e o
+      // botão da direita troca de microfone para enviar conforme o texto.
+      aiPrompt.addEventListener('input', () => { this._growAiPrompt(aiPrompt); this._updateAiSendAudioState(aiPrompt, aiSend); });
     }
-    document.getElementById('ai-mic')?.addEventListener('click', () => this._toggleAiRecording());
+    this._updateAiSendAudioState(aiPrompt, aiSend);
     // ----- Diária (rotina que se renova) -----
     // Criação/edição passa pelo modal (texto + horário + switch de notificação);
     // o antigo input rápido da página foi removido.
@@ -407,6 +415,20 @@ export const WorkspaceMethods = {
     return { ok: true, conversa: target.name };
   },
 
+  // Botão único da IA: vazio = microfone (estilo accent-soft, igual o
+  // .cozy-send.audio-mode da conversa), com texto = enviar (accent sólido).
+  _updateAiSendAudioState(ta, btn) {
+    if (!btn) return;
+    const hasContent = ta && ta.value.trim() !== '';
+    this._aiAudioMode = !hasContent;
+    btn.classList.toggle('audio-mode', this._aiAudioMode);
+    const label = this._aiAudioMode ? 'Gravar áudio' : 'Enviar mensagem para a IA';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+    const want = this._aiAudioMode ? MIC_SVG : SEND_SVG;
+    if (btn.innerHTML !== want) btn.innerHTML = want;
+  },
+
   _growAiPrompt(ta) {
     if (!ta) return;
     ta.style.height = 'auto';
@@ -432,6 +454,8 @@ export const WorkspaceMethods = {
       recorder.start();
       this._aiRecorder = recorder;
       this._setRecUI(true);
+      const aiBtn = document.getElementById('ai-send');
+      if (aiBtn) { aiBtn.classList.remove('audio-mode'); aiBtn.classList.add('recording'); }
       const t0 = Date.now();
       this._aiRecTimer = setInterval(() => {
         const el = document.getElementById('ai-rec-timer');
@@ -449,6 +473,11 @@ export const WorkspaceMethods = {
     clearInterval(this._aiRecTimer);
     this._aiRecorder = null;
     this._setRecUI(false);
+    const aiBtnNow = document.getElementById('ai-send');
+    if (aiBtnNow) {
+      aiBtnNow.classList.remove('recording', 'audio-mode');
+      this._updateAiSendAudioState(document.getElementById('ai-prompt'), aiBtnNow);
+    }
     const blob = new Blob(chunks, { type: mime });
     if (blob.size < 1200) { this.toast('Áudio muito curto — grave um pouco mais', { kind: 'info' }); return; }
     const mic = document.getElementById('ai-mic');

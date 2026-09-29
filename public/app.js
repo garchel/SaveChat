@@ -130,6 +130,12 @@ async init() {
           // pequeno delay para não ser fechado pelo handler global do settings popover
           setTimeout(() => this.toggleSettingsPopover(), 10);
         });
+        // Como usar: abre o guia de uso em nova aba (página estática, não o app)
+        document.getElementById('profile-help')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          profilePop.classList.add('hidden');
+          window.open('help.html', '_blank', 'noopener');
+        });
         // Atualizar app: clique = instalar a versão nova (SW waiting assume + reload)
         document.getElementById('profile-update')?.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -214,7 +220,7 @@ async init() {
             if (session && session.user) {
               // lembrar-me desmarcado na última sessão → não restaura login
               if (Store.data.ui && Store.data.ui.rememberMe === false) { try { await supa.auth.signOut(); } catch {} Store.setUser(null); }
-              else Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id });
+              else Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id, photo: (session.user.user_metadata && session.user.user_metadata.picture) || null });
             }
           }
         } catch (e) { /* offline/timeout, mantém Store.user local */ }

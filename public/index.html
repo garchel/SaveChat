@@ -231,17 +231,15 @@
               <span class="ai-rec-hint">toque no microfone para parar</span>
             </div>
             <!-- Mesmo componente do composer da conversa: .cozy-input-row + .cozy-input-wrap.
-                 O campo da IA é o MESMO input cozy (mesma pílula, mesmos botões circulares,
-                 mesma borda de foco) — só muda a ação do botão da esquerda (áudio em vez
-                 de anexo) e a do envio. Glifos idênticos aos do composer (mic e avião
-                 de composer.js), com fill="none" stroke="currentColor" pra acompanhar o
-                 tema em vez de sair pretos preenchidos. -->
+                 COMPOSIÇÃO IDÊNTTICA à conversa: pílula, campo sem borda e UM botão
+                 circular à direita que alterna entre microfone (campo vazio) e enviar
+                 (com texto) — a mesma lógica de _updateSendAudioState. Não há botão
+                 à esquerda porque a IA não tem clipe de anexo. -->
             <div class="composer-row cozy-input-row ai-input-row">
-              <button type="button" id="ai-mic" class="btn-attach cozy-attach" aria-label="Gravar áudio" aria-pressed="false" title="Gravar áudio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <div class="cozy-input-wrap">
                 <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Peça algo à IA — ela conhece suas notas…"></textarea>
               </div>
-              <button type="button" id="ai-send" class="btn-send cozy-send" aria-label="Enviar mensagem para a IA"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+              <button type="button" id="ai-send" class="btn-send cozy-send" aria-label="Gravar áudio"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
             </div>
           </div>
         </section>
@@ -478,7 +476,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.13.6</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.15.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -538,6 +536,7 @@
        herdava o sistema de coordenadas da sidebar e ia parar fora da tela) -->
   <div id="profile-popover" class="popover profile-popover hidden" role="menu">
     <button id="profile-config" data-act="config"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg> Configurações</button>
+    <button id="profile-help" data-act="help" title="Como usar cada função do app"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.5.7c0 1.9-2.8 2.8-2.8 2.8"/><line x1="12" y1="17.2" x2="12" y2="17.3"/></svg> Como usar</button>
     <button id="profile-install" data-act="install" class="hidden"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><line x1="12" y1="11.5" x2="12" y2="17.5"/><polyline points="9.5 15 12 17.5 14.5 15"/><line x1="9.5" y1="19.5" x2="14.5" y2="19.5"/></svg> <span id="install-label">Instalar app</span></button>
     <button id="profile-update" data-act="update" title="Verificar e instalar atualizações do app"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><polyline points="21 3 21 8 16 8"/></svg> Atualizar app <span id="update-chip" class="update-chip" aria-hidden="true"></span></button>
     <button id="profile-logout" data-act="logout" class="danger"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sair</button>
@@ -548,7 +547,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.13.6';
+    window.APP_VERSION = '1.15.0';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

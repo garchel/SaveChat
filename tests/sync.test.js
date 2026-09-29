@@ -27,9 +27,20 @@ describe('PWA', ()=>{
       assert.ok(sw.includes(src), `ícone do manifest ausente no precache do SW: ${src}`);
     }
   });
-  it('sw.js é v134', ()=>{
+  it('página "Como usar" existe, é servida e está no precache do SW', ()=>{
+    const html = readFileSync('public/index.html','utf8');
+    const sw = readFileSync('public/sw.js','utf8');
+    assert.ok(existsSync('public/help.html'), 'public/help.html ausente');
+    // o botão vive no popover do perfil (entre Configurações e Instalar app)
+    assert.match(html, /id="profile-help"/);
+    // e o clique que abre a página está ligado em app.js
+    assert.match(readFileSync('public/app.js','utf8'), /getElementById\('profile-help'\)/);
+    // offline: a página de ajuda abre sem internet
+    assert.match(sw, /'\.\/help\.html'/);
+  });
+  it('sw.js é v137', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v134/);
+    assert.match(sw, /notethread-v137/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);
@@ -68,6 +79,10 @@ describe('PWA', ()=>{
     const v=html.match(/window\.APP_VERSION = '(\d+\.\d+\.\d+)'/)[1];
     const cl=readFileSync('public/CHANGELOG.md','utf8');
     assert.ok(cl.includes(`## [${v}]`), 'CHANGELOG deve ter entrada para a versão atual');
+  });
+  it('audio.js (player de voz) esta no precache do SW', ()=>{
+    const sw = readFileSync('public/sw.js','utf8');
+    assert.ok(sw.includes("'./js/audio.js'"), 'audio.js ausente no precache - o player de voz quebra offline');
   });
   it('updater.js está no precache do SW', ()=>{
     const sw=readFileSync('public/sw.js','utf8');

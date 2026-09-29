@@ -2,6 +2,17 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.15.0] — 2026-09-29
+### Adicionado
+- **Mensagens de voz**: gravar áudio agora vira uma mensagem de verdade na conversa, no formato do WhatsApp — botão de play à esquerda, **waveform real** no meio (os picos do áudio de verdade, não barras decorativas), duração e progresso clicável, e a foto do remetente (do login Google) ou a inicial do nome à direita. O áudio é gravado, enviado para o Supabase Storage e toca em qualquer aparelho da conta; as barrinhas mostram o som enquanto você ouve, e clicar numa barra pula para aquele trecho
+### Corrigido
+- **O botão do campo da IA agora é o mesmo da conversa**: na página da IA o botão da direita alterna entre microfone (campo vazio) e enviar (com texto), igual ao composer das conversas — mesma caixa, mesma cor e mesmos ícones. O botão da esquerda (clipe de anexo) não existe na IA, porque lá não há anexo
+- **O áudio enviado não virava mensagem**: a gravação entrava na lista de imagens como arquivo solto e aparecia como anexo quebrado em vez de mensagem. Agora o áudio tem destino próprio, com dados de onda, duração e remetente
+
+## [1.14.0] — 2026-09-29
+### Adicionado
+- **Página "Como usar"**: novo item no menu do seu perfil abre um guia completo do app — conversas, cadernos, mensagens (formatação, checklist, menções), IA, Diária, Lembretes, Pendências, busca, sincronização, atalhos e todas as seções das Configurações. Cada recurso tem um passo a passo curto, e a página respeita o tema ativo
+
 ## [1.13.6] — 2026-09-29
 ### Corrigido
 - **Login com o Google voltou a funcionar**: o cliente Supabase era criado com o `flowType` padrão (`implicit`), mas a página de retorno do OAuth roda como PKCE. O Google voltava com os tokens no fragment e o client não reconhecia o retorno — a janela ficava em “Conectando com o Google…”, fechava e ninguém era logado. Agora o `flowType: 'pkce'` é explícito no cliente compartilhado

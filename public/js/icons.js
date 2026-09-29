@@ -18,6 +18,10 @@
     sparkle: SVG('<path d="m12 3 1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7L12 3Z"/><path d="m18.5 15 .9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z"/>'),
     clock: SVG('<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>'),
     bell: SVG('<path d="M18 8.5A6 6 0 0 0 6 8.5c0 6-2.5 8-2.5 8h17s-2.5-2-2.5-8"/><path d="M13.7 20.5a2 2 0 0 1-3.4 0"/>'),
+    // Player de audio: play/pause preenchidos (mesma linguagem dos outros glifos,
+    // mas com fill porque o triangulo e as duas barras solidas nao tem contorno)
+    play: '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" stroke="none"><polygon points="8 5 19 12 8 19 8 5"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor" stroke="none"><rect x="7" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.2"/></svg>',
   };
   export const wrapSvg = (svg, size) => `<span class="svg-ic" style="width:${size || 16}px;height:${size || 16}px;display:inline-block">${svg}</span>`;
 

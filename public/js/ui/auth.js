@@ -357,7 +357,13 @@ _clearAuthMsg() { const el = $('#auth-msg'); if (el) { el.textContent = ''; el.c
     // Aplica o usuário da sessão ao Store. Devolve true quando a conta mudou
     // (nova sessão logada no lugar de outra), para o caller remontar a UI.
     _applySessionUser(u) {
-      const next = { name: (u.email || 'u').split('@')[0], mail: u.email, provider: 'supabase', id: u.id };
+      // `photo` alimenta o remetente da mensagem de voz (v1.13.7). Só o Google
+      // devolve user_metadata.picture; login por e-mail fica sem foto e o
+      // player desenha a inicial do nome.
+      const next = {
+        name: (u.email || 'u').split('@')[0], mail: u.email, provider: 'supabase', id: u.id,
+        photo: (u.user_metadata && u.user_metadata.picture) || null,
+      };
       const cur = Store.user;
       const changed = !cur || cur.id !== next.id || cur.mail !== next.mail;
       if (changed) {

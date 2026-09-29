@@ -40,6 +40,10 @@ create table if not exists notes (
   thread_id text not null references threads(id) on delete cascade,
   text text,
   images jsonb default '[]'::jsonb,
+  -- AUDIO (v1.13.7): mensagem de voz. Guarda a URL do bucket note-audio,
+  -- a duracao em segundos e o waveform (picos normalizados) para o player
+  -- desenhar as barrinhas sem ter que decodificar o audio de novo.
+  audio jsonb,
   tags text[] default '{}',
   ts bigint not null,
   sort_order integer,
@@ -106,6 +110,28 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create policy "public read images" on storage.objects for select
     using (bucket_id = 'note-images');
+exception when duplicate_object then null; end $$;
+
+-- 5b. Storage de audio das mensagens de voz (v1.13.7). Bucket publico como o
+-- das imagens: a URL precisa ser tocavel de qualquer aparelho da conta sem
+-- signed URL (que expiraria e quebraria o player em conversas antigas).
+do $$ begin
+  alter table notes add column if not exists audio jsonb;
+exception when duplicate_column then null; end $$;
+
+insert into storage.buckets (id, name, public, file_size_limit)
+  values ('note-audio', 'note-audio', true, 26214400)
+  on conflict (id) do update set file_size_limit = excluded.file_size_limit;
+
+do $$ begin
+  create policy "own audio" on storage.objects for all
+    using (bucket_id = 'note-audio' and auth.uid() = owner)
+    with check (bucket_id = 'note-audio' and auth.uid() = owner);
+exception when duplicate_object then null; end $$;
+
+do $$ begin
+  create policy "public read audio" on storage.objects for select
+    using (bucket_id = 'note-audio');
 exception when duplicate_object then null; end $$;
 
 -- 6. Hardening (v1.4.0): o event trigger de auto-RLS não precisa ser

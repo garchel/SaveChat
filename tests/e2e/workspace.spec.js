@@ -121,53 +121,70 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   await page.goto('/');
   await page.waitForTimeout(2000);
 
-  // mede pílula, campo e os dois botões (caixa + glifo) de um seletor de página
-  const measure = (scope, attachId, sendId, fieldId) => page.evaluate(([scope, attachId, sendId, fieldId]) => {
-    const root = document.querySelector(scope);
-    const pill = getComputedStyle(root);
-    const btn = document.getElementById(sendId);
-    const bc = getComputedStyle(btn);
-    const svgStyle = (sel) => {
-      const c = getComputedStyle(root.querySelector(sel));
-      return `${c.width} fill=${c.fill} stroke=${c.stroke} sw=${c.strokeWidth}`;
-    };
-    return {
-      radius: pill.borderRadius, bg: pill.backgroundColor, border: pill.border, pad: pill.padding,
-      h: +root.getBoundingClientRect().height.toFixed(2),
-      left: getComputedStyle(document.getElementById(attachId)).borderRadius,
-      leftH: +document.getElementById(attachId).getBoundingClientRect().height.toFixed(2),
-      // o GLIFO também tem que ser o mesmo: antes os svgs da IA vinham com fill
-      // preto (sólido) e a 18px, o do composer é traço currentColor a 20px
-      leftSvg: svgStyle('.cozy-attach svg'), rightSvg: svgStyle('.cozy-send svg'),
-      right: bc.borderRadius, rightH: +btn.getBoundingClientRect().height.toFixed(2),
-      rightBg: bc.backgroundColor, rightColor: bc.color, rightShadow: bc.boxShadow,
-      fieldMinH: getComputedStyle(document.getElementById(fieldId)).minHeight,
-    };
-  }, [scope, attachId, sendId, fieldId]);
+  // O botão da direita é o MESMO nos dois lugares: 50px, circular, e troca entre
+  // microfone (vazio) e enviar (com texto) — a conversa só tem o botão a mais
+  // (o clipe de anexo, que a IA não tem).
+  // Cada página tem o seu composer e só um fica visível por vez, então a
+  // medição é feita em dois momentos: a pílula da conversa antes de trocar de
+  // aba e a da IA depois. Medir as duas de uma vez daria 0px na que está oculta.
+  // O blur normaliza o estado: a borda de foco coral fica em :focus-within.
+  const pillOf = (sel) => page.evaluate((s) => {
+    document.activeElement && document.activeElement.blur();
+    const el = document.querySelector(s);
+    const a = getComputedStyle(el);
+    // altura RENDERIZADA, não a propriedade `height`: o composer mede `auto`
+    // (o campo é contenteditable) e o da IA um px fixo do textarea. O que
+    // importa é que as duas caixas tenham a MESMA altura na tela.
+    return `${a.borderRadius}|${a.backgroundColor}|${a.border}|${a.padding}|${el.getBoundingClientRect().height}`;
+  }, sel);
 
-  // abre uma conversa para ter o composer de referência
+  // seletor EXPLÍTITO: '#btn-send, #ai-send' pegaria o primeiro no DOM (o da
+  // conversa, que fica oculto com a página da IA aberta e mede 0px) — a
+  // comparação mediria botão visível contra botão escondido.
+  const right = (sel) => page.evaluate((s) => {
+    const btn = document.querySelector(s);
+    const c = getComputedStyle(btn);
+    const svg = btn.querySelector('svg');
+    const sc = getComputedStyle(svg);
+    const svgBox = svg.getBoundingClientRect();
+    const paths = Array.from(svg.querySelectorAll('path,polygon,line')).map((e) => e.getAttribute('d') || e.getAttribute('points') || e.getAttribute('x1') || '').join('|');
+    return {
+      w: +btn.getBoundingClientRect().width.toFixed(2), h: +btn.getBoundingClientRect().height.toFixed(2),
+      br: c.borderRadius, bg: c.backgroundColor, color: c.color, sh: c.boxShadow,
+      svgW: sc.width, svgFill: sc.fill, svgStroke: sc.stroke, paths,
+    };
+  }, sel);
+
   await page.locator('.tnode').first().click();
   await expect(page.locator('.composer .cozy-input-row')).toBeVisible();
-  // com texto nos dois, os botões estão em modo envio — comparação justa
+  // vazio: os dois estao em modo microfone (accent-soft)
+  const convEmpty = await right('#btn-send');
   await page.fill('#composer-input', 'ola');
   await page.waitForTimeout(200);
-  const conv = await measure('.composer .cozy-input-row', 'btn-attach', 'btn-send', 'composer-input');
+  const convFull = await right('#btn-send');
+  const convPill = await pillOf('.composer .cozy-input-row');
 
   await page.click('.page-switch[data-page="ai"]');
   await expect(page.locator('.ai-input-row')).toBeVisible();
+  const aiEmpty = await right('#ai-send');
   await page.fill('#ai-prompt', 'ola');
   await page.waitForTimeout(200);
-  const ai = await measure('.ai-input-row', 'ai-mic', 'ai-send', 'ai-prompt');
+  const aiFull = await right('#ai-send');
+  const aiPill = await pillOf('.ai-input-row');
 
-  // idênticos: pílula, campo, os dois botões (tamanho, cor, sombra) e os glifos
-  expect(ai).toEqual(conv);
-  // o glifo é traço tematizado, nunca sólido preto
-  expect(ai.leftSvg).toContain('fill=none');
-  expect(ai.rightSvg).toContain('fill=none');
-  expect(ai.rightSvg).toContain('20px');
+  // o MESMO botao: caixa, cor no modo microfone, cor no modo enviar e os
+  // proprios glifos (o icone so muda porque o conteudo muda, nos dois)
+  expect(aiEmpty).toEqual(convEmpty);
+  expect(aiFull).toEqual(convFull);
+  // e o glifo alterna de microfone para enviar (o `paths` prove que o icone mudou)
+  expect(convEmpty.paths).not.toBe(convFull.paths);
+  // a IA nao tem botao de anexo a esquerda — so o campo
+  await expect(page.locator('.ai-input-row .cozy-attach')).toHaveCount(0);
+  // pilula identica: raio, fundo, borda, padding e ALTURA renderizada
+  expect(aiPill).toBe(convPill);
   // o textarea fica transparente (a pílula é o que tem borda)
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).borderWidth)).toBe('0px');
-  // e sem outline retangular: o foco é marcado na pílula
+  // e sem outline retangular: o foco é marcado na pilula
   await page.click('#ai-prompt');
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).outlineStyle)).toBe('none');
 });

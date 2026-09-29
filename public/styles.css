@@ -1762,6 +1762,77 @@ body::before {
 .attach-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .attach-rm { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; border: none; background: var(--danger); color: #fff; font-size: 12px; line-height: 1; cursor: pointer; box-shadow: var(--shadow-sm); z-index: 10; display: grid; place-items: center; }
 .bubble-images { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+
+/* ===================== MENSAGEM DE VOZ (v1.13.7) =====================
+   Player dentro da bolha: play à esquerda, waveform real no meio e o
+   remetente (foto do Google ou inicial) à direita — a mesma leitura do
+   WhatsApp. As cores vêm do bubble (color: inherit / accent), então o
+   player acompanha o tema e o lado (minha nota / nota remota) sem regra extra. */
+.vaudio {
+  display: flex; align-items: center; gap: 10px;
+  min-width: 232px; max-width: 320px; padding: 2px 0 4px;
+}
+.va-play {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  border: none; display: grid; place-items: center; cursor: pointer;
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
+  transition: transform .1s, filter .15s;
+}
+.va-play:hover { filter: brightness(1.05); }
+.va-play:active { transform: scale(var(--press-scale, .96)); }
+/* a bolha remota é clara: o play precisa do mesmo contraste do accent */
+.bubble.remote .va-play { background: var(--accent); color: var(--on-accent); }
+.vaudio.failed .va-play { background: var(--bg); color: var(--text-dim); border: 1px solid var(--border); }
+.vaudio.failed .va-wave { opacity: .4; }
+
+.va-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.va-wave {
+  display: flex; align-items: center; gap: 2px; height: 26px;
+  cursor: pointer; user-select: none;
+}
+/* cada barra cresce de baixo (transform) — mais barato que animar height */
+.va-bar {
+  flex: 1 1 0; min-width: 2px; height: var(--h, 40%);
+  border-radius: 2px; background: currentColor;
+  opacity: .32; transition: opacity .12s;
+}
+/* a parte já tocada acompanha a cor do play; a que ainda não, fica suave */
+.vaudio .va-bar.played, .vaudio .va-bar.on { opacity: .95; color: var(--accent); }
+.vaudio .va-bar.on { opacity: 1; }
+.bubble:not(.remote) .vaudio .va-bar { color: var(--on-accent); }
+.bubble:not(.remote) .vaudio .va-bar.played, .bubble:not(.remote) .vaudio .va-bar.on { color: var(--on-accent); }
+
+.va-time {
+  font-size: 11px; line-height: 1; opacity: .7;
+  font-variant-numeric: tabular-nums; letter-spacing: .2px;
+}
+.va-elapsed { font-weight: 700; }
+.va-dur::before { content: "/ "; }
+
+.va-who {
+  flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+  max-width: 92px; padding-left: 2px;
+}
+.va-av {
+  width: 22px; height: 22px; border-radius: 50%; object-fit: cover;
+  background: var(--bg); border: 1px solid var(--border);
+}
+.va-av-ini {
+  display: grid; place-items: center; font-size: 10px; font-weight: 800;
+  background: var(--accent-soft); color: var(--accent); border-color: transparent;
+}
+.va-name {
+  font-size: 11px; font-weight: 700; opacity: .8;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* bolha só de áudio não deve ter a largura mínima de texto (180px) */
+.bubble:has(.vaudio) { min-width: 0; }
+@media (max-width: 420px) {
+  .vaudio { min-width: 0; width: 100%; }
+  .va-name { display: none; }
+}
 .bubble-img { max-width: 240px; max-height: 240px; border-radius: 14px; display: block; cursor: zoom-in; box-shadow: var(--shadow-sm); }
 .bubble.remote .bubble-img { max-width: 200px; }
 
@@ -2833,10 +2904,10 @@ button:focus { outline: none; }
 /* o foco é marcado na PÍLULA (.cozy-input-row:focus-within), não no textarea —
    sem isso o outline global desenhava um retângulo dentro da pílula arredondada */
 .ai-input-row textarea:focus, .ai-input-row textarea:focus-visible { outline: none; }
-.ai-input-row .cozy-attach:hover { background: var(--accent-soft); color: var(--accent); }
-#ai-mic.rec { background: var(--danger); color: #fff; animation: ai-rec-pulse 1.4s ease-in-out infinite; }
-#ai-mic.busy { opacity: .6; pointer-events: none; }
-@keyframes ai-rec-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,72,77,.45); } 50% { box-shadow: 0 0 0 9px rgba(229,72,77,0); } }
+/* o botão da IA é o .cozy-send da conversa: o estado de gravação e de upload
+   reusa .cozy-send.recording e .cozy-send.busy (mesmas animações, sem duplicar
+   regra por id — o #ai-mic não existe mais). */
+#ai-send.busy { opacity: .6; pointer-events: none; }
 .ai-rec-status {
   display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: #e5484d;
   background: color-mix(in srgb, #e5484d 9%, transparent); border: 1px solid color-mix(in srgb, #e5484d 28%, transparent);

@@ -119,7 +119,7 @@ import { OfflineQueue } from './offline-queue.js';
         if (session && session.user) {
           const ui = window.NoteThread && window.NoteThread.UI;
           if (ui && typeof ui._applySessionUser === 'function') ui._applySessionUser(session.user);
-          else Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id });
+          else Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id, photo: (session.user.user_metadata && session.user.user_metadata.picture) || null });
           this.ensureProfile(session.user);
         }
         this.connected = true; this.setStatus('online'); clearTimeout(t); this._connecting = false;
@@ -152,7 +152,7 @@ import { OfflineQueue } from './offline-queue.js';
       const payload = {
         threads: Object.fromEntries((th.data || []).map(t => [t.id, { id: t.id, name: t.name, emoji: t.emoji, color: t.color || undefined, folderId: t.folder_id, favorite: t.favorite, pinnedId: t.pinned_id, createdAt: new Date(t.created_at).getTime(), updatedAt: new Date(t.updated_at).getTime(), lastPreview: t.last_preview }])),
         folders: Object.fromEntries((fo.data || []).map(f => [f.id, { id: f.id, name: f.name, emoji: f.emoji, color: f.color || undefined, parentId: f.parent_id, createdAt: new Date(f.created_at).getTime() }])),
-        notes: (() => { const m = {}; (no.data || []).forEach(n => { (m[n.thread_id] = m[n.thread_id] || []).push({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images || [], tags: n.tags || [], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }); }); return m; })()
+        notes: (() => { const m = {}; (no.data || []).forEach(n => { (m[n.thread_id] = m[n.thread_id] || []).push({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }); }); return m; })()
       };
       this.emit('snapshot', payload);
     },
@@ -174,7 +174,7 @@ import { OfflineQueue } from './offline-queue.js';
             const r = p.new || p.old; if (!r) return;
             if (p.eventType === 'DELETE') this.emit('note:delete', { threadId: r.thread_id, clientId: r.client_id });
             else {
-              const payload = { clientId: r.client_id, threadId: r.thread_id, text: r.text, images: (r.images||[]).slice(0,2), tags: r.tags || [], ts: Number(r.ts), sortOrder: r.sort_order, edited: r.edited, editedAt: r.edited_at, rev: r.rev, ...(r.reactions && Object.keys(r.reactions).length ? { reactions: r.reactions } : {}), userId: r.user_id };
+              const payload = { clientId: r.client_id, threadId: r.thread_id, text: r.text, images: (r.images||[]).slice(0,2), audio: r.audio || null, tags: r.tags || [], ts: Number(r.ts), sortOrder: r.sort_order, edited: r.edited, editedAt: r.edited_at, rev: r.rev, ...(r.reactions && Object.keys(r.reactions).length ? { reactions: r.reactions } : {}), userId: r.user_id };
               this.emit('note:upsert', payload);
               // A6: evento separado APENAS para nota de OUTRO usuário (tint de chegada).
               // Antes disparava também no eco da própria nota → a bolha piscava azul
@@ -271,21 +271,28 @@ import { OfflineQueue } from './offline-queue.js';
       if (beforeTs != null) q = q.lt('ts', beforeTs);
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []).reverse().map(n => ({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images||[], tags: n.tags||[], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }));
+      return (data || []).reverse().map(n => ({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images||[], audio: n.audio || null, tags: n.tags||[], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }));
     },
     async _doSend(type, payload) {
       const uid = await this._uid(); if (!uid) throw new Error('sem sessão');
       if (type === 'note:upsert') {
         const n = payload;
-        const row = { client_id: n.clientId, thread_id: n.threadId, text: n.text, images: n.images || [], tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, reactions: n.reactions || {}, user_id: uid };
+        const row = { client_id: n.clientId, thread_id: n.threadId, text: n.text, images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, reactions: n.reactions || {}, user_id: uid };
         // (supabase-js devolve { error } em vez de lançar — checar o resultado)
         let res = await this.supa.from('notes').upsert(row, { onConflict: 'client_id' });
         // servidor sem a migração reactions (v1.8.0, erro 42703): reenvia SEM a
         // coluna para não derrubar o sync de notas como um todo
-        if (res.error && (res.error.code === '42703' || /reactions/i.test(res.error.message || ''))) {
-          delete row.reactions;
+        // servidor SEM a migração da coluna → erro 42703 (undefined_column).
+        // Cai fora uma coluna por vez (audio, depois reactions) para o resto do
+        // sync de notas continuar funcionando em bancos ainda não migrados.
+        const dropCol = async (col, re) => {
+          if (!(res.error && (res.error.code === '42703' || re.test(res.error.message || '')))) return false;
+          delete row[col];
           res = await this.supa.from('notes').upsert(row, { onConflict: 'client_id' });
-        }
+          return true;
+        };
+        await dropCol('audio', /audio/i);
+        await dropCol('reactions', /reactions/i);
         if (res.error) throw res.error;
       } else if (type === 'note:reactions') {
         // reações por nota: grava exatamente o mapa local (única fonte de verdade,

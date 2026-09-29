@@ -1,5 +1,6 @@
 import { PAGE_SIZE, esc, fmtTime, now, haptic, $, hideWithExit } from '../utils.js';
 import { ICON, wrapSvg } from '../icons.js';
+import { audioHtml, bindAudioPlayer } from '../audio.js';
 import { renderMarkdown } from '../markdown.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
@@ -343,10 +344,12 @@ export const MessagesMethods = {
       const toggle = `<button class="msg-toggle" title="Ações" aria-label="Ações">${wrapSvg(ICON.chevron, 12)}</button>`;
       const tags = (n.tags && n.tags.length) ? `<div class="bubble-tags">${n.tags.map((t) => `<span class="tag-chip">#${esc(t)}</span>`).join('')}</div>` : '';
       const imgs = (n.images && n.images.length) ? `<div class="bubble-images">${n.images.map((src) => `<img class="bubble-img" src="${src}" alt="anexo" loading="lazy"/>`).join('')}</div>` : '';
+      // mensagem de voz: player com waveform + avatar do remetente (v1.13.7)
+      const vaudio = n.audio && n.audio.url ? audioHtml(n) : '';
 
       const hideDone = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
       const rxRow = this._reactionsHtml(n);
-      div.innerHTML = `${pinBadge}${imgs}${renderMarkdown(n.text, hideDone)}${tags}${rxRow}${meta}${toggle}`;
+      div.innerHTML = `${pinBadge}${vaudio}${imgs}${renderMarkdown(n.text, hideDone)}${tags}${rxRow}${meta}${toggle}`;
 
       // Seta ▾ → popover
       div.querySelector('.msg-toggle').addEventListener('click', (e) => { e.stopPropagation(); this.openMsgPopover(div, n); });
@@ -367,6 +370,8 @@ export const MessagesMethods = {
       div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
       div.addEventListener('drop', (e) => this.onDrop(e, n));
       div.addEventListener('dragend', () => this.onDragEnd());
+      // player de audio (um <audio> compartilhado, play/pause sem recriar o elemento)
+      if (vaudio) bindAudioPlayer(div, n);
       // Lightbox: clicar na imagem abre em tela cheia
       div.querySelectorAll('.bubble-img').forEach((img) => {
         img.style.cursor = 'zoom-in';

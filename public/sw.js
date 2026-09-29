@@ -1,10 +1,10 @@
 // NoteThread Service Worker — app shell offline + cache-first para assets.
 // Bump CACHE (vN) a cada deploy para invalidar versões anteriores.
-const CACHE = 'notethread-v134';
+const CACHE = 'notethread-v137';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './CHANGELOG.md',
   './assets/logo.svg', './assets/logo.png',
-  './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js',
+  './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js', './js/audio.js',
   './js/store.js', './js/sound.js', './js/sync-supabase.js', './js/offline-queue.js', './js/confetti.js',
   './js/bg-patterns.js', './js/friendly-names.js', './js/error-tracking.js', './js/updater.js',
   './js/ui/picker.js', './js/ui/navigation.js', './js/ui/messages.js',
@@ -18,7 +18,7 @@ const ASSETS = [
   './assets/themes/logo-cozy.svg', './assets/themes/logo-dark.svg', './assets/themes/logo-lavender.svg', './assets/themes/logo-midnight.svg',
   './assets/themes/logo-mint.svg', './assets/themes/logo-mono.svg', './assets/themes/logo-napolitano.svg', './assets/themes/logo-ocean.svg',
   './assets/themes/logo-peach.svg', './assets/themes/logo-sakura.svg',
-  './privacy.html', './terms.html', './oauth-callback.html'
+  './privacy.html', './terms.html', './help.html', './oauth-callback.html'
 ];
 
 self.addEventListener('install', (e) => {
