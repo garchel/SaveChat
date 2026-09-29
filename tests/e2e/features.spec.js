@@ -78,7 +78,7 @@ test('logos acompanham a cor do tema (placeholder, sidebar, login e favicon)', a
     favicon: (document.querySelector('link[rel="icon"]') || {}).href,
   }));
 
-  for (const tema of ['midnight', 'dark', 'sakura', 'peach']) {
+  for (const tema of ['midnight', 'dark', 'sakura', 'terracota']) {
     await page.evaluate((t) => {
       window.NoteThread.Store.data.ui.theme = t;
       window.NoteThread.UI.applyTheme();

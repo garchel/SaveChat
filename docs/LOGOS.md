@@ -39,7 +39,7 @@ Geradas a partir dos tokens reais de cada tema (`accent-soft → bubble-me`, tex
 | `logo-lavender.svg` | Lavanda | `#eae4ff → #7c5cff` |
 | `logo-dark.svg` | Escuro | `#262626 → #0f0f0f` |
 | `logo-mint.svg` | Hortelã | `#dcf3ea → #1faa86` |
-| `logo-peach.svg` | Pêssego | `#ffdccf → #ff7a59` |
+| `logo-terracota.svg` | Terracota | `#ffdccf → #ff7a59` |
 | `logo-ocean.svg` | Oceano | `#d9edfa → #2b8fd6` |
 | `logo-midnight.svg` | Meia-noite | `#1a2745 → #0e1525` |
 | `logo-mono.svg` | Preto e branco | sem gradientes — fundo branco + borda preta |

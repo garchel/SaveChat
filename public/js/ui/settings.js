@@ -25,7 +25,7 @@ bindSettings() {
       // tema + ações data-set
       p.querySelectorAll('[data-set]').forEach((b) => b.addEventListener('click', () => this.handleSetting(b.dataset.set, b.dataset.val)));
       // tema ativo
-      const theme = (Store.data && Store.data.ui && Store.data.ui.theme) || 'peach';
+      const theme = (Store.data && Store.data.ui && Store.data.ui.theme) || 'terracota';
       p.querySelectorAll('[data-set="theme"]').forEach((b) => b.classList.toggle('active', b.dataset.val === theme));
       // ordenação ativa
       const sort = (Store.data && Store.data.ui && Store.data.ui.sort) || 'recent';
@@ -58,7 +58,7 @@ bindSettings() {
       // reage a mudanças de tema do sistema quando em "auto"
       if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-          const t = (Store.data && Store.data.ui && Store.data.ui.theme) || 'peach';
+          const t = (Store.data && Store.data.ui && Store.data.ui.theme) || 'terracota';
           if (t === 'auto') this.applyTheme();
         });
       }
@@ -227,9 +227,9 @@ bindSettings() {
     },
 
     applyTheme() {
-      let theme = (Store.data && Store.data.ui && Store.data.ui.theme) || 'peach';
-      // temas removidos: auto → peach; bubblegum → napolitano (muito parecido com sakura)
-      if (theme === 'auto') theme = 'peach';
+      let theme = (Store.data && Store.data.ui && Store.data.ui.theme) || 'terracota';
+      // temas renomeados/removidos: auto → terracota; peach → terracota; bubblegum → napolitano (muito parecido com sakura)
+      if (theme === 'auto' || theme === 'peach') theme = 'terracota';
       if (theme === 'bubblegum') { theme = 'napolitano'; Store.data.ui.theme = theme; Store.save(); }
       const resolved = theme;
       document.documentElement.dataset.theme = resolved;
@@ -245,7 +245,7 @@ bindSettings() {
       if (fav) fav.href = logoSrc;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) {
-        const colors = { lavender:'#7c5cff', dark:'#191622', mint:'#1faa86', peach:'#ff7a59', ocean:'#2b8fd6', midnight:'#0e1525', sakura:'#e86a8a', napolitano:'#e0567a' };
+        const colors = { lavender:'#7c5cff', dark:'#191622', mint:'#1faa86', terracota:'#ff7a59', peach:'#ff7a59', ocean:'#2b8fd6', midnight:'#0e1525', sakura:'#e86a8a', napolitano:'#e0567a' };
         meta.setAttribute('content', colors[resolved] || '#7c5cff');
       }
       // regenera o padrão de fundo com a cor do novo tema (escala clamped, sem estourar o tile)
