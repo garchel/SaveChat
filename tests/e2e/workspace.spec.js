@@ -155,12 +155,20 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
     };
   }, sel);
 
-  await page.locator('.tnode').first().click();
+  // FLAKY FIX: `.tnode` pode não existir ainda (o seed depende de o app
+  // ter montado a árvore). O sleep de 2000ms não garante isso sob carga
+  // com 3 workers — a medição saía com w:0 porque o botão nem estava
+  // renderizado. Espera o elemento, não o relógio.
+  const firstThread = page.locator('.tnode').first();
+  await expect(firstThread).toBeVisible();
+  await firstThread.click();
   await expect(page.locator('.composer .cozy-input-row')).toBeVisible();
   // vazio: os dois estao em modo microfone (accent-soft)
   const convEmpty = await right('#btn-send');
   await page.fill('#composer-input', 'ola');
-  await page.waitForTimeout(200);
+  // o botão troca de accent-soft (microfone) para accent (enviar) com texto:
+  // espera o estado real em vez de um sleep curto que pode medir o vazio
+  await expect(page.locator('#btn-send')).toHaveCSS('background-color', 'rgb(255, 122, 89)');
   const convFull = await right('#btn-send');
   const convPill = await pillOf('.composer .cozy-input-row');
 
@@ -168,7 +176,8 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   await expect(page.locator('.ai-input-row')).toBeVisible();
   const aiEmpty = await right('#ai-send');
   await page.fill('#ai-prompt', 'ola');
-  await page.waitForTimeout(200);
+  // mesmo estado do composer: accent no modo enviar (era sleep de 200ms)
+  await expect(page.locator('#ai-send')).toHaveCSS('background-color', 'rgb(255, 122, 89)');
   const aiFull = await right('#ai-send');
   const aiPill = await pillOf('.ai-input-row');
 

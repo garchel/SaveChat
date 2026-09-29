@@ -27,6 +27,12 @@ const seed = {
   },
 };
 
+// NOTA: o guard `if (!localStorage.getItem('notethread.v2'))` parece
+// suspeito, mas é inofensivo — cada teste roda num BrowserContext novo
+// (não há `reuseContext` no playwright.config), então o storage começa
+// vazio. Uma versão anterior deste arquivo removia a raiz antes de semear
+// achando que esse era o flaky; isso QUEBROU o teste 3, que depende do
+// bucket `::u::velho@example.com` criado pela migração do teste 1.
 test.beforeEach(async ({ context }) => {
   await context.addInitScript((s) => {
     if (!localStorage.getItem('notethread.v2')) {
