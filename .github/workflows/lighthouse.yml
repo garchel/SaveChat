@@ -2,13 +2,13 @@ name: Lighthouse CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - 'public/**'
       - 'lighthouserc.json'
       - '.github/workflows/lighthouse.yml'
   pull_request:
-    branches: [main]
+    branches: [main, staging]
     paths:
       - 'public/**'
       - 'lighthouserc.json'
