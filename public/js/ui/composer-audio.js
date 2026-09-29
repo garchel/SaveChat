@@ -6,6 +6,14 @@ import { Sound } from '../sound.js';
 import { uid, now, haptic, $ } from '../utils.js';
 import { computePeaks } from '../audio.js';
 
+// Glifos do botão único. MESMOS paths de composer.js/_updateSendAudioState, para
+// que voltar do modo gravação para o modo enviar não troque o desenho do ícone.
+// Antes estas duas constantes viviam no topo do composer.js monolítico; o split
+// em mixins deixou a referência órfã em composer-audio.js (que é quem usa), e o
+// bug só aparecia em runtime — depois de gravar — nunca no boot.
+const MIC_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+const SEND_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+
 export const ComposerAudioMethods = {
     _updateSendAudioState(ta, send) {
       const hasContent = this._editorText(ta).replace(/\u200B/g, '').trim() !== '' || ((this.pendingImages || []).length > 0);
