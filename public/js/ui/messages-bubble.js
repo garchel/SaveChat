@@ -172,30 +172,56 @@ export const MessagesBubbleMethods = {
             wrap.addEventListener('transitionend', remove, { once: true });
             setTimeout(remove, 350); // fallback
           });
+          // O aviso de "lista completa" precisa acontecer ANTES do return: com
+          // "ocultar marcadas" ligado, marcar a ÚLTIMA caixa saía por este
+          // caminho e nunca chamava _checkListComplete — sem nenhum feedback.
+          this._checkListComplete(clientId, n);
+          this._syncScrollMetrics();
           return;
         }
       }
       this._replaceBubble(clientId, n);
       // aviso quando todas as checkboxes estão marcadas
       this._checkListComplete(clientId, n);
+      this._syncScrollMetrics();
     },
+    // Aviso de lista completa. Funciona nos DOIS caminhos: com "ocultar
+    // marcadas" ligado a última caixa sai do DOM, mas o aviso (badge na
+    // bolha + toast + confete) ainda tem que aparecer.
     _checkListComplete(clientId, n) {
       const lines = (n.text || '').split('\n').filter((l) => /^\s*\[( |x)\]/i.test(l));
       if (!lines.length) return;
       const allDone = lines.every((l) => /\[\s*x\s*\]/i.test(l));
-      if (allDone) {
-        const el = document.querySelector(`.bubble[data-client-id="${clientId}"]`);
-        if (el && !el.querySelector('.chk-complete')) {
-          const badge = document.createElement('div');
-          badge.className = 'chk-complete';
-          badge.textContent = '✓ Lista completa!';
-          el.appendChild(badge);
-          setTimeout(() => badge.remove(), 3000);
-        }
-        burstConfetti(el || document.body); // estrelinhas e pétalas ao concluir
-        Sound.playName('sparkle');
-        this.toast('✓ Lista completa!', { kind: 'success', duration: 2500 });
+      if (!allDone) return;
+      // não repete confete/toast a cada re-render da mesma transição
+      const key = clientId + ':' + (n.rev || 0);
+      if (this._chkDoneFor === key) return;
+      this._chkDoneFor = key;
+      const el = document.querySelector(`.bubble[data-client-id="${clientId}"]`);
+      if (el && !el.querySelector('.chk-complete')) {
+        const badge = document.createElement('div');
+        badge.className = 'chk-complete';
+        badge.textContent = '✓ Lista completa!';
+        el.appendChild(badge);
+        setTimeout(() => badge.remove(), 3000);
       }
+      burstConfetti(el || document.body); // estrelinhas e pétalas ao concluir
+      Sound.playName('sparkle');
+      this.toast('✓ Lista completa!', { kind: 'success', duration: 2500 });
+      // a caixa que sumiu encolheu a bolha: recalcula as métricas de scroll
+      setTimeout(() => this._syncScrollMetrics(), 400);
+    },
+    // A barra de rolagem do fluxo reflete o tamanho REAL do conteúdo.
+    // Depois de remover nós (apagar mensagem, ocultar item concluído, sumir
+    // com um separador de dia) o flex/gap recalcula sozinho, mas em alguns
+    // caminhos o scrollHeight ficava com a altura antiga e a barra "guardava"
+    // o espaço da mensagem apagada.
+    _syncScrollMetrics() {
+      const box = document.getElementById('messages');
+      if (!box) return;
+      // a leitura mede; a escrita seguinte invalida o cache de layout
+      void box.scrollHeight;
+      void box.offsetHeight;
     },
     openLightbox(src) {
       let ov = document.getElementById('lightbox');

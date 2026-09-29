@@ -565,10 +565,23 @@ deleteNote(clientId) {
       if (!this.activeThread) return;
       const arr = Store.notesFor(this.activeThread);
       const n = arr.find((x) => x.clientId === clientId);
+      const day = n ? new Date(n.ts).toDateString() : null;
       Store.deleteNote(this.activeThread, clientId);
       Sync.send('note:delete', { threadId: this.activeThread, clientId });
       const el = document.querySelector(`.bubble[data-client-id="${clientId}"]`); if (el) el.remove();
       this.renderedClientIds.delete(clientId);
+      // se era a última mensagem do dia, o separador daquele dia vira órfão
+      const box = document.getElementById('messages');
+      if (box) {
+        if (day) this._pruneOrphanDaySeps(box);
+        // a conversa pode ter ficado sem nenhuma mensagem: mostra o estado vazio
+        if (!Store.notesFor(this.activeThread).length) {
+          document.getElementById('empty-state')?.classList.remove('hidden');
+        }
+        // a barra ficava com a altura antiga e "guardava" o espaço da mensagem
+        // apagada — recalcula depois do reflow
+        requestAnimationFrame(() => this._syncScrollMetrics());
+      }
       this.updateNoteCount();
       // oferece desfazer (buffer em memória por 10s)
       if (n) {

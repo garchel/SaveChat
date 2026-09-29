@@ -327,16 +327,82 @@ export const NavigationMethods = {
         sx = sy = st = 0;
 
         if (dt > SWIPE_TIME || Math.abs(dy) > VERTICAL_SLOP) return;
+        if (Math.abs(dx) < SWIPE_THRESH) return;
 
-        // Swipe da esquerda para direita (mostra sidebar) — quando no chat
-        if (dx > SWIPE_THRESH && app.classList.contains('show-chat')) {
-          app.classList.remove('show-chat');
-        }
-        // Swipe da direita para esquerda (esconde sidebar) — quando na sidebar
-        else if (dx < -SWIPE_THRESH && !app.classList.contains('show-chat')) {
-          app.classList.add('show-chat');
-        }
+        // arrastar para a DIREITA = voltar, em qualquer tela
+        if (dx > 0) { this.goBack(); return; }
+        // arrastar para a ESQUERDA = entrar na conversa (só no explorador)
+        if (dx < 0 && app && !app.classList.contains('show-chat')) app.classList.add('show-chat');
       }, { passive: true });
+    },
+
+    // Fecha a camada mais alta aberta (modal, seletor de reações, menu de
+    // ações da mensagem, popover da conversa, preview da nota, lightbox).
+    // Retorna true SE fechou algo — o chamador consome o gesto e não navega.
+    dismissTopLayer() {
+      const hide = (id) => { const el = document.getElementById(id); if (el && !el.classList.contains('hidden')) { el.classList.add('hidden'); return true; } return false; };
+      // modal: closeModal (restaura o foco no gatilho), nunca .hidden cru
+      const modal = this.dom && this.dom.modal;
+      if (modal && !modal.classList.contains('hidden')) { this.closeModal(); return true; }
+      // o seletor de reações é uma VISTA dentro do popover de mensagens:
+      // fecha ela primeiro, e só no gesto seguinte o popover inteiro
+      const pop = (this.dom && this.dom.msgPopover) || document.getElementById('msg-popover');
+      if (pop && !pop.classList.contains('hidden')) {
+        const picker = pop.querySelector('.rp-view[data-rp-view="picker"]');
+        if (picker && !picker.classList.contains('hidden')) { this._showRpView(pop, 'menu'); return true; }
+        pop.classList.add('hidden');
+        return true;
+      }
+      if (hide('chat-title-menu')) { this.syncExplorerChrome(); return true; }
+      if (hide('note-preview')) return true;
+      if (hide('lightbox')) return true;
+      if (hide('pin-popover')) return true;
+      if (hide('ctx-menu')) return true;
+      if (hide('search-results')) return true;
+      if (hide('notif-popover')) { this.syncExplorerChrome(); return true; }
+      if (hide('rem-popover')) { this.syncExplorerChrome(); return true; }
+      if (hide('settings-popover')) return true;
+      return false;
+    },
+
+    // "Voltar" único do celular — usado pelo botão ‹ E pelo arrasto lateral.
+    goBack() {
+      // nível 1: fecha a camada aberta
+      if (this.dismissTopLayer()) return 'dismissed';
+      const app = $('#app');
+      if (!app) return false;
+      // nível 2: página de workspace (IA/Diária/Lembretes/Pendências/Busca)
+      // volta para a lista de conversas ANTES do explorador
+      if (this._workspaceTab && this._workspaceTab !== 'conversations') {
+        this.showWorkspaceTab('conversations');
+        return 'workspace';
+      }
+      // nível 2: conversa aberta → explorador de conversas e pastas
+      if (app.classList.contains('show-chat')) {
+        app.classList.remove('show-chat');
+        this.closeNotePreview();
+        return 'explorer';
+      }
+      // nível 3: já no explorador → minimiza o app
+      return this.minimizeApp() ? 'minimized' : 'nothing';
+    },
+
+    // Minimizar o app. Existe API real numa WebView (Capacitor/Cordova). Numa
+    // PWA instalada o navegador NÃO expõe minimize, e window.close() é
+    // ignorado fora de janelas abertas por script — chamar isso aqui fecharia
+    // o app de vez e perderia o estado. Nesse caso devolvemos false para o
+    // chamador avisar o usuário, em vez de fingir que minimizou.
+    minimizeApp() {
+      const win = window;
+      if (win.Capacitor && win.Capacitor.Plugins && win.Capacitor.Plugins.MinimizeApp) {
+        win.Capacitor.Plugins.MinimizeApp.minimize();
+        return true;
+      }
+      if (win.navigator && win.navigator.app && win.navigator.app.minimize) {
+        win.navigator.app.minimize();
+        return true;
+      }
+      return false;
     },
 };
 
