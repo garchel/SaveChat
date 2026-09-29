@@ -7,3 +7,8 @@ test-results/
 dist/
 .lhci-reports/
 .tmp-lhci/
+
+# artefatos locais de ferramentas/agents (logs, ids, scripts de throwaway)
+.freebuff/
+*.tmp.mjs
+shot-*.png
