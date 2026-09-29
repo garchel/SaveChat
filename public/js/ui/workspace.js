@@ -70,10 +70,11 @@ export const WorkspaceMethods = {
       aiPrompt.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.sendAiMessage(); }
       });
-      // mesmo comportamento do composer da conversa: cresce até um teto e o
-      // botão de enviar só fica ativo com texto
-      aiPrompt.addEventListener('input', () => { this._growAiPrompt(aiPrompt); this._syncAiSend(); });
-      this._syncAiSend();
+      // mesmo comportamento do composer da conversa: cresce até um teto.
+      // O botão NÃO é desabilitado quando vazio — igual ao da conversa, que
+      // só desabilita antes de abrir uma thread (e no vazio vira microfone).
+      // Desabilitar aqui deixava o componente visualmente diferente.
+      aiPrompt.addEventListener('input', () => this._growAiPrompt(aiPrompt));
     }
     document.getElementById('ai-mic')?.addEventListener('click', () => this._toggleAiRecording());
     // ----- Diária (rotina que se renova) -----
@@ -366,7 +367,7 @@ export const WorkspaceMethods = {
       this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: 'error', duration: 5000 });
     } finally {
       input.disabled = false;
-      this._syncAiSend(); // o envio só reativa com texto (como na conversa)
+      button.disabled = false;
       input.focus();
     }
   },
@@ -410,14 +411,6 @@ export const WorkspaceMethods = {
     if (!ta) return;
     ta.style.height = 'auto';
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
-  },
-
-  // envia só com texto — espelha o btn-send do composer da conversa
-  _syncAiSend() {
-    const ta = document.getElementById('ai-prompt');
-    const btn = document.getElementById('ai-send');
-    if (!ta || !btn) return;
-    btn.disabled = !ta.value.trim();
   },
 
   // ---------- Áudio: gravar → transcrever (Gemini) → campo de texto ----------

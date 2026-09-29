@@ -471,6 +471,21 @@ body::before {
   text-align: left; transition: background .12s;
 }
 .profile-btn:hover { background: var(--bg); }
+/* Seta do menu de perfil: era estilo inline (opacity .5), que não é tematizável.
+   Nos temas escuros a cor do texto é cinza-claro e a seta sumia no fundo — lá
+   ela vai em branco puro, com um pouco mais de presença. */
+.profile-caret {
+  /* <button> não herda `color` (o UA põe buttontext = preto), então a cor é
+     fixada aqui para acompanhar a paleta como o resto do rodapé. */
+  color: var(--text-dim);
+  margin-left: auto; flex-shrink: 0; opacity: .55;
+  transition: opacity .15s, transform .15s;
+}
+.profile-btn:hover .profile-caret { opacity: 1; }
+[data-theme="dark"] .profile-caret,
+[data-theme="midnight"] .profile-caret { color: #ffffff; opacity: .8; }
+[data-theme="dark"] .profile-btn:hover .profile-caret,
+[data-theme="midnight"] .profile-btn:hover .profile-caret { opacity: 1; }
 .profile-popover { min-width: 200px; }
 
 /* ---- Botão Atualizar app + chip de status (menu do perfil) ---- */
@@ -1284,6 +1299,17 @@ body::before {
 .no-thread .nt-title { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
 .no-thread .nt-sub { margin: 0 0 14px; font-size: 13.5px; line-height: 1.55; color: var(--text-dim); }
 .no-thread .nt-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+/* Altura travada e igual para os dois botões. Sem isso a igualdade era
+   acidental: quando a tela é estreita e os botões quebram de linha, o
+   conteúdo passa a ter menos linhas que o padding e a caixa encolhe 1px
+   (medi 40px vs 39px). min-height + flex-basis travam a caixa; line-height
+   deixa os glifos ("+" e "✦") na mesma linha de base. */
+.no-thread .nt-actions .btn {
+  min-height: 44px;
+  flex: 0 0 auto;
+  line-height: 1.2;
+  white-space: nowrap;
+}
 
 .chat-header {
   display: flex; align-items: center; gap: 12px;
@@ -2798,19 +2824,18 @@ button:focus { outline: none; }
    classes cozy do composer da conversa */
 .ai-input-row .cozy-input-wrap textarea {
   flex: 1; min-width: 0; resize: none;
-  min-height: 24px; max-height: 120px;
+  /* mesma altura mínima do .composer-edit da conversa — senão a pílula da IA
+     fica mais baixa que a das conversas (medido: 24px vs 28.3px) */
+  min-height: calc(8px + 1.45em); max-height: 120px;
   color: var(--text); font-family: inherit;
 }
 .ai-input-row .cozy-input-wrap textarea::placeholder { color: var(--text-dim); opacity: .75; }
 /* o foco é marcado na PÍLULA (.cozy-input-row:focus-within), não no textarea —
    sem isso o outline global desenhava um retângulo dentro da pílula arredondada */
 .ai-input-row textarea:focus, .ai-input-row textarea:focus-visible { outline: none; }
-.ai-input-row .cozy-attach svg, .ai-input-row .cozy-send svg { width: 18px; height: 18px; }
 .ai-input-row .cozy-attach:hover { background: var(--accent-soft); color: var(--accent); }
 #ai-mic.rec { background: var(--danger); color: #fff; animation: ai-rec-pulse 1.4s ease-in-out infinite; }
 #ai-mic.busy { opacity: .6; pointer-events: none; }
-#ai-send:disabled { opacity: .4; cursor: default; }
-#ai-send.empty { background: var(--accent-soft); color: var(--accent); }
 @keyframes ai-rec-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,72,77,.45); } 50% { box-shadow: 0 0 0 9px rgba(229,72,77,0); } }
 .ai-rec-status {
   display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: #e5484d;

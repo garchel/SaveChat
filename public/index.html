@@ -151,7 +151,7 @@
             <div class="me-name" id="me-name">Ana Silva</div>
             <div class="me-mail" id="me-mail">ana@notethread.app</div>
           </div>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;opacity:.5"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg class="profile-caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="footer-actions">
           <button id="sync-status" class="sync-status offline" title="Status" aria-label="Status de sincronizacao"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg></button>
@@ -233,13 +233,15 @@
             <!-- Mesmo componente do composer da conversa: .cozy-input-row + .cozy-input-wrap.
                  O campo da IA é o MESMO input cozy (mesma pílula, mesmos botões circulares,
                  mesma borda de foco) — só muda a ação do botão da esquerda (áudio em vez
-                 de anexo) e a do envio. -->
+                 de anexo) e a do envio. Glifos idênticos aos do composer (mic e avião
+                 de composer.js), com fill="none" stroke="currentColor" pra acompanhar o
+                 tema em vez de sair pretos preenchidos. -->
             <div class="composer-row cozy-input-row ai-input-row">
-              <button type="button" id="ai-mic" class="cozy-attach" aria-label="Gravar áudio" aria-pressed="false" title="Gravar áudio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button>
+              <button type="button" id="ai-mic" class="btn-attach cozy-attach" aria-label="Gravar áudio" aria-pressed="false" title="Gravar áudio"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
               <div class="cozy-input-wrap">
                 <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Peça algo à IA — ela conhece suas notas…"></textarea>
               </div>
-              <button type="button" id="ai-send" class="cozy-send" aria-label="Enviar mensagem para a IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+              <button type="button" id="ai-send" class="btn-send cozy-send" aria-label="Enviar mensagem para a IA"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
             </div>
           </div>
         </section>

@@ -49,6 +49,24 @@ test('sem conversa selecionada: placeholder aparece e some ao abrir conversa', a
   await expect(ph).toBeHidden();
 });
 
+test('os 2 botões do aviso "Nenhuma conversa selecionada" têm a mesma altura', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+  await expect(page.locator('#no-thread')).toBeVisible();
+
+  // em telas estreitas os botões quebram de linha — era aí que a caixa do
+  // primeiro encolhia 1px e os dois ficavam com alturas diferentes
+  for (const w of [1280, 420, 360, 320]) {
+    await page.setViewportSize({ width: w, height: 800 });
+    const h = await page.evaluate(() => {
+      const a = document.getElementById('nt-new').getBoundingClientRect().height;
+      const b = document.getElementById('nt-open-ai').getBoundingClientRect().height;
+      return { a: +a.toFixed(2), b: +b.toFixed(2) };
+    });
+    expect(h.a, `largura ${w}`).toBe(h.b);
+  }
+});
+
 test('fluxo crítico: criar thread → nota com checkbox → marcar → persiste após reload', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(1500);

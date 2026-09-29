@@ -121,42 +121,55 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   await page.goto('/');
   await page.waitForTimeout(2000);
 
+  // mede pílula, campo e os dois botões (caixa + glifo) de um seletor de página
+  const measure = (scope, attachId, sendId, fieldId) => page.evaluate(([scope, attachId, sendId, fieldId]) => {
+    const root = document.querySelector(scope);
+    const pill = getComputedStyle(root);
+    const btn = document.getElementById(sendId);
+    const bc = getComputedStyle(btn);
+    const svgStyle = (sel) => {
+      const c = getComputedStyle(root.querySelector(sel));
+      return `${c.width} fill=${c.fill} stroke=${c.stroke} sw=${c.strokeWidth}`;
+    };
+    return {
+      radius: pill.borderRadius, bg: pill.backgroundColor, border: pill.border, pad: pill.padding,
+      h: +root.getBoundingClientRect().height.toFixed(2),
+      left: getComputedStyle(document.getElementById(attachId)).borderRadius,
+      leftH: +document.getElementById(attachId).getBoundingClientRect().height.toFixed(2),
+      // o GLIFO também tem que ser o mesmo: antes os svgs da IA vinham com fill
+      // preto (sólido) e a 18px, o do composer é traço currentColor a 20px
+      leftSvg: svgStyle('.cozy-attach svg'), rightSvg: svgStyle('.cozy-send svg'),
+      right: bc.borderRadius, rightH: +btn.getBoundingClientRect().height.toFixed(2),
+      rightBg: bc.backgroundColor, rightColor: bc.color, rightShadow: bc.boxShadow,
+      fieldMinH: getComputedStyle(document.getElementById(fieldId)).minHeight,
+    };
+  }, [scope, attachId, sendId, fieldId]);
+
   // abre uma conversa para ter o composer de referência
   await page.locator('.tnode').first().click();
   await expect(page.locator('.composer .cozy-input-row')).toBeVisible();
-  const conv = await page.evaluate(() => {
-    const pill = document.querySelector('.composer .cozy-input-row');
-    const cs = getComputedStyle(pill);
-    return {
-      radius: cs.borderRadius, bg: cs.backgroundColor, border: cs.borderWidth,
-      left: getComputedStyle(document.querySelector('.composer .cozy-attach')).borderRadius,
-      right: getComputedStyle(document.querySelector('.composer .cozy-send')).borderRadius,
-    };
-  });
+  // com texto nos dois, os botões estão em modo envio — comparação justa
+  await page.fill('#composer-input', 'ola');
+  await page.waitForTimeout(200);
+  const conv = await measure('.composer .cozy-input-row', 'btn-attach', 'btn-send', 'composer-input');
 
   await page.click('.page-switch[data-page="ai"]');
   await expect(page.locator('.ai-input-row')).toBeVisible();
-  const ai = await page.evaluate(() => {
-    const pill = document.querySelector('.ai-input-row');
-    const cs = getComputedStyle(pill);
-    return {
-      radius: cs.borderRadius, bg: cs.backgroundColor, border: cs.borderWidth,
-      left: getComputedStyle(document.getElementById('ai-mic')).borderRadius,
-      right: getComputedStyle(document.getElementById('ai-send')).borderRadius,
-    };
-  });
+  await page.fill('#ai-prompt', 'ola');
+  await page.waitForTimeout(200);
+  const ai = await measure('.ai-input-row', 'ai-mic', 'ai-send', 'ai-prompt');
 
-  // mesma pílula, mesmos botões circulares
+  // idênticos: pílula, campo, os dois botões (tamanho, cor, sombra) e os glifos
   expect(ai).toEqual(conv);
+  // o glifo é traço tematizado, nunca sólido preto
+  expect(ai.leftSvg).toContain('fill=none');
+  expect(ai.rightSvg).toContain('fill=none');
+  expect(ai.rightSvg).toContain('20px');
   // o textarea fica transparente (a pílula é o que tem borda)
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).borderWidth)).toBe('0px');
   // e sem outline retangular: o foco é marcado na pílula
   await page.click('#ai-prompt');
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).outlineStyle)).toBe('none');
-  // enviar só habilita com texto, como na conversa
-  expect(await page.evaluate(() => document.getElementById('ai-send').disabled)).toBe(true);
-  await page.fill('#ai-prompt', 'oi');
-  expect(await page.evaluate(() => document.getElementById('ai-send').disabled)).toBe(false);
 });
 
 test('IA sem chave: pede a chave e não chama a API', async ({ page }) => {
