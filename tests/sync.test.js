@@ -27,9 +27,9 @@ describe('PWA', ()=>{
       assert.ok(sw.includes(src), `ícone do manifest ausente no precache do SW: ${src}`);
     }
   });
-  it('sw.js é v133', ()=>{
+  it('sw.js é v134', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v133/);
+    assert.match(sw, /notethread-v134/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);

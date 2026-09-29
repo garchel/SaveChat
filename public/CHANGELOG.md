@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.13.6] — 2026-09-29
+### Corrigido
+- **Login com o Google voltou a funcionar**: o cliente Supabase era criado com o `flowType` padrão (`implicit`), mas a página de retorno do OAuth roda como PKCE. O Google voltava com os tokens no fragment e o client não reconhecia o retorno — a janela ficava em “Conectando com o Google…”, fechava e ninguém era logado. Agora o `flowType: 'pkce'` é explícito no cliente compartilhado
+
 ## [1.13.5] — 2026-09-28
 ### Modificado
 - **O campo da IA é o mesmo da conversa**: a janela da IA trocou o input retangular por **o mesmo componente cozy** do composer das conversas — mesma pílula arredondada, mesmos botões circulares, mesma borda de foco no coral. Agora ele também é flutuante, como o da conversa, e o enviar só ativa com texto

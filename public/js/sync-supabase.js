@@ -12,7 +12,14 @@ import { OfflineQueue } from './offline-queue.js';
   let _supaPromise = null;
   export function getSupa() {
     if (!_supaPromise) {
-      _supaPromise = import('https://esm.sh/@supabase/supabase-js@2.112.3').then(m => m.createClient(SUPABASE_URL, SUPABASE_ANON_KEY));
+      // flowType OBRIGATÓRIO: o default do supabase-js é 'implicit', mas a
+      // página de retorno (oauth-callback.html) roda como 'pkce'. Com o
+      // descasamento, o Google devolve os tokens no fragment (#) e o client
+      // PKCE não reconhece o retorno — nenhuma sessão é criada e o popup
+      // fecha sem logar. Ver auth.js (btn-google) e oauth-callback.html.
+      _supaPromise = import('https://esm.sh/@supabase/supabase-js@2.112.3').then(m => m.createClient(
+        SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { flowType: 'pkce' } }
+      ));
     }
     return _supaPromise;
   }
