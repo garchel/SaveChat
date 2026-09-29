@@ -232,6 +232,53 @@ export const MessagesMethods = {
     // CTA do empty state removido — o fluxo de criar conversa vive na sidebar
     // (e no menu de contexto do caderno); nada mais a vincular aqui
     _bindEmptyCta() {},
+
+    // O elemento real do separador de dia é o WRAPPER (.day-sep-wrap); o
+    // .day-sep é o span DENTRO dele. Todo cleanup precisa mirar no wrapper —
+    // mirar só no .day-sep não removia nada, e os separadores órfãos
+    // acumulavam a cada re-render da conversa.
+    _daySepNodes(box) {
+      const out = [];
+      box.querySelectorAll('.day-sep-wrap, .day-sep').forEach((n) => {
+        if (n.classList.contains('day-sep-wrap')) out.push(n);
+        else if (!n.closest('.day-sep-wrap')) out.push(n);
+      });
+      return out;
+    },
+
+    // Um separador só faz sentido se o dia dele tem mensagem ABAIXO dele.
+    // Depois de apagar todas as mensagens de um dia ele ficava sozinho no
+    // fluxo (39px de espaço morto) — aqui some com animação e sai do DOM.
+    _pruneOrphanDaySeps(box) {
+      const nodes = this._daySepNodes(box);
+      let removed = 0;
+      nodes.forEach((wrap) => {
+        // a bubble imediatamente seguinte (ignorando nós de altura 0) é a
+        // mensagem dona do dia; sem ela, o separador é órfão
+        let sib = wrap.nextElementSibling;
+        while (sib && sib.getBoundingClientRect().height === 0) sib = sib.nextElementSibling;
+        if (sib && sib.classList.contains('bubble')) return;
+        removed += 1;
+        this._fadeOutDaySep(wrap);
+      });
+      return removed;
+    },
+
+    // Saída do separador: colapsa a altura reservada e dissolve o pill.
+    _fadeOutDaySep(wrap) {
+      if (!wrap || wrap._sepOut) return;
+      wrap._sepOut = true;
+      const h = wrap.getBoundingClientRect().height;
+      const done = () => { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); };
+      wrap.style.maxHeight = h + 'px';
+      wrap.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        wrap.classList.add('day-sep-out');
+        wrap.addEventListener('transitionend', done, { once: true });
+        setTimeout(done, 420); // fallback (reduced-motion / transição cortada)
+      });
+    },
+
     renderMessages(reset) {
       // último anel de defesa: cura gêmeas ANTES de renderizar (double-send local:
       // texto idêntico + mesmo autor + ts quase igual, client_id diferentes)
@@ -245,21 +292,25 @@ export const MessagesMethods = {
       if (!notes.length) {
         empty.classList.remove('hidden');
         $('#load-older').classList.add('hidden');
-        box.querySelectorAll('.bubble, .day-sep').forEach((n) => n.remove());
+        this._daySepNodes(box).forEach((n) => n.remove());
+        this._syncScrollMetrics();
         this._applyCozyEmptyCopy(empty);
         this._bindEmptyCta();
         return;
       }
       empty.classList.add('hidden');
       const { items, hasMore } = Store.pageNotes(this.activeThread, this.oldestTs, PAGE_SIZE);
-      if (reset) { box.querySelectorAll('.bubble, .day-sep').forEach((n) => n.remove()); this.renderedClientIds.clear(); this.oldestTs = items.length ? items[0].ts : null; }
+      if (reset) { this._daySepNodes(box).forEach((n) => n.remove()); this.renderedClientIds.clear(); this.oldestTs = items.length ? items[0].ts : null; }
       const loader = $('#load-older');
       loader.classList.toggle('hidden', !hasMore);
       const frag = document.createDocumentFragment();
-      const before = box.querySelector('.bubble, .day-sep');
+      const before = box.querySelector('.bubble, .day-sep-wrap');
       // Em load-older (não reset), sincroniza o dia-base com a bolha já existente
       // para que o separador certo apareça entre notas novas (mais antigas) e as já renderizadas.
-      let lastDay = before && !reset ? before.dataset.day || null : null;
+      // O separador é o WRAPPER, que não tem data-day: usa a da bolha que vem depois.
+      let lastDay = before && !reset
+        ? (before.dataset.day || (before.nextElementSibling && before.nextElementSibling.dataset ? before.nextElementSibling.dataset.day : null))
+        : null;
       items.forEach((n) => {
         if (this.renderedClientIds.has(n.clientId)) return;
         this.renderedClientIds.add(n.clientId);
@@ -271,6 +322,8 @@ export const MessagesMethods = {
         frag.appendChild(this.bubbleEl(n));
       });
       box.insertBefore(frag, reset ? loader.nextSibling : (before || loader));
+      // separadores que ficaram sem mensagem do seu dia saem com animação
+      this._pruneOrphanDaySeps(box);
       if (reset) box.scrollTop = box.scrollHeight;
       // M1 fix: animação de entrada só em bolhas novas; classe removida após animar
       // (no reset inicial da thread NENHUMA bolha anima — a thread aparece pronta)
@@ -281,6 +334,9 @@ export const MessagesMethods = {
       } else {
         box.querySelectorAll('.bubble.is-new').forEach((el) => el.classList.remove('is-new'));
       }
+      // métricas de scroll coerentes com o DOM final (a barra de rolagem
+      // representava a altura anterior quando os nós saíam sem re-render)
+      this._syncScrollMetrics();
     },
 
     // rede de segurança de DOM: nunca mais de 1 bolha por nota (qualquer caminho
