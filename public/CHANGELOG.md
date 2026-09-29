@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.16.0] — 2026-09-29
+### Modificado
+- **Texto legível em todo o app**: 41 regras de texto que estavam entre 10px e 11.5px subiram para 12px — secundárias da sidebar, hora e status das mensagens, rótulos de Configurações, dicas de lembretes e da Diária, legendas da busca e da IA. Os números de badge, contador e avatar ficaram como estavam: são glifos, não texto
+- **Contraste medido nos 10 temas**: ao validar a tipografia, ficou registrado que `.bubble .meta` (3.16 no pêssego, 2.35 no sakura, 2.46 no napolitano), `.explorer-label` e `.brand-sub` estão abaixo de 4.5:1 — a cor não depende do tamanho da fonte, então a falha é antiga e nunca foi medida. Novo item de backlog (B1b)
+
 ## [1.15.0] — 2026-09-29
 ### Adicionado
 - **Mensagens de voz**: gravar áudio agora vira uma mensagem de verdade na conversa, no formato do WhatsApp — botão de play à esquerda, **waveform real** no meio (os picos do áudio de verdade, não barras decorativas), duração e progresso clicável, e a foto do remetente (do login Google) ou a inicial do nome à direita. O áudio é gravado, enviado para o Supabase Storage e toca em qualquer aparelho da conta; as barrinhas mostram o som enquanto você ouve, e clicar numa barra pula para aquele trecho
