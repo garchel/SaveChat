@@ -10,7 +10,8 @@
     "build": "node scripts/build.mjs",
     "preview": "node scripts/preview.mjs",
     "start": "serve public -l 3000",
-    "staging": "node scripts/preview.mjs"
+    "staging": "node scripts/preview.mjs",
+    "promote": "node scripts/promote.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
