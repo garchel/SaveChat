@@ -40,6 +40,25 @@ function minifyJs(js) {
   return out.replace(/\n{3,}/g, '\n\n');
 }
 
+// index.html em dev usa marcadores <!--#include file=partials/x.html--> (comentarios,
+// que o browser ignora). Em producao o build troca cada marcador pelo conteudo do
+// partial: o HTML volta a ser um arquivo unico, sem request extra e sem atraso de
+// first paint. No lugar do marcador entra um comentario com o nome do arquivo, para
+// o HTML gerado continuar legivel.
+function resolvePartials(html, baseDir) {
+  return html.replace(/<!--#include file=([^>]+?)-->/g, (_m, href) => {
+    const f = join(baseDir, href);
+    try {
+      const body = readFileSync(f, 'utf8').replace(/^\s*<!--#include[^>]*-->\s*$/gm, '');
+      const tag = '<!-- ' + href.split('/').pop() + ' -->';
+      return tag + '\n' + body;
+    } catch (err) {
+      console.warn('build: partial não encontrado -> ' + href);
+      return _m;
+    }
+  });
+}
+
 function walk(dir, cb) {
   for (const f of readdirSync(dir)) {
     const full = join(dir, f);
@@ -88,6 +107,11 @@ walk(SRC, (file) => {
     if (ext === 'css' && rel === 'styles.css') {
       try { rmSync(join(OUT, 'styles'), { recursive: true, force: true }); } catch {}
     }
+  } else if (ext === 'html') {
+    const raw = readFileSync(file, 'utf8');
+    const outHtml = resolvePartials(raw, dirname(file));
+    writeFileSync(dest, outHtml);
+    origTotal += raw.length; minTotal += outHtml.length;
   } else {
     copyFileSync(file, dest);
     origTotal += statSync(file).size; minTotal += statSync(file).size;

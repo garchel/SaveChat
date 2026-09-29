@@ -25,10 +25,11 @@ import { ComposerAudioMethods } from './js/ui/composer-audio.js';
 import { ComposerMarkdownMethods } from './js/ui/composer-markdown.js';
 import { ComposerListsMethods } from './js/ui/composer-lists.js';
 import { SyncEventsMethods } from './js/ui/sync-events.js';
+import { injectPartials } from './js/partials.js';
 
 // bundle ES Modules carregado
 
-(() => {
+(async () => {
   'use strict';
 
   // UI / CONTROLLER
@@ -380,6 +381,12 @@ showModal(title, bodyHtml, onOk) {
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
     MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods);
+
+  // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do
+  // markup. Em producao o build ja os inlineou e isto sai em seguida sem
+  // fazer fetch nenhum. Precisa rodar ANTES de Store.load()/UI.init(), porque
+  // o app procura elementos que moram nesses partials (#auth-screen, #sidebar...).
+  await injectPartials();
 
   Store.load();
   // aplica tema salvo antes de montar a UI

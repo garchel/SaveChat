@@ -1,0 +1,205 @@
+  <!-- Menus -->
+  <div id="ctx-menu" class="ctx-menu hidden">
+    <button data-act="fav"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17 5.5 21 7 14 2 9.3 9 9"/></svg> Favoritar</button>
+    <button data-act="unfav"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17 5.5 21 7 14 2 9.3 9 9"/></svg> Remover dos favoritos</button>
+    <button data-act="rename"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Renomear</button>
+    <button data-act="move"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg> Mover para pasta…</button>
+    <button data-act="delete" class="danger"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Excluir</button>
+  </div>
+
+  <div id="msg-popover" class="popover hidden" role="menu">
+    <!-- vista 1: ações (linha de reações mais usadas + menu) -->
+    <div class="rp-view" data-rp-view="menu">
+      <div class="rp-row" role="group" aria-label="Reagir à mensagem">
+        <button type="button" class="rp-react" data-react="❤️" title="Curtir" aria-label="Curtir">❤️</button>
+        <button type="button" class="rp-react" data-react="✨" title="Incrível" aria-label="Incrível">✨</button>
+        <button type="button" class="rp-react" data-react="🌸" title="Flor" aria-label="Flor">🌸</button>
+        <button type="button" class="rp-react" data-react="😊" title="Sorriso" aria-label="Sorriso">😊</button>
+        <button type="button" class="rp-more" data-msg="react-more" title="Mais reações" aria-label="Mais reações">+</button>
+      </div>
+      <button data-msg="edit"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Editar</button>
+    <button data-msg="tags"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg> Etiquetas</button>
+    <button data-msg="pin"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4h6l-1 7 4 3v2H6l4-3-1-7z"/><line x1="12" y1="16" x2="12" y2="21"/></svg> Pinar mensagem</button>
+    <button data-msg="unpin" class="hidden"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4h6l-1 7 4 3v2H6l4-3-1-7z"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="3" y1="3" x2="21" y2="21"/></svg> Desfixar</button>
+    <button data-msg="remind"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M5 3L2 6"/><path d="M19 3l3 3"/></svg> Lembrar-me</button>
+    <button data-msg="cancel-remind" class="hidden"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><line x1="3" y1="3" x2="21" y2="21"/></svg> Cancelar lembrete</button>
+    <button data-msg="copy"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar</button>
+    <button data-msg="delete" class="danger"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Excluir</button>
+    </div>
+    <!-- vista 2: seletor completo de reações (com seta de voltar) -->
+    <div class="rp-view hidden" data-rp-view="picker">
+      <div class="rp-head">
+        <button type="button" class="rp-back" data-msg="react-back" title="Voltar" aria-label="Voltar para o menu"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <span class="rp-title">Reagir à mensagem</span>
+      </div>
+      <div class="rp-grid" id="rp-grid"></div>
+    </div>
+  </div>
+
+  <div id="settings-popover" class="popover settings-popover hidden" role="menu">
+    <div class="settings-section">
+      <div class="settings-label">Tema</div>
+      <div class="theme-grid" id="theme-grid">
+        <button class="theme-chip" data-set="theme" data-val="peach" title="Pêssego"><span class="swatch" style="--c1:#ff7a59;--c2:#f3b13a;--c3:#ffdccf"></span><span class="theme-name">Pêssego</span></button>
+        <button class="theme-chip" data-set="theme" data-val="dark" title="Escuro"><span class="swatch" style="--c1:#9e9e9e;--c2:#5a5a5a;--c3:#2a2a2a"></span><span class="theme-name">Escuro</span></button>
+        <button class="theme-chip" data-set="theme" data-val="lavender" title="Lavanda"><span class="swatch" style="--c1:#7c5cff;--c2:#f5b942;--c3:#efeaff"></span><span class="theme-name">Lavanda</span></button>
+        <button class="theme-chip" data-set="theme" data-val="mint" title="Hortelã"><span class="swatch" style="--c1:#1faa86;--c2:#e8a33d;--c3:#dcf3ea"></span><span class="theme-name">Hortelã</span></button>
+        <button class="theme-chip" data-set="theme" data-val="ocean" title="Oceano"><span class="swatch" style="--c1:#2b8fd6;--c2:#e8a33d;--c3:#d9edfa"></span><span class="theme-name">Oceano</span></button>
+        <button class="theme-chip" data-set="theme" data-val="midnight" title="Meia-noite"><span class="swatch" style="--c1:#4f8cff;--c2:#f5b942;--c3:#1a2745"></span><span class="theme-name">Meia-noite</span></button>
+        <button class="theme-chip" data-set="theme" data-val="sakura" title="Sakura"><span class="swatch" style="--c1:#e86a8a;--c2:#f0b95c;--c3:#fce4ea"></span><span class="theme-name">Sakura</span></button>
+        <button class="theme-chip" data-set="theme" data-val="napolitano" title="Napolitano"><span class="swatch" style="--c1:#e0567a;--c2:#a06a4a;--c3:#fbf5ec"></span><span class="theme-name">Napolitano</span></button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Ordenar conversas</div>
+      <div class="seg" id="sort-seg">
+        <button class="seg-btn" data-set="sort" data-val="recent" title="Mais recentes">Recentes</button>
+        <button class="seg-btn" data-set="sort" data-val="name" title="Ordem alfabética">Nome</button>
+        <button class="seg-btn" data-set="sort" data-val="manual" title="Arraste para ordenar">Manual</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Densidade</div>
+      <div class="seg" id="density-seg">
+        <button class="seg-btn" data-set="density" data-val="comfortable" title="Confortável">Confortável</button>
+        <button class="seg-btn" data-set="density" data-val="compact" title="Compacta">Compacta</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Checklists</div>
+      <div class="sound-row">
+        <label class="switch"><input type="checkbox" id="chk-hide-done" /><span class="slider"></span></label>
+        <span class="sound-caption">Ocultar itens concluídos</span>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Aparência do cabeçalho</div>
+      <div class="sound-row">
+        <label class="switch"><input type="checkbox" id="hdr-match-color" /><span class="slider"></span></label>
+        <span class="sound-caption">Cor do caderno no cabeçalho</span>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Ambiente</div>
+      <div class="sound-row">
+        <label class="switch"><input type="checkbox" id="chk-petals" /><span class="slider"></span></label>
+        <span class="sound-caption">Pétalas flutuantes ✿</span>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Fonte</div>
+      <select id="font-select" class="font-select" aria-label="Fonte da interface">
+        <option value="">Padrão (Plus Jakarta Sans)</option>
+        <option value="'Quicksand', sans-serif">Quicksand — cozy, arredondada</option>
+        <option value="'Comfortaa', sans-serif">Comfortaa — bem arredondada</option>
+        <option value="'Baloo 2', sans-serif">Baloo 2 — divertida</option>
+        <option value="'Fredoka', sans-serif">Fredoka — suave e fofa</option>
+        <option value="'Nunito', sans-serif">Nunito — clássica do app</option>
+      </select>
+      <div class="font-preview" id="font-preview">Sua mensagem fica assim 🙂 123</div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Fundo da área principal</div>
+      <div class="bg-patterns" id="bg-patterns">
+        <button type="button" class="bg-pat" data-bg="" title="Liso (sem padrão)"><span class="bp-preview" style="background:var(--bg-chat)"></span><span class="bp-name">Liso</span></button>
+        <button type="button" class="bg-pat" data-bg="stars" title="Estrelas"><span class="bp-preview bpv-stars"></span><span class="bp-name">Estrelas</span></button>
+        <button type="button" class="bg-pat" data-bg="hearts" title="Corações"><span class="bp-preview bpv-hearts"></span><span class="bp-name">Corações</span></button>
+        <button type="button" class="bg-pat" data-bg="clouds" title="Nuvens"><span class="bp-preview bpv-clouds"></span><span class="bp-name">Nuvens</span></button>
+        <button type="button" class="bg-pat" data-bg="leaves" title="Folhas"><span class="bp-preview bpv-leaves"></span><span class="bp-name">Folhas</span></button>
+        <button type="button" class="bg-pat" data-bg="circles" title="Círculos"><span class="bp-preview bpv-circles"></span><span class="bp-name">Círculos</span></button>
+        <button type="button" class="bg-pat" data-bg="dots" title="Pontos"><span class="bp-preview bpv-dots"></span><span class="bp-name">Pontos</span></button>
+        <button type="button" class="bg-pat" data-bg="sakura" title="Sakura"><span class="bp-preview bpv-sakura"></span><span class="bp-name">Sakura</span></button>
+        <button type="button" class="bg-pat" data-bg="butterflies" title="Borboletas"><span class="bp-preview bpv-butterflies"></span><span class="bp-name">Borboletas</span></button>
+        <button type="button" class="bg-pat" data-bg="strawberries" title="Morangos"><span class="bp-preview bpv-strawberries"></span><span class="bp-name">Morangos</span></button>
+        <button type="button" class="bg-pat" data-bg="rainbows" title="Arco-íris"><span class="bp-preview bpv-rainbows"></span><span class="bp-name">Arco-íris</span></button>
+      </div>
+      <div class="pat-size-row">
+        <label class="settings-label" for="pat-size" style="padding:0">Tamanho dos ícones</label>
+        <input type="range" id="pat-size" min="0" max="5" step="1" value="2" list="pat-sizes" />
+        <datalist id="pat-sizes"><option value="0"></option><option value="1"></option><option value="2"></option><option value="3"></option><option value="4"></option><option value="5"></option></datalist>
+        <button type="button" id="pat-size-reset" class="btn-ghost pat-reset" title="Restaurar padrão" aria-label="Restaurar tamanho padrão dos ícones">↺</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Sons</div>
+      <div class="sound-row">
+        <label class="switch"><input type="checkbox" id="sound-enabled" /><span class="slider"></span></label>
+        <span class="sound-caption">Ativar sons da interface</span>
+      </div>
+      <div class="sound-row">
+        <span class="sound-caption">Volume</span>
+        <input type="range" id="sound-volume" min="0" max="1" step="0.05" value="0.6" />
+      </div>
+      <div id="sound-actions" class="sound-actions">
+        <div class="sound-assign"><span>Enviar nota</span><select data-sound="send"><option value="">—</option></select></div>
+        <div class="sound-assign"><span>Fixar mensagem</span><select data-sound="pin"><option value="">—</option></select></div>
+        <div class="sound-assign"><span>Favoritar</span><select data-sound="favorite"><option value="">—</option></select></div>
+        <div class="sound-assign"><span>Excluir</span><select data-sound="delete"><option value="">—</option></select></div>
+        <div class="sound-assign"><span>Criar item</span><select data-sound="create"><option value="">—</option></select></div>
+        <div class="sound-assign"><span>Erro</span><select data-sound="error"><option value="">—</option></select></div>
+        <div class="sound-assign"><span>Abrir conversa</span><select data-sound="open"><option value="">—</option></select></div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Dados</div>
+      <button data-set="export"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exportar notas (JSON)</button>
+      <button data-set="export-md"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15v-6l3 3 3-3v6"/><path d="M17 9v6"/><path d="M19.5 12.5 17 15l-2.5-2.5"/></svg> Exportar em Markdown</button>
+      <button data-set="import"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar backup (JSON)</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden />
+      <button data-set="clear" class="danger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Apagar tudo</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Sincronização</div>
+      <button data-set="reconnect"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15A9 9 0 1 1 18 6.7L23 10"/></svg> Reconectar agora</button>
+      <button id="btn-clear-sw"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Limpar cache do app</button>
+    </div>
+    <div class="settings-section settings-about">
+      <div class="settings-label">Sobre</div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.15.0</span></div>
+      <div class="about-links">
+        <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
+        <span aria-hidden="true">·</span>
+        <a href="terms.html" target="_blank" rel="noopener">Termos de Uso</a>
+      </div>
+      <p class="about-note">Feito para guardar suas ideias como conversas. Offline-first, sempre seu.</p>
+    </div>
+  </div>
+
+  <div id="rem-popover" class="popover rem-popover hidden" role="dialog" aria-label="Lembretes pendentes">
+    <div class="rem-head"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Lembretes pendentes</div>
+    <div id="rem-list" class="rem-list"></div>
+  </div>
+
+  <div id="notif-popover" class="popover rem-popover hidden" role="dialog" aria-label="Notificações">
+    <div class="rem-head notif-head">
+      <span class="notif-head-t"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> Notificações <span id="notif-count" class="notif-count hidden"></span></span>
+      <button type="button" id="notif-clear" class="notif-clear hidden" title="Marcar todas como lidas">Marcar lidas</button>
+    </div>
+    <div id="notif-perm" class="notif-perm hidden"></div>
+    <div id="notif-list" class="rem-list"></div>
+  </div>
+
+  <div id="pin-popover" class="popover pin-popover hidden" role="dialog">
+    <div class="pin-top">
+      <div class="pin-head"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4h6l-1 7 4 3v2H6l4-3-1-7z"/><line x1="12" y1="16" x2="12" y2="21"/></svg> Mensagem fixada</div>
+      <div class="pin-actions">
+        <button id="pin-jump" class="icon-btn" title="Ir para mensagem" aria-label="Ir para a mensagem fixada"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></svg></button>
+        <button id="pin-edit" class="icon-btn" title="Editar" aria-label="Editar mensagem fixada"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+        <button id="pin-unpin" class="icon-btn" title="Desfixar" aria-label="Remover fixação da mensagem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4h6l-1 7 4 3v2H6l4-3-1-7z"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="3" y1="3" x2="21" y2="21"/></svg></button>
+      </div>
+    </div>
+    <div id="pin-body" class="pin-body"></div>
+  </div>
+
+  
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <h3 id="modal-title">Título</h3>
+      <div id="modal-body"></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn ghost">Cancelar</button>
+        <button id="modal-ok" class="btn primary">OK</button>
+      </div>
+    </div>
+  </div>
+

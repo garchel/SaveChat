@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync, existsSync } = require('fs');
+const { readFileSync, existsSync, readdirSync } = require('fs');
 
 // Verifica que supabase.sql tem RLS + Realtime
 describe('supabase.sql', ()=>{
@@ -38,9 +38,9 @@ describe('PWA', ()=>{
     // offline: a página de ajuda abre sem internet
     assert.match(sw, /'\.\/help\.html'/);
   });
-  it('sw.js é v140', ()=>{
+  it('sw.js é v141', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v140/);
+    assert.match(sw, /notethread-v141/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);
@@ -70,7 +70,10 @@ describe('PWA', ()=>{
   it('APP_VERSION (index) == versão da seção Sobre == package.json', ()=>{
     const html=readFileSync('public/index.html','utf8');
     const v=html.match(/window\.APP_VERSION = '(\d+\.\d+\.\d+)'/)[1];
-    assert.ok(html.includes(`>${v}</span>`), 'Sobre deve mostrar a mesma versão');
+    // A seção Sobre mora em partials/menus.txt desde a modularização do HTML,
+    // então o HTML montado (index + partials) é a fonte — não só o index.
+    const montado = html + readdirSync('public/partials').map(f => readFileSync('public/partials/'+f,'utf8')).join('');
+    assert.ok(montado.includes(`>${v}</span>`), 'Sobre deve mostrar a mesma versão');
     const pkg=JSON.parse(readFileSync('package.json','utf8'));
     assert.equal(pkg.version, v);
   });

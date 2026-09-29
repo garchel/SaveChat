@@ -1,0 +1,65 @@
+        <div id="search-page" class="search-page hidden" data-friendly-name="Página de Busca">
+          <header class="cozy-banner"><button id="search-back" class="btn-icon mobile-only" title="Voltar" aria-label="Voltar da busca">‹</button><div class="chat-name">Busca</div><span id="search-query-label" class="search-query-label"></span></header>
+          <div id="search-page-results" class="search-page-results"></div>
+        </div>
+        <div id="reminders-page" class="reminders-page hidden" data-friendly-name="Página de Lembretes">
+          <header class="cozy-banner"><button id="reminders-back" class="btn-icon mobile-only" title="Voltar" aria-label="Voltar dos lembretes">‹</button><div class="chat-name">Lembretes</div></header>
+          <div id="reminders-page-list" class="reminders-page-list"></div>
+        </div>
+        <div id="tasks-page" class="tasks-page hidden" data-friendly-name="Página de Pendências">
+          <header class="cozy-banner"><button id="tasks-back" class="btn-icon mobile-only" title="Voltar" aria-label="Voltar das pendências">‹</button><div class="chat-name">Pendências</div><span id="tasks-count" class="search-query-label"></span></header>
+          <div id="tasks-page-list" class="tasks-page-list"></div>
+        </div>
+        <section id="ai-page" class="workspace-page ai-page hidden" role="tabpanel" aria-labelledby="tab-ai">
+          <div id="ai-messages" class="ai-messages" role="log" aria-live="polite" aria-label="Conversa com a inteligência artificial"></div>
+          <div class="ai-controls">
+            <details class="ai-settings">
+              <summary>Configurar IA <span aria-hidden="true">⌄</span></summary>
+              <label for="ai-key">Chave da API Gemini</label>
+              <input id="ai-key" type="password" autocomplete="off" placeholder="Cole sua chave do Google AI Studio" />
+              <small>A chave fica somente neste dispositivo e não é sincronizada. A IA lê suas notas recentes e pode criar notas quando você pedir.</small>
+            </details>
+            <div id="ai-rec-status" class="ai-rec-status hidden" aria-live="polite">
+              <span class="ai-rec-dot" aria-hidden="true"></span>
+              <span class="ai-rec-text">Gravando… <span id="ai-rec-timer">0:00</span></span>
+              <span class="ai-rec-hint">toque no microfone para parar</span>
+            </div>
+            <!-- Mesmo componente do composer da conversa: .cozy-input-row + .cozy-input-wrap.
+                 COMPOSIÇÃO IDÊNTTICA à conversa: pílula, campo sem borda e UM botão
+                 circular à direita que alterna entre microfone (campo vazio) e enviar
+                 (com texto) — a mesma lógica de _updateSendAudioState. Não há botão
+                 à esquerda porque a IA não tem clipe de anexo. -->
+            <div class="composer-row cozy-input-row ai-input-row">
+              <div class="cozy-input-wrap">
+                <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Peça algo à IA — ela conhece suas notas…"></textarea>
+              </div>
+              <button type="button" id="ai-send" class="btn-send cozy-send" aria-label="Gravar áudio"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+            </div>
+          </div>
+        </section>
+        <section id="daily-page" class="workspace-page daily-page hidden" role="tabpanel" aria-labelledby="tab-daily">
+          <div class="daily-editor-wrap">
+            <div class="daily-head-card">
+              <div class="daily-date">
+                <span class="daily-weekday" id="daily-weekday">sexta-feira</span>
+                <strong class="daily-daynum" id="daily-daynum">1</strong>
+                <span class="daily-monthyear" id="daily-monthyear">de janeiro</span>
+              </div>
+              <div class="daily-head-side">
+                <div class="daily-counter" id="daily-counter" aria-live="polite">
+                  <b id="daily-done-count">0</b><i>/</i><span id="daily-total-count">0</span>
+                  <small>concluídas</small>
+                </div>
+                <div id="daily-streak" class="daily-streak" title="Dias seguidos completando toda a rotina">🔥 <strong>0</strong></div>
+              </div>
+            </div>
+            <div class="daily-progress" id="daily-progress" role="progressbar" aria-label="Progresso da rotina de hoje" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="daily-progress-bar"></div></div>
+            <p id="daily-sub" class="daily-sub">Cadastre sua rotina uma vez — ela se renova todo dia.</p>
+            <ul id="daily-list" class="daily-list" aria-label="Tarefas da rotina de hoje"></ul>
+            <button type="button" id="daily-new-task" class="daily-new-task">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova tarefa
+            </button>
+            <p class="daily-status">Os itens são fixos; a marcação de “concluído” vale só para hoje — à meia-noite a lista recomeça.</p>
+            <p id="daily-status" class="sr-only" aria-live="polite"></p>
+          </div>
