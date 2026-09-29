@@ -28,9 +28,11 @@ test('abertura: check roda, chip mostra versão, botão Atualizar app no menu do
   const state1 = await chip.getAttribute('data-state');
   expect(['current', 'update', 'offline', 'error', 'checking']).toContain(state1);
 
-  // botão presente entre Configurações e Sair (4º = Instalar app, oculto até o browser oferecer o prompt)
+  // botões do popover: Configurações, Como usar, Instalar app (oculto até o
+  // browser oferecer o prompt), Atualizar app e Sair
   const btns = page.locator('#profile-popover button');
-  await expect(btns).toHaveCount(4);
+  await expect(btns).toHaveCount(5);
+  await expect(page.locator('#profile-help')).toBeVisible();
   await expect(page.locator('#profile-update')).toBeVisible();
   await expect(page.locator('#profile-install')).toBeHidden();
 
@@ -101,4 +103,46 @@ test('update disponível: chip entra em modo update, dot no avatar, clique dispa
   await page.waitForTimeout(1500);
   const cls = await page.evaluate(() => sessionStorage.getItem('__updCls') || '');
   expect(cls).toContain('updating');
+});
+
+test('Como usar: botão no menu do perfil abre o guia em nova aba', async ({ page, context }) => {
+  await context.addInitScript((s) => {
+    localStorage.setItem('notethread.v2', JSON.stringify(s));
+  }, SEED);
+
+  // popup interceptado: sem ele, o window.open abriria uma aba de verdade
+  await context.addInitScript(() => {
+    window.__opened = [];
+    const orig = window.open;
+    window.open = (url, target, feats) => { window.__opened.push({ url, target, feats }); return { closed: false }; };
+  });
+
+  await page.goto('/');
+  await page.waitForTimeout(2000);
+  await page.click('#profile-btn');
+  await expect(page.locator('#profile-help')).toBeVisible();
+
+  // fecha o popover e abre a página
+  await page.click('#profile-help');
+  await expect(page.locator('#profile-popover')).toBeHidden();
+
+  const opened = await page.evaluate(() => window.__opened);
+  expect(opened).toHaveLength(1);
+  expect(opened[0].url).toBe('help.html');
+  expect(opened[0].target).toBe('_blank');
+
+  // e a página existe e se renderiza com conteúdo real
+  const help = await page.goto('/help.html');
+  expect(help.status()).toBe(200);
+  await expect(page.locator('h1')).toContainText('Como usar');
+  // índice lateral aponta para seções que existem
+  const anchors = await page.locator('.help-toc a').evaluateAll(
+    (as) => as.map((a) => a.getAttribute('href').slice(1)));
+  const ids = await page.locator('main section').evaluateAll(
+    (ss) => ss.map((s) => s.id));
+  for (const a of anchors) expect(ids).toContain(a);
+  // nenhum placeholder/texto corrompido sobreviveu
+  const text = await page.locator('main').innerText();
+  expect(text).not.toContain('undefined');
+  expect(text).not.toContain('sendspec');
 });
