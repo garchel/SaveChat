@@ -81,14 +81,37 @@ PREVIEW_PORT=3100 npm run preview
 > **Atualizar app** (menu do perfil), porque hard refresh não
 > substitui o service worker.
 
-Depois do seu teste, promova via PR:
+### `npm run promote` — branch de trabalho → staging
+
+Um comando faz os dois primeiros movimentos: valida, mergeia em
+`staging`, sobe e acompanha o CI até dar o veredito.
 
 ```bash
-git switch staging && git pull --ff-only
-git push origin staging
-gh pr create --base main --head staging --title "…" --body "…"
-gh pr merge --squash --auto
+git switch -c feature/ia-melhorias
+# ... implementar e commitar ...
+git push -u origin feature/ia-melhorias
+
+npm run promote              # branch atual
+npm run promote fix/modal    # branch específica
+npm run promote --no-wait    # só merge + push, sem esperar o CI
 ```
+
+Portões — nada sobe sem passar por eles:
+
+| Portão | O que faz |
+|---|---|
+| branch de origem | recusa rodar em `main` ou `staging` |
+| árvore limpa | recusa com pendência não commitada |
+| branch no remoto | recusa se `git push -u` não foi feito |
+| suíte local | `check` + `test` + `e2e` — **nada sobe com a suíte vermelha** |
+| revisão do diff | mostra o que vai para `staging` antes de enviar |
+| CI | acompanha até `success`/`failure` e imprime o comando de log |
+
+Ao final: `staging` com o código, CI verde, pronto para
+`npm run preview`.
+
+O script **não** abre PR nem mergeia em `main` — produção continua
+sendo sua decisão, depois do teste manual.
 
 ### `staging` no CI
 
