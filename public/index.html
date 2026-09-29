@@ -152,8 +152,10 @@
   </div>
 
   <!--#include file=partials/menus.txt-->
-  <!-- Friendly Names Toggle -->
-  <button id="friendly-toggle" class="friendly-toggle" title="Ativar Friendly Names" aria-label="Friendly Names">
+  <!-- Friendly Names Toggle — só existe em localhost. Fora de dev o
+       friendly-names.js remove estes nós; o botão também nasce escondido
+       para não piscar antes do script rodar (CSS: .friendly-dev-only). -->
+  <button id="friendly-toggle" class="friendly-toggle friendly-dev-only" title="Ativar Friendly Names" aria-label="Friendly Names">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     <span>Friendly names</span>
   </button>
@@ -199,6 +201,15 @@
     }
   </script>
   <script type="module" src="app.js"></script>
-  <script type="module" src="js/friendly-names.js"></script>
+  <!-- Friendly Names: devtools de hover. Só em localhost — em produção o
+       arquivo inteiro é ignorado (nenhum download, nenhum MutationObserver
+       no body). O early-return dentro do módulo cobre o resto. -->
+  <script>
+    if (['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+      const s = document.createElement('script');
+      s.type = 'module'; s.src = 'js/friendly-names.js';
+      document.head.appendChild(s);
+    }
+  </script>
 </body>
 </html>

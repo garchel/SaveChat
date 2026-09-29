@@ -1,5 +1,19 @@
 // Friendly Names — toggle para mostrar nomes de componentes no hover (estilo devtools)
+//
+// Ferramenta de DESENVOLVIMENTO. Fora de localhost o script retorna antes de
+// qualquer setup: sem botão, sem tooltip e, principalmente, sem o
+// MutationObserver que observa todo o body e decora cada elemento dinâmico
+// (custo permanente em produção, sem ganho para o usuário).
+// Mesmo padrão de ambiente já usado pelo bloco do Sentry em index.html.
 (() => {
+  const IS_DEV = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+  if (!IS_DEV) {
+    // remove o botão/tooltip do DOM caso estejam no markup
+    document.getElementById('friendly-toggle')?.remove();
+    document.getElementById('friendly-tooltip')?.remove();
+    return;
+  }
+
   const STORAGE_KEY = 'notethread.friendly';
   let active = localStorage.getItem(STORAGE_KEY) === '1';
   const btn = document.getElementById('friendly-toggle');
@@ -80,6 +94,7 @@
   };
 
   if (btn) {
+    btn.classList.add('is-dev'); // só em localhost ele aparece (CSS display:none por padrão)
     updateBtn();
     btn.addEventListener('click', () => {
       active = !active;
