@@ -70,17 +70,16 @@ export const WorkspaceMethods = {
       aiPrompt.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.sendAiMessage(); }
       });
-      aiPrompt.addEventListener('input', () => this._growAiPrompt(aiPrompt));
+      // mesmo comportamento do composer da conversa: cresce até um teto e o
+      // botão de enviar só fica ativo com texto
+      aiPrompt.addEventListener('input', () => { this._growAiPrompt(aiPrompt); this._syncAiSend(); });
+      this._syncAiSend();
     }
     document.getElementById('ai-mic')?.addEventListener('click', () => this._toggleAiRecording());
     // ----- Diária (rotina que se renova) -----
+    // Criação/edição passa pelo modal (texto + horário + switch de notificação);
+    // o antigo input rápido da página foi removido.
     document.getElementById('daily-new-task')?.addEventListener('click', () => this.openDailyTaskModal());
-    document.getElementById('daily-add-form')?.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = document.getElementById('daily-input');
-      const text = (input && input.value.trim()) || '';
-      if (text) { this.addDailyItem(text); input.value = ''; input.focus(); }
-    });
     // delegação: concluir / editar / excluir itens da rotina
     const dailyList = document.getElementById('daily-list');
     if (dailyList) dailyList.addEventListener('click', (e) => {
@@ -167,6 +166,7 @@ export const WorkspaceMethods = {
     if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.add('show-chat');
     if (updateUrl) history.replaceState(null, '', location.pathname);
     this._workspaceTab = tab;
+    this.syncExplorerChrome(); // botão de Lembretes acende só na aba Lembretes
   },
 
   // ---------- Swipe como atalho + carrossel temporário (feedback) ----------
@@ -365,7 +365,8 @@ export const WorkspaceMethods = {
       const message = error.message || 'Falha ao falar com a API Gemini';
       this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: 'error', duration: 5000 });
     } finally {
-      input.disabled = false; button.disabled = false;
+      input.disabled = false;
+      this._syncAiSend(); // o envio só reativa com texto (como na conversa)
       input.focus();
     }
   },
@@ -409,6 +410,14 @@ export const WorkspaceMethods = {
     if (!ta) return;
     ta.style.height = 'auto';
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
+  },
+
+  // envia só com texto — espelha o btn-send do composer da conversa
+  _syncAiSend() {
+    const ta = document.getElementById('ai-prompt');
+    const btn = document.getElementById('ai-send');
+    if (!ta || !btn) return;
+    btn.disabled = !ta.value.trim();
   },
 
   // ---------- Áudio: gravar → transcrever (Gemini) → campo de texto ----------

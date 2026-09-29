@@ -148,12 +148,14 @@ showReminderModal(clientId) {
       document.getElementById('daily-page')?.classList.add('hidden');
       page.classList.remove('hidden');
       this.renderRemindersList();
+      this.syncExplorerChrome();
     },
     hideRemindersPage() {
       const page = document.getElementById('reminders-page');
       if (page) page.classList.add('hidden');
       document.getElementById('messages').classList.remove('hidden');
       document.getElementById('backlinks')?.classList.remove('hidden');
+      this.syncExplorerChrome();
     },
 
     // ---------- Nav: popover de lembretes ----------
@@ -300,10 +302,12 @@ showReminderModal(clientId) {
       if (count > 0) { badge.textContent = count > 9 ? '9+' : String(count); badge.classList.remove('hidden'); }
       else badge.classList.add('hidden');
     },
+    // sino de notificações: o popover é um menu, não uma página — o estado
+    // ligado do botão acompanha o popover (aberto/fechado)
     toggleNotifPopover() {
       const p = document.getElementById('notif-popover');
       if (!p) return;
-      if (!p.classList.contains('hidden')) { p.classList.add('hidden'); return; }
+      if (!p.classList.contains('hidden')) { p.classList.add('hidden'); this.syncExplorerChrome(); return; }
       this.renderNotifHistory();
       p.classList.remove('hidden');
       p.style.visibility = 'hidden';
@@ -317,6 +321,7 @@ showReminderModal(clientId) {
       p.style.left = left + 'px';
       p.style.top = top + 'px';
       p.style.visibility = '';
+      this.syncExplorerChrome();
     },
     renderNotifHistory() {
       const list = document.getElementById('notif-list');

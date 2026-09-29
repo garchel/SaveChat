@@ -233,12 +233,16 @@ bindSettings() {
       if (theme === 'bubblegum') { theme = 'napolitano'; Store.data.ui.theme = theme; Store.save(); }
       const resolved = theme;
       document.documentElement.dataset.theme = resolved;
-      // logo da sidebar acompanha o tema (variantes em assets/themes/)
-      const brandImg = document.querySelector('.brand-mark-img');
-      if (brandImg) brandImg.src = `assets/themes/logo-${resolved}.svg`;
-      // favicon acompanha o tema (variantes em assets/themes/)
+      // Toda logo do app acompanha o tema (variantes em assets/themes/):
+      // a da sidebar, a do aviso "Nenhuma conversa selecionada", a do login e a
+      // do splash. Antes só a sidebar mudava — as outras ficavam na cor fixa.
+      const logoSrc = `assets/themes/logo-${resolved}.svg`;
+      ['.brand-mark-img', '.nt-logo', '.brand-logo-img', '#boot-splash .boot-mark img'].forEach((sel) => {
+        document.querySelectorAll(sel).forEach((img) => { img.src = logoSrc; });
+      });
+      // favicon acompanha o tema
       const fav = document.querySelector('link[rel="icon"]');
-      if (fav) fav.href = `assets/themes/logo-${resolved}.svg`;
+      if (fav) fav.href = logoSrc;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) {
         const colors = { lavender:'#7c5cff', dark:'#191622', mint:'#1faa86', peach:'#ff7a59', ocean:'#2b8fd6', midnight:'#0e1525', sakura:'#e86a8a', napolitano:'#e0567a' };

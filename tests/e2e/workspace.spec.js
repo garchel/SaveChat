@@ -42,8 +42,12 @@ test('seletor de páginas: IA, Diária e volta para Cadernos', async ({ page }) 
 
   await page.click('.page-switch[data-page="daily"]');
   await expect(page.locator('#daily-page')).toBeVisible();
-  await page.fill('#daily-input', 'exercício 30 min');
-  await page.press('#daily-input', 'Enter');
+  // criação via modal (o input rápido da página foi removido)
+  await page.click('#daily-new-task');
+  await expect(page.locator('#modal')).toBeVisible();
+  await page.fill('#dly-text', 'exercício 30 min');
+  await page.click('#modal-ok');
+  await expect(page.locator('#modal')).toBeHidden();
   await expect(page.locator('.daily-item')).toHaveCount(1);
   await page.click('.daily-item .daily-check');
   await expect(page.locator('.daily-item.done')).toHaveCount(1);
@@ -85,8 +89,9 @@ test('diária: rotina persiste e o check do dia não vaza para "amanhã"', async
   await page.goto('/');
   await page.waitForTimeout(2000);
   await page.click('.page-switch[data-page="daily"]');
-  await page.fill('#daily-input', 'ler 10 páginas');
-  await page.press('#daily-input', 'Enter');
+  await page.click('#daily-new-task');
+  await page.fill('#dly-text', 'ler 10 páginas');
+  await page.click('#modal-ok');
   await page.click('.daily-item .daily-check');
   await expect(page.locator('.daily-item.done')).toHaveCount(1);
   await page.reload();
@@ -110,6 +115,48 @@ test('diária: rotina persiste e o check do dia não vaza para "amanhã"', async
   await page.click('.page-switch[data-page="daily"]');
   await expect(page.locator('.daily-item')).toHaveCount(1);
   await expect(page.locator('.daily-item.done')).toHaveCount(0);
+});
+
+test('campo da IA é o mesmo componente do composer da conversa', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(2000);
+
+  // abre uma conversa para ter o composer de referência
+  await page.locator('.tnode').first().click();
+  await expect(page.locator('.composer .cozy-input-row')).toBeVisible();
+  const conv = await page.evaluate(() => {
+    const pill = document.querySelector('.composer .cozy-input-row');
+    const cs = getComputedStyle(pill);
+    return {
+      radius: cs.borderRadius, bg: cs.backgroundColor, border: cs.borderWidth,
+      left: getComputedStyle(document.querySelector('.composer .cozy-attach')).borderRadius,
+      right: getComputedStyle(document.querySelector('.composer .cozy-send')).borderRadius,
+    };
+  });
+
+  await page.click('.page-switch[data-page="ai"]');
+  await expect(page.locator('.ai-input-row')).toBeVisible();
+  const ai = await page.evaluate(() => {
+    const pill = document.querySelector('.ai-input-row');
+    const cs = getComputedStyle(pill);
+    return {
+      radius: cs.borderRadius, bg: cs.backgroundColor, border: cs.borderWidth,
+      left: getComputedStyle(document.getElementById('ai-mic')).borderRadius,
+      right: getComputedStyle(document.getElementById('ai-send')).borderRadius,
+    };
+  });
+
+  // mesma pílula, mesmos botões circulares
+  expect(ai).toEqual(conv);
+  // o textarea fica transparente (a pílula é o que tem borda)
+  expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).borderWidth)).toBe('0px');
+  // e sem outline retangular: o foco é marcado na pílula
+  await page.click('#ai-prompt');
+  expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).outlineStyle)).toBe('none');
+  // enviar só habilita com texto, como na conversa
+  expect(await page.evaluate(() => document.getElementById('ai-send').disabled)).toBe(true);
+  await page.fill('#ai-prompt', 'oi');
+  expect(await page.evaluate(() => document.getElementById('ai-send').disabled)).toBe(false);
 });
 
 test('IA sem chave: pede a chave e não chama a API', async ({ page }) => {

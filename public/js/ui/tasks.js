@@ -25,6 +25,7 @@ export const TasksMethods = {
     this.setChatActiveUi(true);
     this.renderTasksPage();
     this.updateTasksBadge();
+    this.syncExplorerChrome();
   },
 
   hideTasksPage() {
@@ -41,6 +42,7 @@ export const TasksMethods = {
       document.getElementById('messages').classList.remove('hidden');
       document.getElementById('backlinks')?.classList.remove('hidden');
     }
+    this.syncExplorerChrome();
   },
 
   // todas as pendências abertas, da conversa mexida mais recentemente para a mais antiga

@@ -30,6 +30,73 @@ async function openApp(page) {
   await expect(page.locator('#app')).toBeVisible();
 }
 
+test('botões do cabeçalho acendem quando a página está aberta e apagam ao fechar', async ({ page }) => {
+  await openApp(page);
+  // espera o explorador montar de fato (o app carrega o cliente Supabase em
+  // background; esperar por elemento é mais estável que um sleep fixo)
+  await expect(page.locator('#explorer-tasks')).toBeVisible();
+  const isOn = (id) => page.evaluate((i) => document.getElementById(i).classList.contains('active'), id);
+
+  // nada aberto no início
+  expect(await isOn('explorer-tasks')).toBe(false);
+  expect(await isOn('explorer-reminders')).toBe(false);
+  expect(await isOn('btn-notifications')).toBe(false);
+
+  // Pendências: abre, fecha no segundo clique
+  await page.click('#explorer-tasks');
+  await expect(page.locator('#tasks-page')).toBeVisible();
+  await expect.poll(() => isOn('explorer-tasks')).toBe(true);
+  await page.click('#explorer-tasks');
+  await expect(page.locator('#tasks-page')).toBeHidden();
+  await expect.poll(() => isOn('explorer-tasks')).toBe(false);
+
+  // Lembretes: abre, apaga ao trocar de aba
+  await page.click('#explorer-reminders');
+  await expect(page.locator('#reminders-page')).toBeVisible();
+  await expect.poll(() => isOn('explorer-reminders')).toBe(true);
+  await page.click('.page-switch[data-page="daily"]');
+  await expect(page.locator('#daily-page')).toBeVisible();
+  await expect.poll(() => isOn('explorer-reminders')).toBe(false);
+
+  // Notificações: popover acende e o Esc apaga
+  await page.click('#btn-notifications');
+  await expect(page.locator('#notif-popover')).toBeVisible();
+  await expect.poll(() => isOn('btn-notifications')).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#notif-popover')).toBeHidden();
+  await expect.poll(() => isOn('btn-notifications')).toBe(false);
+});
+
+test('logos acompanham a cor do tema (placeholder, sidebar, login e favicon)', async ({ page }) => {
+  await openApp(page);
+  await expect(page.locator('#no-thread .nt-logo')).toBeVisible();
+
+  const logos = () => page.evaluate(() => ({
+    placeholder: (document.querySelector('.nt-logo') || {}).src,
+    sidebar: (document.querySelector('.brand-mark-img') || {}).src,
+    login: (document.querySelector('.brand-logo-img') || {}).src,
+    favicon: (document.querySelector('link[rel="icon"]') || {}).href,
+  }));
+
+  for (const tema of ['midnight', 'dark', 'sakura', 'peach']) {
+    await page.evaluate((t) => {
+      window.NoteThread.Store.data.ui.theme = t;
+      window.NoteThread.UI.applyTheme();
+    }, tema);
+    // a logo do aviso "Nenhuma conversa selecionada" troca junto com o tema
+    await expect
+      .poll(async () => (await logos()).placeholder)
+      .toContain(`logo-${tema}.svg`);
+    const l = await logos();
+    expect(l.sidebar).toContain(`logo-${tema}.svg`);
+    expect(l.login).toContain(`logo-${tema}.svg`);
+    expect(l.favicon).toContain(`logo-${tema}.svg`);
+    // e a variante realmente existe (nenhum 404 silencioso)
+    const res = await page.request.get(`/assets/themes/logo-${tema}.svg`);
+    expect(res.status()).toBe(200);
+  }
+});
+
 test('busca sem resultados mostra dica contextual', async ({ page }) => {
   await openApp(page);
   // v1.12.0: a busca vive num painel recolhido — abre pela lupa primeiro

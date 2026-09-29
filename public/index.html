@@ -230,10 +230,16 @@
               <span class="ai-rec-text">Gravando… <span id="ai-rec-timer">0:00</span></span>
               <span class="ai-rec-hint">toque no microfone para parar</span>
             </div>
-            <div class="ai-composer">
-              <button type="button" id="ai-mic" aria-label="Gravar áudio" aria-pressed="false" title="Gravar áudio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button>
-              <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Peça algo à IA — ela conhece suas notas…"></textarea>
-              <button type="button" id="ai-send" aria-label="Enviar mensagem para a IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+            <!-- Mesmo componente do composer da conversa: .cozy-input-row + .cozy-input-wrap.
+                 O campo da IA é o MESMO input cozy (mesma pílula, mesmos botões circulares,
+                 mesma borda de foco) — só muda a ação do botão da esquerda (áudio em vez
+                 de anexo) e a do envio. -->
+            <div class="composer-row cozy-input-row ai-input-row">
+              <button type="button" id="ai-mic" class="cozy-attach" aria-label="Gravar áudio" aria-pressed="false" title="Gravar áudio"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button>
+              <div class="cozy-input-wrap">
+                <textarea id="ai-prompt" rows="1" aria-label="Mensagem para a IA" placeholder="Peça algo à IA — ela conhece suas notas…"></textarea>
+              </div>
+              <button type="button" id="ai-send" class="cozy-send" aria-label="Enviar mensagem para a IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
             </div>
           </div>
         </section>
@@ -256,16 +262,10 @@
             <div class="daily-progress" id="daily-progress" role="progressbar" aria-label="Progresso da rotina de hoje" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="daily-progress-bar"></div></div>
             <p id="daily-sub" class="daily-sub">Cadastre sua rotina uma vez — ela se renova todo dia.</p>
             <ul id="daily-list" class="daily-list" aria-label="Tarefas da rotina de hoje"></ul>
-            <div class="daily-actions">
-              <button type="button" id="daily-new-task" class="daily-new-task">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Nova tarefa
-              </button>
-              <form id="daily-add-form" class="daily-add">
-                <input id="daily-input" type="text" maxlength="160" placeholder="Adicionar rápido…  ex.: beber 2L de água" autocomplete="off" />
-                <button type="submit" aria-label="Adicionar tarefa">+</button>
-              </form>
-            </div>
+            <button type="button" id="daily-new-task" class="daily-new-task">
+              <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nova tarefa
+            </button>
             <p class="daily-status">Os itens são fixos; a marcação de “concluído” vale só para hoje — à meia-noite a lista recomeça.</p>
             <p id="daily-status" class="sr-only" aria-live="polite"></p>
           </div>
@@ -476,7 +476,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.13.4</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.13.5</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -546,7 +546,7 @@
     window.SUPABASE_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
     window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdHRzbnR0YnRzdnBuZnd0b2FqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMDE2ODYsImV4cCI6MjEwMjg3NzY4Nn0.Y08t9QGSm8KX8BYpRw5vlilw8KoO9j7oow89tZLqI7k';
     /* Fonte única da versão local: alimenta a seção Sobre e o check de atualização */
-    window.APP_VERSION = '1.13.4';
+    window.APP_VERSION = '1.13.5';
   </script>
   <script src="js/error-tracking.js"></script>
   <!-- Observabilidade externa (IMP-5): Sentry via CDN.

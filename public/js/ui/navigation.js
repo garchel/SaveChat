@@ -3,6 +3,28 @@ import { ICON, wrapSvg } from '../icons.js';
 import { Store } from '../store.js';
 
 export const NavigationMethods = {
+    // Estado ligado dos botões do cabeçalho do explorador (Pendências,
+    // Lembretes, Notificações) — mesma linguagem da lupa, que fica sólida
+    // quando a busca está aberta.
+    // Deriva do DOM em vez de guardar flag: qualquer caminho que abre/fecha uma
+    // página (page-switcher, atalho, notificação, clique-fora) fica coerente
+    // sem precisar lembrar de "desligar" o botão anterior.
+    syncExplorerChrome() {
+      const isOpen = (id) => {
+        const el = document.getElementById(id);
+        return !!el && !el.classList.contains('hidden');
+      };
+      const set = (id, on) => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.classList.toggle('active', !!on);
+        b.setAttribute('aria-pressed', String(!!on));
+      };
+      set('explorer-tasks', isOpen('tasks-page'));
+      set('explorer-reminders', isOpen('reminders-page'));
+      set('btn-notifications', isOpen('notif-popover'));
+    },
+
     showSearchPage(q) {
       const page = document.getElementById('search-page');
       const label = document.getElementById('search-query-label');
@@ -21,6 +43,7 @@ export const NavigationMethods = {
       const tmpClear = { classList: { add(){}, remove(){} } };
       this.runSearch(q, results, tmpClear);
       history.replaceState(null, '', q ? `?q=${encodeURIComponent(q)}` : location.pathname);
+      this.syncExplorerChrome();
     },
     hideSearchPage() {
       const page = document.getElementById('search-page');
@@ -28,6 +51,7 @@ export const NavigationMethods = {
       document.getElementById('messages').classList.remove('hidden');
       document.getElementById('backlinks').classList.remove('hidden');
       history.replaceState(null, '', location.pathname);
+      this.syncExplorerChrome();
     },
     bindSearch() {
       const input = this.dom.searchInput, clear = this.dom.searchClear, results = this.dom.searchResults;

@@ -50,15 +50,25 @@ async init() {
       // Explorer: lembretes + pendências no header
         const expRem = document.getElementById('explorer-reminders');
       if (expRem) {
-        // Lembretes agora é aba do workspace (a lista é a mesma)
-        expRem.addEventListener('click', () => this.showWorkspaceTab('reminders'));
+        // Lembretes é aba do workspace (a lista é a mesma); alterna como a lupa
+        expRem.addEventListener('click', () => {
+          if (this._workspaceTab === 'reminders') { this.showWorkspaceTab('conversations'); this._mobileBackToExplorer(); return; }
+          this.showWorkspaceTab('reminders');
+          this._mobileRevealCanvas();
+        });
         const backRem = document.getElementById('reminders-back');
         if (backRem) backRem.addEventListener('click', () => this.showWorkspaceTab('conversations'));
         this.updateRemBadge();
       }
       const expTasks = document.getElementById('explorer-tasks');
       if (expTasks) {
-        expTasks.addEventListener('click', () => { this.showTasksPage(); this._mobileRevealCanvas(); });
+        // alterna como a lupa: clicar com a página já aberta fecha (volta às conversas)
+        expTasks.addEventListener('click', () => {
+          const open = document.getElementById('tasks-page') && !document.getElementById('tasks-page').classList.contains('hidden');
+          if (open) { this.hideTasksPage(); this._mobileBackToExplorer(); return; }
+          this.showTasksPage();
+          this._mobileRevealCanvas();
+        });
         const backTasks = document.getElementById('tasks-back');
         if (backTasks) backTasks.addEventListener('click', () => { this.hideTasksPage(); this._mobileBackToExplorer(); });
         this.updateTasksBadge();
@@ -68,7 +78,16 @@ async init() {
         notifBtn.addEventListener('click', (e) => { e.stopPropagation(); this.toggleNotifPopover(); });
         document.addEventListener('click', (e) => {
           const p = document.getElementById('notif-popover');
-          if (p && !p.classList.contains('hidden') && !p.contains(e.target) && !notifBtn.contains(e.target)) p.classList.add('hidden');
+          if (p && !p.classList.contains('hidden') && !p.contains(e.target) && !notifBtn.contains(e.target)) {
+            p.classList.add('hidden');
+            this.syncExplorerChrome(); // desliga o estado do sino
+          }
+        });
+        // Esc fecha o popover de notificações (e desliga o botão)
+        document.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          const p = document.getElementById('notif-popover');
+          if (p && !p.classList.contains('hidden')) { p.classList.add('hidden'); this.syncExplorerChrome(); }
         });
         this.updateNotifBadge();
         // atualiza badge quando lembretes mudam
@@ -202,6 +221,8 @@ async init() {
       }
       this.removeSplash();
       this.renderAuthOrApp();
+      // estado inicial dos botões do cabeçalho do explorador (nada aberto)
+      this.syncExplorerChrome();
       // check de atualização na abertura do app (indicador no popover do perfil)
       Updater.check({ silent: true });
       // atualiza o rótulo de "última sincronização" a cada 15s

@@ -2,6 +2,17 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.13.5] — 2026-09-28
+### Modificado
+- **O campo da IA é o mesmo da conversa**: a janela da IA trocou o input retangular por **o mesmo componente cozy** do composer das conversas — mesma pílula arredondada, mesmos botões circulares, mesma borda de foco no coral. Agora ele também é flutuante, como o da conversa, e o enviar só ativa com texto
+- **Logos seguem o tema**: além da logo da barra lateral, agora mudam com a cor do tema a do aviso “Nenhuma conversa selecionada”, a do login e a do splash
+- **Botões do cabeçalho acendem**: Pendências, Lembretes e Notificações ficam sólidos (na cor do tema) quando a página/popover está aberto, como a lupa. Pendências e Lembretes também passaram a alternar — clicar de novo fecha
+- **Diária sem input redundante**: o campo rápido e o botão `+` saíram da página; criar tarefa é só pelo botão **Nova tarefa** (modal com horário e switch de aviso)
+- **Esc fecha as notificações** (antes só o clique-fora)
+
+### Corrigido
+- O campo da IA não desenhava mais um retângulo ao ser focado: o foco é marcado só na pílula, como na conversa
+
 ## [1.13.4] — 2026-09-28
 ### Corrigido
 - **As contas pararam de compartilhar notas** (a causa de verdade): a fila de envio offline era única para o dispositivo inteiro. Uma nota escrita offline pela conta A era reenviada assim que **qualquer** conta entrasse — e gravada no servidor com o `user_id` da conta B (o RLS aceitava, então a nota aparecia na conta errada). Agora cada item da fila pertence a uma conta e só é enviado quando ela está online

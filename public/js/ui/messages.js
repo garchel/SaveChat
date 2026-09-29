@@ -37,6 +37,7 @@ export const MessagesMethods = {
       document.getElementById('btn-thread-menu')?.classList.remove('hidden');
       document.getElementById('ai-info-btn')?.classList.add('hidden');
       document.getElementById('ai-info-tip')?.classList.remove('open');
+      this.syncExplorerChrome(); // volta pra conversa → desliga Pendências/Lembretes
       document.getElementById('messages').classList.remove('hidden');
       document.querySelectorAll('.tnode.active').forEach((el) => el.classList.remove('active'));
       document.querySelectorAll(`.tnode[data-tid="${id}"]`).forEach((el) => el.classList.add('active'));
