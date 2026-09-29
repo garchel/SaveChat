@@ -37,11 +37,14 @@
 
 ### 🟡 MÉDIO
 
-| # | Task | Evidência | Roadmap |
-|---|------|-----------|---------|
-| 3 | Search results `max-height: 40vh` — testar em iPhone SE | ainda presente no CSS | validar device real |
-| 4 | Toast sem `safe-area-inset-top` e sem animação de saída | `.app-toast { top: 14px }` fixo | polimento |
-| 5 | `.bubble .del` hover-only (touch usa menu ▾ como única alternativa) | `styles.css` | decidir: remover ou tornar visível discreto |
+| # | Task | Evidência | Estado |
+|---|------|-----------|--------|
+| 3 | Search results `max-height: 40vh` — testar em iPhone SE | `16-explorer-busca-paginas.css` | ⏳ **aberto**: precisa de device real, não dá para auditar em CI |
+| 4 | ~~Toast sem `safe-area-inset-top` e sem animação de saída~~ | `14-animacoes.css` | ✅ **RESOLVIDO** (v73): medido agora — `.app-toast { top: calc(14px + env(safe-area-inset-top)) }` e a classe `.leaving` faz a saída animada (150ms ease-in, remoção em 180ms, guard `_leaving`). O doc antigo afirmava ausência; o código já tem |
+| 5 | `.bubble .del` hover-only (touch usa menu ▾ como única alternativa) | `03b-chat-bolhas.css` | ⏳ **aberto — decisão de produto**: `.bubble .del` tem `position:absolute` e só fica `opacity: 1` em `.bubble:hover`. Em touch não há hover, então o botão fica invisível e o menu ▾ é a única via. Ou se torna visível discreto, ou se remove |
+
+> Re-auditado em 29/09/2026 contra o código. Os dois itens do bloco 🟠 ALTO
+> continuam resolvidos desde a v71 e foram confirmados no código atual.
 
 > ✅ Resolvidos desde o snapshot original: settings popover overflow (M3.5), pin popover 520px→`min(620px, calc(100vw-16px))`, haptic (6), teclado (7), emoji grid (9), pinch (11), pull-to-refresh (12), safe-area (17), theme-color dinâmico (W2.2).
 
