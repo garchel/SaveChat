@@ -7,7 +7,77 @@ verificada por teste automatizado e falha o CI.
 
 ## Fluxo de trabalho
 
-### Branches
+```
+main  ──────►  producao (Vercel, automatico)
+  │
+  └── staging ────►  homologacao (Vercel, preview)
+        │
+        ├── feature/… ──┐
+        ├── fix/…       ├── merge em staging
+        └── chore/… ────┘
+```
+
+### `main` e `staging`
+
+| Branch | Vai para | Quem testa |
+|---|---|---|
+| `staging` | URL de preview da Vercel | **você**, antes de produção |
+| `main` | domínio de produção | usuários |
+
+Fluxo: trabalho sai de `staging` para uma branch de subsistema → merge
+em `staging` → você testa → merge em `main` → deploy.
+
+```bash
+# 1. nasce de staging (nunca da main)
+git switch staging && git pull --ff-only
+git switch -c feature/ia-melhorias
+
+# 2. implementa, commita, sobe
+npm run check && npm test && npm run e2e
+git push -u origin feature/ia-melhorias
+
+# 3. depois de testar de verdade em staging:
+git switch staging && git pull --ff-only
+git merge --no-ff feature/ia-melhorias
+git push origin staging
+```
+
+Três regras que evitam problema passado:
+
+- **`main` nunca recebe commit direto.** Nem-doc, nem hotfix: entra por
+  `staging`.
+- **Só merge em `main` depois do seu teste manual em staging.** O CI
+  cobre sintaxe, unidade e fluxo crítico — não cobre se a feature é
+  boa.
+- **Antes de mergear, atualize a base:** `git pull --ff-only` em
+  `staging` e em `main`. Merge de branch desatualizada é origem de
+  conflito silencioso.
+
+⚠️ **O CI só roda em `main`.** Push para `staging` ou para branch de
+feature não dispara `CI` nem `Lighthouse CI` (ambos filtrados por
+`branches: [main]`). Isso é proposital — os jobs ficam caros para rodar
+a cada rascunho — mas significa que **a branch pode passar com o CI
+vermelho e você só descobre no merge**. Rode local:
+
+```bash
+npm run check && npm test && npm run e2e
+```
+
+Se quiser feedback automático também no `staging`, acrescente a branch ao
+filtro `push` de cada workflow (uma linha em cada arquivo):
+
+```yaml
+on:
+  push:
+    branches: [main, staging]
+```
+
+> A `main` **não está protegida** no GitHub hoje: nada impede um push
+> direto. Se quiser que a regra seja automática em vez de convenção,
+> ative branch protection exigindo PR + CI verde. É configuração do
+> repositório, não deste arquivo.
+
+### Branches de subsistema
 
 Uma branch por **subsistema**, não por ticket. Se duas tarefas mexem nos
 mesmos arquivos, são a mesma branch — dividir gera conflito evitado.
