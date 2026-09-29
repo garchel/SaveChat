@@ -20,7 +20,7 @@ Suas ideias, como conversas. Bloco de notas em formato de chat — se você sabe
 
 ```bash
 npm install        # apenas playwright p/ testes
-npm run dev        # servidor local (:3001)
+npm run dev        # servidor local (:3000 — ou a próxima porta livre)
 npm run check      # node --check em todo JS público
 npm run test       # node:test unit (8 specs, inclui versão do SW)
 npm run e2e        # Playwright: fluxo crítico + menções
