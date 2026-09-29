@@ -71,7 +71,13 @@ import { now } from './utils.js';
         send: 'scan', pin: 'bloom', favorite: 'sparkle', delete: 'pulse', create: 'bloom', error: 'error', open: 'tick'
       } };
       d.ui.sounds = d.ui.sounds || defaultSounds;
-      d.ui.theme = d.ui.theme || 'peach';
+      // o save() no fim e' gated por `migrated`; o rename usa flag propria
+      let themeRenamed = false;
+      // v1.16.0: 'peach' virou 'terracota' (a bolha escureceu para o texto
+      // branco da mensagem passar de 4.75:1). Quem tinha 'peach' salvo e'
+      // migrado — e o save() no fim persiste, entao a migracao e' de uma vez.
+      if (d.ui.theme === 'peach') { d.ui.theme = 'terracota'; themeRenamed = true; }
+    d.ui.theme = d.ui.theme || 'terracota';
       // migração: limpa flag "pending" de notas antigas (dados de versões anteriores)
       let migrated = false;
       Object.values(d.notes).forEach((arr) => arr.forEach((n) => { if (n.pending) { n.pending = false; migrated = true; } }));
@@ -89,7 +95,7 @@ import { now } from './utils.js';
         clean.forEach((x, idx) => { if (x.sortOrder == null) { x.sortOrder = idx; migrated = true; } });
       });
       this.data = d;
-      if (migrated) this.save();
+      if (migrated || themeRenamed) this.save();
       // cura de double-send também nos dados LOCAIS: builds antigos salvavam a
       // mesma nota com client_id diferente a cada tentativa — gêmeas no localStorage
       // renderizam duplicadas em todo boot sem nunca passar pelo snapshot

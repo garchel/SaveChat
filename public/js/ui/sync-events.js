@@ -111,7 +111,22 @@ bindSync() {
           this.oldestTs = null; this.renderedClientIds = new Set(); this.renderMessages(true);
         }
       });
-      Sync.on('note:delete', ({ threadId, clientId }) => { Store.deleteNote(threadId, clientId); const el = document.querySelector(`.bubble[data-client-id="${clientId}"]`); if (el) el.remove(); this.renderedClientIds.delete(clientId); if (this.activeThread === threadId) this.updatePinButton(); });
+      Sync.on('note:delete', ({ threadId, clientId }) => {
+        const wasOpen = this.activeThread === threadId;
+        Store.deleteNote(threadId, clientId);
+        const el = document.querySelector(`.bubble[data-client-id="${clientId}"]`); if (el) el.remove();
+        this.renderedClientIds.delete(clientId);
+        const box = document.getElementById('messages');
+        // mesmo bug do deleteNote local: separador órfão + espaço guardado
+        if (box && wasOpen) {
+          this._pruneOrphanDaySeps(box);
+          if (!(Store.notesFor(threadId) || []).length) {
+            document.getElementById('empty-state')?.classList.remove('hidden');
+          }
+          requestAnimationFrame(() => this._syncScrollMetrics());
+        }
+        if (wasOpen) this.updatePinButton();
+      });
       Sync.on('thread:upsert', (t) => {
         const isNew = !Store.data.threads[t.id];
         Store.upsertThread(t); this.queueRenderTree();

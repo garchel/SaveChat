@@ -149,6 +149,46 @@
   padding: 16px 20px; background: var(--bg-chat);
   backdrop-filter: blur(10px);
 }
+/* ============================================================
+   Botão Voltar (‹) do cabeçalho — só no mobile.
+   Antes: usava a classe .btn-icon, que NÃO EXISTE no CSS. O botão
+   ficava com o estilo padrão do <button> do navegador: medido em
+   8×21px, sem área de toque (WCAG 2.5.5 pede 44×44) e com um glifo
+   "‹" de texto puro. Agora é um botão circular de verdade: 40×40
+   com ::after transparente estendendo a área de toque para 44×44,
+   glifo SVG no stroke do tema e micro-interação de pressionar.
+   ============================================================ */
+#btn-back {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  position: relative;              /* contexto do ::after de toque */
+  padding: 0; margin: 0;
+  border: none; border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--dur-fast, 120ms) var(--ease-soft, ease),
+              color var(--dur-fast, 120ms) var(--ease-soft, ease),
+              transform var(--dur-fast, 120ms) var(--ease-soft, ease);
+}
+#btn-back:hover { background: var(--accent-soft); color: var(--accent); }
+#btn-back:active { transform: scale(var(--press-scale, .96)); }
+#btn-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#btn-back svg {
+  width: 22px; height: 22px; display: block;
+  fill: none; stroke: currentColor; stroke-width: 2.1;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--dur-base, 200ms) var(--ease-spring, cubic-bezier(.34,1.3,.64,1));
+}
+/* afordância: a seta "sente" o toque e desliza um pouco para a direita */
+#btn-back:active svg { transform: translateX(2px); }
+/* área de toque 44×44 sem mudar o visual (mesmo padrão dos demais ícones) */
+#btn-back::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+}
+
 /* Ícone da página atual à esquerda do título no cabeçalho (Diária/IA/Lembretes) */
 .page-icon {
   display: grid; place-items: center; flex: 0 0 auto;
@@ -284,13 +324,28 @@
      manual da faixa de load (mensagens subiam 27px). A compensação é feita no JS */
   overflow-anchor: none;
 }
-.messages::-webkit-scrollbar { width: 8px; }
-.messages::-webkit-scrollbar-track { background: transparent; margin: 8px 2px; }
+/* ============================================================
+   Barra de rolagem do fluxo de mensagens.
+   Antes: trilho invisível e polegar cinza-claro, sem feedback de
+   arraste nem contraste com o fundo. Agora: trilho sutil, polegar
+   com a cor de acento que ganha corpo no hover/drag, e as duas
+   pontas arredondadas. O canal continua `stable` para a barra não
+   "pular" nem roubar largura das mensagens quando o conteúdo muda.
+   ============================================================ */
+.messages::-webkit-scrollbar { width: 10px; }
+.messages::-webkit-scrollbar-track { background: transparent; margin: 10px 3px; }
 .messages::-webkit-scrollbar-thumb {
-  background: var(--border); border-radius: 999px;
+  background: color-mix(in srgb, var(--text-dim) 38%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background var(--dur-base, 200ms) var(--ease-soft, ease);
 }
-.messages::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
-.messages::-webkit-scrollbar-thumb:active { background: var(--accent); }
+.messages:hover::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text-dim) 58%, transparent); background-clip: padding-box; }
+.messages::-webkit-scrollbar-thumb:hover { background: var(--accent); background-clip: padding-box; }
+.messages::-webkit-scrollbar-thumb:active { background: var(--accent); background-clip: padding-box; }
+/* Firefox:_properties equivalentes às pseudo-elementais do WebKit */
+.messages { scrollbar-color: color-mix(in srgb, var(--text-dim) 45%, transparent) transparent; }
 .load-older {
   text-align: center; color: var(--text-dim); font-size: var(--text-sm); padding: var(--space-2) var(--space-3);
   cursor: pointer; border-radius: 12px; transition: background .15s;
@@ -364,7 +419,9 @@
 }
 .bubble .meta {
   display: block; font-size: 12px;
-  color: inherit; opacity: .75; /* segue a cor da fonte da bolha (mesma cor, levemente atenuada) */
+  color: var(--bubble-meta); /* token por tema: branco puro nas bolhas claras, 70% nas escuras.
+   Antes era `color: inherit` + `opacity: .75`, que compunha branco sobre a
+   bolha colorida e dava 1.92:1 no sakura — bem abaixo do piso de 4.5. */
   position: absolute; right: 12px; bottom: 8px; text-align: right; white-space: nowrap;
   font-variant-numeric: tabular-nums; /* timestamps não "dançam" (dígitos de largura fixa) */
 }
@@ -889,7 +946,7 @@
 /* cor da borda de edição por tema (accent pode ser escuro demais no dark) */
 [data-theme="lavender"] .bubble.editing { box-shadow: 0 0 0 2px #b3a3d9, var(--shadow-md); }
 [data-theme="mint"] .bubble.editing { box-shadow: 0 0 0 2px #6fae9c, var(--shadow-md); }
-[data-theme="peach"] .bubble.editing { box-shadow: 0 0 0 2px #f0977d, var(--shadow-md); }
+[data-theme="terracota"] .bubble.editing { box-shadow: 0 0 0 2px #f0977d, var(--shadow-md); }
 [data-theme="ocean"] .bubble.editing { box-shadow: 0 0 0 2px #74aede, var(--shadow-md); }
 [data-theme="midnight"] .bubble.editing { box-shadow: 0 0 0 2px #6a93e8, var(--shadow-md); }
 [data-theme="dark"] .bubble.editing { box-shadow: 0 0 0 2px #9e9e9e, var(--shadow-md); }

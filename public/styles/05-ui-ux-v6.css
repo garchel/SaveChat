@@ -33,6 +33,22 @@ button:focus { outline: none; }
   display: inline-block; align-self: center; box-shadow: var(--shadow-sm);
 }
 .day-sep-wrap { display: flex; justify-content: center; margin: 8px 0; }
+/* Saída do separador quando o dia fica sem nenhuma mensagem: colapsa a altura
+   reserved e dissolve o pill. O `max-height`/`overflow` inline vêm do JS
+   (_fadeOutDaySep) — aqui só a transição e a opacidade do rótulo. */
+.day-sep-wrap {
+  transition: max-height var(--dur-base, 200ms) var(--ease-exit, cubic-bezier(0.3, 0, 1, 1)),
+              margin var(--dur-base, 200ms) var(--ease-exit, cubic-bezier(0.3, 0, 1, 1)),
+              opacity var(--dur-base, 200ms) var(--ease-exit, cubic-bezier(0.3, 0, 1, 1));
+}
+.day-sep-wrap.day-sep-out { max-height: 0 !important; margin-top: 0; margin-bottom: 0; opacity: 0; }
+.day-sep-wrap.day-sep-out .day-sep {
+  transform: scale(.82) translateY(-4px);
+  opacity: 0;
+  transition: transform var(--dur-base, 200ms) var(--ease-exit, cubic-bezier(0.3, 0, 1, 1)),
+              opacity var(--dur-fast, 120ms) linear;
+}
+.day-sep { transition: transform var(--dur-base, 200ms) var(--ease-soft, cubic-bezier(0.2, 0, 0, 1)); }
 
 /* Empty state da sidebar (sem threads) */
 .tree-empty {
