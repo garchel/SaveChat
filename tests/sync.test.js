@@ -68,6 +68,26 @@ describe('PWA', ()=>{
     // precacha './help.html' e assim que a Vercel entrega em produção
     assert.ok(!/cleanUrl|clean-url|rewrite/i.test(prev), 'preview não deve fazer clean URLs');
   });
+  it('promote.mjs tem os portoes do fluxo e NAO mexe em main', ()=>{
+    const pr = readFileSync('scripts/promote.mjs','utf8');
+    const pkg = JSON.parse(readFileSync('package.json','utf8'));
+    assert.match(pkg.scripts.promote, /promote\.mjs/);
+    // portoes: origem valida, arvore limpa, branch no remoto
+    assert.match(pr, /source === TARGET/);
+    assert.match(pr, /source === 'main'/);
+    assert.match(pr, /git status --porcelain/);
+    assert.match(pr, /rev-parse --verify/);
+    // a suite local e o portao real: nada sobe com teste vermelho
+    assert.match(pr, /npm run check/);
+    assert.match(pr, /npm test/);
+    assert.match(pr, /npm run e2e/);
+    // e o CI e aguardado
+    assert.match(pr, /gh run list/);
+    // LIMITE: abrir PR ou mergear em main e decisao do usuario
+    assert.ok(!/gh pr merge/.test(pr), 'promote não pode mergear em main');
+    assert.ok(!/gh pr create/.test(pr), 'promote não deve abrir PR');
+    assert.ok(!/push origin main/.test(pr), 'promote nunca envia para main');
+  });
   it('sw.js é v142', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
     assert.match(sw, /notethread-v142/);
