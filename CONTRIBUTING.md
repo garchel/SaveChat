@@ -128,18 +128,30 @@ npm run check && npm test && npm run e2e
 
 ### Proteção da `main`
 
-A `main` está protegida: push direto é recusado (`GH006`). Todo
-promoção passa por **pull request** com o check `CI` verde e **uma
-aprovação**. Ou seja, `git push origin main` falha — o caminho é:
+A `main` está protegida: push direto é recusado (`GH006`). A promoção
+passa por **pull request** com o check `CI` verde. `git push origin main`
+falha — o caminho é:
 
 ```bash
 git switch staging && git pull --ff-only
 git push origin staging
 gh pr create --base main --head staging --title "…" --body "…"
-gh pr merge --squash --auto
+gh pr merge --merge --auto
 ```
 
 Force-push e deleção da `main` também estão bloqueados.
+
+**Merge commit, não squash.** O repositório está configurado para
+`squash = não` e `rebase = não` (só merge commit), e o squash está
+desligado de propósito: ele reescreve os SHAs a cada promoção, então a
+branch deixa de ser ancestral da `main` e `git merge-base --is-ancestor`
+passa a responder "não" para trabalho que já está em produção. Foi o que
+tornou os PRs difíceis de ler — um diff de 2 linhas convivia com "17
+commits não mergeados". Com merge commit a pergunta "isto já está na
+main?" vira fato, e `git log --first-parent main` mostra só as promoções.
+
+O custo: `git log main` fica mais verboso (vê cada commit da branch).
+É o preço de não mentir sobre o estado do repositório.
 
 ### Branches de subsistema
 
