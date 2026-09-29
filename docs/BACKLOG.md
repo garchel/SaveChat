@@ -17,13 +17,16 @@ Trabalho aberto, medido contra o código em **29/09/2026**.
 
 ## Prioridade 1 — Acessibilidade
 
-### B1. Tipografia abaixo de 12px
+### B1. ~~Tipografia abaixo de 12px~~ — RESOLVIDO
 
-**Único item confirmado do diagnóstico de UI/UX.** O piso recomendado é
-12px; hoje o projeto tem 55 regras abaixo disso.
+**41 regras de texto migradas para 12px.** As 14 que sobraram são badge,
+contador e avatar — glifo numérico, onde o piso não se aplica.
 
-| `font-size` | regras |
-|---|---|
+Verificado: 0 regressões de layout (nada trunca ou estoura), contraste
+medido nos 10 temas, e teste de regressão em `sync.test.js` que falha se
+alguém reintroduzir um valor abaixo de 12px em texto corrido.
+
+---|---|
 | `10px` | 3 |
 | `10.5px` | 4 |
 | `11px` | 30 |
@@ -42,6 +45,31 @@ tudo de uma vez quebra a composição. Ordem sugerida:
 ---
 
 ## Prioridade 2 — Bugs conhecidos
+
+### B1b. Contraste abaixo de AA em 3 temas — NOVO, achado na migração
+
+**Este não existia no backlog e apareceu ao validar B1.** A cor não depende
+do `font-size`, então é falha pré-existente — mas nunca foi medida.
+
+Medido (ratio de contraste WCAG, texto sobre seu fundo real):
+
+| Tema | `.bubble .meta` | `.explorer-label` | `.brand-sub` | `.settings-label` |
+|---|---|---|---|---|
+| peach | **3.16** | **4.43** | **4.41** | 5.00 ✅ |
+| sakura | **2.35** | **3.48** | **3.84** | **4.33** |
+| napolitano | **2.46** | **3.26** | **3.77** | **4.42** |
+
+Piso AA = 4.5:1. A causa provável é `--text-dim` calibrado nos temas
+claros originais (peach) e não reajustado nos clones sakura/napolitano.
+O `.bubble .meta` é o pior: `color: inherit` + `opacity: .75` sobre a
+bolha clara, o que derruba o branco bem abaixo do piso.
+
+**Nota:** `sakura` e `napolitano` não constavam no backlog anterior, que
+falava em "6 temas" — são 10.
+
+**Como fechar:** medir o `--text-dim` de cada tema e escurecer até 4.5:1
+contra o fundo real, depois revalidar os 10. Não é ajuste de um valor
+global: cada tema precisa do seu.
 
 ### B2. `.bubble .del` invisível em touch
 
