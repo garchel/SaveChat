@@ -60,7 +60,12 @@ bindTreeActions() {
           }
         });
       }
-      $('#btn-back').addEventListener('click', () => $('#app').classList.remove('show-chat'));
+      // botão Voltar: MESMA hierarquia do arrasto lateral (goBack) — um toque
+      // consome um nível só. No 3º nível (já no explorador) não há API de
+      // minimizar numa PWA, então avisamos em vez de fingir que minimizou.
+      $('#btn-back').addEventListener('click', () => {
+        if (this.goBack() === 'nothing') this.toast('Você já está na lista de conversas', { kind: 'info', duration: 2200 });
+      });
     },
 
     // Botão unificado "+ NOVO": escolhe Conversa ou Caderno no mesmo modal

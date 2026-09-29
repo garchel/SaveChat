@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.17.0] — 2026-09-29
+### Corrigido
+- **Aviso de lista completa sumia com "ocultar itens concluídos" ligado**: marcar a última caixa de um checklist saía por um caminho que retornava antes de disparar o aviso, então a lista ficava completa sem nenhuma confirmação — badge, confete e toast. O aviso agora sai nos dois caminhos, sem repetir a cada re-render
+- **Separador de dia ficava órfão**: ao apagar todas as mensagens de um dia, o indicador ("Hoje", "Ontem" ou a data) continuava visível ocupando 39px de espaço morto. Agora ele some com animação e sai do fluxo. A causa era dupla: o cleanup de render procurava `.day-sep`, mas o elemento real é o wrapper `.day-sep-wrap` — então nada era removido e os separadores ainda se acumulavam a cada re-render da conversa
+- **A barra de rolagem "guardava" o espaço da mensagem apagada**: o fluxo mantinha a altura antiga depois de remover nós, deixando espaço vazio no fim. Isso valia para apagar mensagem, ocultar item concluído, sumir com um separador e para o evento de exclusão vindo de outro aparelho
+- **A seta de voltar ao lado do nome da conversa era um botão de 8×21px**: ela usava a classe `.btn-icon`, que não existe no CSS, e ficava com o estilo padrão do navegador — sem área de toque, onde o mínimo é 44×44. Virou um botão circular de 40×40 com área de toque de 44×44, ícone em SVG na cor do tema e animação leve ao pressionar
+### Adicionado
+- **"Voltar" no celular virou uma hierarquia de três níveis**: um arrasto para o lado (ou o botão Voltar) fecha primeiro o que estiver aberto por cima — o seletor de reações, o menu da mensagem, o modal, o preview da nota; depois leva da conversa de volta para o explorador de conversas e pastas; e só na ação seguinte chega ao nível de minimizar o app. Cada gesto consome um nível, nunca todos de uma vez
+- **Barra de rolagem do fluxo de mensagens refeita**: polegar mais visível que antes, que ganha corpo ao passar o mouse e adquire a cor de destaque ao arrastar
+
 ## [1.16.0] — 2026-09-29
 ### Modificado
 - **Texto legível em todo o app**: 41 regras de texto que estavam entre 10px e 11.5px subiram para 12px — secundárias da sidebar, hora e status das mensagens, rótulos de Configurações, dicas de lembretes e da Diária, legendas da busca e da IA. Os números de badge, contador e avatar ficaram como estavam: são glifos, não texto
