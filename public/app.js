@@ -17,6 +17,9 @@ import { SettingsMethods } from './js/ui/settings.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { TreeMethods } from './js/ui/tree.js';
 import { ComposerMethods } from './js/ui/composer.js';
+import { ComposerAudioMethods } from './js/ui/composer-audio.js';
+import { ComposerMarkdownMethods } from './js/ui/composer-markdown.js';
+import { ComposerListsMethods } from './js/ui/composer-lists.js';
 import { SyncEventsMethods } from './js/ui/sync-events.js';
 
 // bundle ES Modules carregado
@@ -367,8 +370,11 @@ showModal(title, bodyHtml, onOk) {
   };
 
   // mescla os grupos de métodos extraídos
+  // o composer e' um mixin de 4 partes (campo/anexos, áudio, markdown, listas):
+  // todas entram no mesmo UI plano, entao a ordem aqui nao muda comportamento
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
-    SettingsMethods, AuthMethods, TreeMethods, ComposerMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods);
+    SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
+    ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods);
 
   Store.load();
   // aplica tema salvo antes de montar a UI
