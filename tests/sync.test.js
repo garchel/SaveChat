@@ -38,9 +38,26 @@ describe('PWA', ()=>{
     // offline: a página de ajuda abre sem internet
     assert.match(sw, /'\.\/help\.html'/);
   });
-  it('sw.js é v141', ()=>{
+  it('Friendly Names é dev-only: não carrega e não roda em produção', ()=>{
+    const html = readFileSync('public/index.html','utf8');
+    const fn = readFileSync('public/js/friendly-names.js','utf8');
+    const css = readFileSync('public/styles/05-ui-ux-v6.css','utf8');
+    // 1) o script é injetado condicionalmente por hostname (nunca baixado em prod)
+    assert.ok(
+      /if \(\['localhost', '127\.0\.0\.1', '\[::1\]'\]\.includes\(location\.hostname\)\)/.test(html),
+      'index.html deve carregar friendly-names.js só em localhost');
+    assert.ok(!/<script[^>]*src="js\/friendly-names\.js"/.test(html),
+      'friendly-names.js não pode ser <script src> unconditional');
+    // 2) defense in depth: o módulo aborta fora de dev mesmo se for importado
+    assert.match(fn, /if \(!IS_DEV\)/);
+    assert.match(fn, /IS_DEV = \['localhost', '127\.0\.0\.1', '\[::1\]'\]\.includes\(location\.hostname\)/);
+    // 3) o botão nasce escondido: só o JS dev o revela (sem flash em prod)
+    assert.match(css, /\.friendly-toggle\s*\{[^}]*display:\s*none/);
+    assert.match(css, /\.friendly-toggle\.is-dev\s*\{\s*display:\s*flex/);
+  });
+  it('sw.js é v142', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v141/);
+    assert.match(sw, /notethread-v142/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);

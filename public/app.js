@@ -17,6 +17,8 @@ import { MentionMethods } from './js/ui/mentions.js';
 import { ReminderMethods } from './js/ui/reminders.js';
 import { TasksMethods } from './js/ui/tasks.js';
 import { WorkspaceMethods } from './js/ui/workspace.js';
+import { WorkspaceAiMethods } from './js/ui/workspace-ai.js';
+import { WorkspaceDailyMethods } from './js/ui/workspace-daily.js';
 import { SettingsMethods } from './js/ui/settings.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { TreeMethods } from './js/ui/tree.js';
@@ -380,7 +382,8 @@ showModal(title, bodyHtml, onOk) {
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
-    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods);
+    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods,
+    WorkspaceAiMethods, WorkspaceDailyMethods);
 
   // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do
   // markup. Em producao o build ja os inlineou e isto sai em seguida sem

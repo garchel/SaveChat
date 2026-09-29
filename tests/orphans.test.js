@@ -24,19 +24,21 @@ describe('glifos do botão único de áudio', () => {
 
   it('os glifos são os mesmos que a IA e a conversa desenham', () => {
     // conversa e IA usam o MESMO botão (btn-send / ai-send) e as mesmas
-    // classes cozy. As constantes vivem em composer-audio.js porque é lá que
-    // _updateSendAudioState mora — o outro usuário (_updateAiSendAudioState,
-    // em workspace.js) tem as cópias próprias. Comparar os dois paths.
+    // classes cozy. As constantes existem nos dois arquivos porque cada um
+    // tem o seu _updateSendAudioState (a conversa em composer-audio.js, a IA
+    // em workspace-ai.js) — e precisam ser byte a byte iguais, senão os dois
+    // botões desenham ícones diferentes. Este teste trava a IGUALDADE, não o
+    // caminho: o arquivo da IA mudou de nome quando o workspace foi fatiado.
     const mic = src.match(/const MIC_SVG = '([^']+)'/)[1];
     const send = src.match(/const SEND_SVG = '([^']+)'/)[1];
-    const ia = readFileSync('public/js/ui/workspace.js', 'utf8');
+    const ia = readFileSync('public/js/ui/workspace-ai.js', 'utf8');
     assert.ok(ia.includes(mic), 'o microfone da IA difere do da conversa');
     assert.ok(ia.includes(send), 'o ícone de enviar da IA difere do da conversa');
   });
 });
 
-// O teste acima de "declara tudo que usa" já cobre a classe do bug; aqui fica
-// o guard específico para não regredir no arquivo exato onde ele aconteceu.
+// O teste de "declara tudo que usa" acima já cobre a classe do bug; aqui fica o
+// guard genérico para qualquer mixin novo.
 describe('nenhum arquivo mixin usa constante de outro mixin', () => {
   const MIXINS = [
     'public/js/ui/composer.js', 'public/js/ui/composer-audio.js',
@@ -44,6 +46,8 @@ describe('nenhum arquivo mixin usa constante de outro mixin', () => {
     'public/js/ui/messages.js', 'public/js/ui/messages-bubble.js',
     'public/js/ui/messages-reactions.js', 'public/js/ui/messages-edit.js',
     'public/js/ui/messages-scroll.js',
+    'public/js/ui/workspace.js', 'public/js/ui/workspace-ai.js',
+    'public/js/ui/workspace-daily.js',
   ];
 
   it('cada SCREAMING_SNAKE_CASE usado existe no mesmo arquivo', () => {
@@ -58,7 +62,9 @@ describe('nenhum arquivo mixin usa constante de outro mixin', () => {
         .replace(/`(?:\\.|[^`\\])*`/g, '``');
 
       const visiveis = new Set();
-      for (const m of codigo.matchAll(/(?:^|[{;(\s])(?:export\s+)?(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/g)) {
+      // qualquer indentação: uma constante pode viver dentro de um método
+      for (const m of codigo.matchAll(
+        /(?:^|[{;(\s])(?:export\s+)?(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/g)) {
         visiveis.add(m[1]);
       }
       for (const m of src.matchAll(/import\s+\{([^}]+)\}\s+from/g)) {
