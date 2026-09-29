@@ -12,8 +12,14 @@
 //
 // O que ele NÃO faz: abrir PR, mergear em main, deploy. A promoção
 // para produção é decisão sua, depois do teste manual em staging.
+//
+// RODA DE DENTRO DE UMA WORKTREE? Funciona, e é o caminho normal quando dois
+// agentes trabalham em paralelo: o merge sai numa worktree descartável e o
+// checkout principal nunca é tocado (ver "merge em staging" abaixo).
 
 import { execSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const ORIGIN = 'origin';
 const TARGET = 'staging';
@@ -25,12 +31,23 @@ const sh = (cmd, opts = {}) => execSync(cmd, { encoding: 'utf8', ...opts }).trim
 const fail = (msg) => { console.error(`\n  ✖ ${msg}\n`); process.exit(1); };
 const ok = (msg) => console.log(`  ✔ ${msg}`);
 
+// A raiz do projeto precisa ser o checkout PRINCIPAL, não a pasta onde este
+// script está: rodando de dentro de `.worktrees/<branch>/`, `import.meta.dirname`
+// aponta para a worktree, e aí o script se acha no checkout principal — faz
+// `git switch staging` e toma o "already used by worktree" mesmo estando numa
+// worktree. O caminho comum do .git é a única âncora idêntica nos dois lugares;
+// o "diretório" do .git de uma worktree é um arquivo, não uma pasta.
+const samePath = (a, b) =>
+  a.replace(/\\/g, '/').replace(/\/$/, '') === b.replace(/\\/g, '/').replace(/\/$/, '');
+const ROOT = path.dirname(sh('git rev-parse --path-format=absolute --git-common-dir'));
+const inWorktree = !samePath(sh('git rev-parse --show-toplevel'), ROOT);
+
 // ---------- 0. contexto ----------
 const current = sh('git rev-parse --abbrev-ref HEAD');
 const source = branch || current;
-
 if (source === TARGET) fail(`já está em ${TARGET} — nada a promover`);
 if (source === 'main') fail('main é produção:Trabalho nasce de staging, não da main');
+if (inWorktree) console.log('  (promovendo de uma worktree — a raiz não será tocada)');
 
 console.log(`\n  Promovendo  ${source}  →  ${TARGET}\n`);
 
@@ -63,37 +80,88 @@ step('test (unit)', 'npm test');
 step('e2e (fluxo crítico)', 'npm run e2e');
 
 // ---------- 4. merge em staging ----------
+//
+// Estando numa worktree de tarefa, NÃO podemos simplesmente `git switch
+// staging`: o git recusa com "fatal: 'staging' is already used by worktree
+// at ...", porque a staging está checked out na raiz. (E se não estivesse, o
+// switch moveria o working tree da raiz por baixo de outro agente.)
+//
+// A saída é uma worktree descartável em detached sobre origin/staging: merge
+// ali, revisão, push a partir dali. O checkout da raiz nunca é tocado.
 console.log('');
 sh(`git fetch ${ORIGIN}`);
-sh(`git switch ${TARGET}`);
-sh(`git merge --ff-only ${ORIGIN}/${TARGET}`);
 
-// se staging já contém a branch (merge anterior), o merge é no-op
+let scratch = null;
+if (inWorktree) {
+  scratch = path.join(ROOT, '.worktrees', `.promote-${source.replace(/[^a-zA-Z0-9._-]/g, '-')}`);
+  fs.rmSync(scratch, { recursive: true, force: true });
+  sh(`git worktree add --detach "${scratch}" ${ORIGIN}/${TARGET}`);
+} else {
+  sh(`git switch ${TARGET}`);
+  sh(`git merge --ff-only ${ORIGIN}/${TARGET}`);
+}
+
+const where = scratch || ROOT;
+
+// Limpeza EXPLÍCITA, não um `finally`: `process.exit()` no Node não executa
+// um `finally` pendente, e este script sai por ele em três caminhos (nada
+// novo, --no-wait, CI verde/vermelho). Com `finally`, a worktree scratch
+// sobrevivia nesses saídas e aparecia para sempre em `git worktree list`.
+const cleanup = () => {
+  if (!scratch) return;
+  try {
+    sh(`git worktree remove --force "${scratch}"`);
+    sh('git worktree prune');
+  } catch (e) {
+    console.log(`  ⚠ não consegui remover a worktree temporária ${scratch} (${e.message.split('\n')[0]})`);
+    console.log(`    remova com: git worktree remove --force "${scratch}"\n`);
+  }
+};
+
+// Merge em staging. Conflito deixa marcadores no index; a worktree scratch é
+// removida --force logo abaixo, então o merge tem de ser refeito à mão.
 let merged;
 try {
-  sh(`git merge --no-ff ${source} -m "merge: ${source}"`);
+  sh(`git merge --no-ff ${source} -m "merge: ${source}"`, { cwd: where });
   merged = true;
 } catch {
-  if (sh('git status --porcelain')) fail('conflito de merge — resolva manualmente');
+  if (sh('git status --porcelain', { cwd: where })) {
+    cleanup();
+    fail(`conflito de merge em ${TARGET} — o merge precisa ser refeito à mão`);
+  }
   merged = false; // já estava contido
 }
+
 ok(merged ? `merge de ${source} em ${TARGET}` : `${source} já estava em ${TARGET}`);
+if (scratch) ok('merge feito numa worktree descartável — a raiz não foi tocada');
 
 // ---------- 5. revisão honesta do que vai subir ----------
-const diff = sh(`git diff --stat ${ORIGIN}/${TARGET}..HEAD`);
+// Antes do push, não depois: o propósito é você ver o diff e poder abortar.
+const diff = sh(`git diff --stat ${ORIGIN}/${TARGET}..HEAD`, { cwd: where });
 if (!diff) {
+  cleanup();
   console.log('\n  Nada novo para enviar.\n');
   process.exit(0);
 }
-console.log(`\n  Vai subir para ${TARGET}:`);
+console.log('\n  Vai subir para ' + TARGET + ':');
 console.log(diff.split('\n').map((l) => '    ' + l).join('\n'));
 console.log('');
 
 // ---------- 6. push ----------
-sh(`git push ${ORIGIN} ${TARGET}`);
+// O sha sai ANTES do cleanup: `cleanup()` apaga a worktree scratch, e um
+// `git rev-parse` com cwd num diretário que não existe mais morre com ENOENT
+// — o script falharia DEPOIS de ter promotionado com sucesso.
+const sha = sh('git rev-parse --short HEAD', { cwd: where });
+try {
+  if (scratch) sh(`git push ${ORIGIN} HEAD:${TARGET}`, { cwd: scratch });
+  else sh(`git push ${ORIGIN} ${TARGET}`);
+} catch (e) {
+  cleanup();
+  throw e;
+}
 ok(`push para ${ORIGIN}/${TARGET}`);
+cleanup();
 
-const sha = sh('git rev-parse --short HEAD');
 console.log(`\n  ${TARGET} em ${sha}\n`);
 
 // ---------- 7. CI ----------

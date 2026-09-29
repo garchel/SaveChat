@@ -162,6 +162,41 @@ Antes de abrir a branch, atualize a base:
 git fetch origin && git switch main && git pull --ff-only
 ```
 
+### Worktree por agente (paralelismo real)
+
+Se dois agentes (ou duas conversas) trabalham no mesmo repo ao mesmo tempo,
+**branch não basta** — branch é só um ponteiro. As duas conversas com o mesmo
+cwd compartilham UM working tree, e `git switch` move o índice e os arquivos do
+processo inteiro: o outro agente acorda na branch nova, com o trabalho dele em
+cima. Não há como isolar isso por sessão.
+
+A worktree é o isolamento real — um diretório por agente:
+
+```bash
+# a partir do repo raiz (NUNCA de dentro de outra worktree)
+node scripts/wt.mjs new feature/modal-altura
+# imprime o path; trabalhe a partir dele
+cd .worktrees/modal-altura
+```
+
+O script cria a worktree a partir de `staging`, faz o junction de
+`node_modules` (45M não copiados por branch) e adiciona+commita
+`.worktrees/` no `.gitignore`. Feito isso, dois agentes correm em paralelo sem
+se ver:
+
+```bash
+node scripts/wt.mjs list              # worktrees vivas + o que está sujo
+node scripts/wt.mjs remove <slug>     # descarta (recusa se houver WIP)
+```
+
+O `npm run promote` **funciona de dentro da worktree** — o merge sai numa
+worktree descartável em detached sobre `origin/staging`, e o checkout principal
+nunca é tocado. É o caminho normal quando o agente promove o próprio trabalho.
+
+> Não use `git switch` para começar uma tarefa paralela. Crie a worktree.
+> O atalho do Hermes (⌘⇧B / `/worktree new`) faz o mesmo por outro caminho,
+> mas o agente consegue chamar este script sem depender de UI.
+
 ### Commits
 
 Convencional, em português, com escopo do subsistema:
