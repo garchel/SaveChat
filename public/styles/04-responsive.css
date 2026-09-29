@@ -1,0 +1,86 @@
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 760px) {
+  .mobile-only { display: grid; place-items: center; }
+  .app { grid-template-columns: 1fr; margin: 0; border-radius: 0; height: 100vh; }
+  .nav-bar { display: none; }
+  .sidebar {
+    position: fixed; inset: 0; z-index: 20; width: 100%;
+    transform: translateX(0); transition: transform .25s ease;
+  }
+  .app.show-chat .sidebar { transform: translateX(-100%); }
+  .chat { width: 100%; }
+  .cozy-banner { margin: 8px 12px 0; padding: 12px 14px; font-size: 16px; }
+  .cozy-input-row { padding: 6px; }
+  /* Backdrop para contexto */
+  .app::before {
+    content: ""; position: fixed; inset: 0; background: rgba(20,16,40,.32);
+    opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 19;
+  }
+  .app:not(.show-chat)::before { opacity: 1; pointer-events: auto; }
+}
+
+/* ---- Toast de notificação ---- */
+.app-toast {
+  position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  background: var(--text); color: #fff; padding: 10px 18px; border-radius: 12px;
+  font-size: 13.5px; font-weight: 600; z-index: 999; box-shadow: var(--shadow-lg);
+  opacity: 0; transition: opacity .25s, transform .25s; max-width: 90vw;
+  display: flex; align-items: center; gap: 8px;
+}
+.app-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+/* saída: desliza para cima + fade (M9 — toast some sem despedida) */
+.app-toast.leaving {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-16px);
+  transition: opacity .15s ease-in, transform .15s ease-in;
+}
+/* sistema geral de saída (M2): popovers, modal, ctx-menu */
+.popover.leaving, .msg-popover.leaving, .pin-popover.leaving,
+#settings-popover.leaving, .ctx-menu.leaving {
+  animation: exitOut var(--dur-fast, 120ms) var(--ease-exit, cubic-bezier(0.3, 0, 1, 1)) both;
+}
+.modal-backdrop.leaving, .modal.leaving { animation: exitOut var(--dur-fast, 120ms) ease-in both; }
+@keyframes exitOut {
+  from { opacity: 1; }
+  to   { opacity: 0; transform: scale(.97); }
+}
+.app-toast .toast-msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-toast .toast-action {
+  background: rgba(255,255,255,.18); color: #fff; border: none; border-radius: 8px;
+  padding: 5px 12px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s;
+  flex-shrink: 0;
+}
+.app-toast .toast-action:hover { background: rgba(255,255,255,.3); }
+.app-toast.pin { background: linear-gradient(135deg, #f5b942, #f59e0b); color: #3A2E2A; }
+.app-toast.success { background: var(--ok); }
+
+/* ---- Banner de erro de sync no composer (feedback + retry inline) ---- */
+.sync-error-banner {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 8px; padding: 8px 14px;
+  background: var(--danger); color: #fff;
+  border-radius: 12px; font-size: var(--text-sm); font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.sync-error-banner.hidden { display: none; }
+.sync-error-banner span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync-error-banner button {
+  background: rgba(255,255,255,.2); color: #fff; border: none; border-radius: 8px;
+  padding: 5px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  transition: background .15s;
+}
+.sync-error-banner button:hover { background: rgba(255,255,255,.32); }
+
+/* ---- Sobre (versão + links legais) ---- */
+.settings-about { border-bottom: none; }
+.about-version { font-size: var(--text-sm); font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.about-links {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: var(--text-sm); margin-bottom: 8px;
+}
+.about-links a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.about-links a:hover { text-decoration: underline; }
+.about-links span { color: var(--text-dim); }
+.about-note { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 0; }
+

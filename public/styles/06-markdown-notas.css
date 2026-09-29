@@ -1,0 +1,56 @@
+/* ===================== MARKDOWN NAS NOTAS ===================== */
+.bubble strong { font-weight: 700; }
+.bubble em { font-style: italic; }
+.bubble code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em; background: rgba(86,64,168,.1); color: #4a3a9e;
+  padding: 1px 5px; border-radius: 5px; white-space: pre-wrap;
+}
+[data-theme="dark"] .bubble code,
+[data-theme="midnight"] .bubble code { background: rgba(255,255,255,.12); color: #d9d2ff; }
+.bubble .md-list { margin: 4px 0 2px; padding-left: 20px; }
+.bubble .md-list li { margin: 2px 0; line-height: 1.45; }
+/* lista numerada: números em negrito */
+.bubble .md-olist { margin: 4px 0 2px; padding-left: 22px; }
+.bubble .md-olist li { margin: 2px 0; line-height: 1.45; }
+.md-ol-num { font-weight: 800; color: var(--accent); }
+/* sub-listas aninhadas (v1.8.0): sub-lista vive DENTRO do <li> do item pai */
+.bubble ul.md-list ul, .bubble ul.md-list ol.md-olist,
+.bubble ol.md-olist ul.md-list, .bubble ol.md-olist ol {
+  margin: 2px 0 2px; padding-left: 18px;
+}
+.bubble ul.md-list ul { list-style: circle; }
+.bubble ul.md-list ul ul { list-style: square; }
+.bubble ol.md-olist ol { list-style: lower-alpha; }
+.bubble ol.md-olist ol ol { list-style: lower-roman; }
+.bubble .md-checklist .md-checklist { padding-left: 18px; }
+/* botões toggle de formatação (bold/italic) no estado ligado */
+.fmt-btn.fmt-toggle.active {
+  background: var(--accent); color: var(--on-accent);
+  box-shadow: 0 1px 4px rgba(124, 92, 255, .35);
+}
+/* checklist: mesma cor de bg das demais mensagens (regra removida do JS, mantida aqui por segurança) */
+.bubble-checklist { background: inherit !important; color: inherit; }
+
+/* Checklist nas notas ([ ] / [x]) */
+.md-checklist { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 2px; }
+.md-check {
+  display: flex; align-items: flex-start; gap: 8px; cursor: default; line-height: 1.45;
+}
+/* só o checkbox é clicável; o texto não alterna (span em vez de label) */
+.md-check input[type="checkbox"] { cursor: pointer; }
+.md-check input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; flex-shrink: 0;
+  width: 18px; height: 18px; margin-top: 2px; border-radius: 5px;
+  border: 1.5px solid currentColor; opacity: .85; position: relative; cursor: pointer;
+}
+.md-check input[type="checkbox"]:checked { background: rgba(255,255,255,.9); border-color: transparent; }
+.md-check input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 4.5px; top: 1.5px; width: 4px; height: 8px;
+  border: solid var(--accent); border-width: 0 2px 2px 0; transform: rotate(45deg);
+}
+.md-check.done span { text-decoration: line-through; opacity: .6; }
+
+/* Modal de exclusão de nota */
+.del-note-hint { font-size: 13.5px; line-height: 1.55; color: var(--text-dim); margin-top: 4px; }
+

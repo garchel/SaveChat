@@ -1,0 +1,33 @@
+/* ===================== MENÇÕES @ ===================== */
+.bubble .mention {
+  display: inline-flex; align-items: center;
+  background: rgba(255,255,255,.22); color: inherit; border: 1px solid rgba(255,255,255,.3);
+  border-radius: 999px; padding: 1px 9px; font-size: .92em; font-weight: 700;
+  cursor: pointer; transition: background .12s, transform .1s; font-family: inherit;
+}
+.bubble .mention:hover { background: rgba(255,255,255,.38); transform: translateY(-1px); }
+.bubble.remote .mention { background: rgba(255,255,255,.22); color: var(--on-bubble, var(--accent)); border-color: rgba(255,255,255,.3); }
+.bubble.remote .mention:hover { background: rgba(255,255,255,.38); }
+
+.mention-dd {
+  position: fixed; z-index: 300; min-width: 220px; max-width: 280px;
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-md); padding: 4px; animation: pop .14s cubic-bezier(.2,.9,.3,1.2);
+}
+.mention-dd.hidden { display: none; }
+.mention-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  background: none; border: none; color: var(--text); font-size: 13.5px; font-weight: 600;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer; font-family: inherit;
+}
+.mention-opt:hover, .mention-opt.sel { background: var(--accent-soft); color: var(--accent); }
+
+/* Badge ⏰ de lembrete pendente no explorador */
+.remind-badge { font-size: 11px; margin-left: auto; flex-shrink: 0; }
+.tnode .note-count + .star { margin-left: 0; }
+.tnode .remind-badge ~ .note-count { margin-left: 0; }
+/* fade out suave ao ocultar item concluído (setting hideDoneChecks) */
+.md-check { transition: opacity .25s ease, transform .25s ease, max-height .25s ease; overflow: hidden; }
+.md-check.chk-out { opacity: 0; transform: translateX(10px); max-height: 0 !important; padding-top: 0; padding-bottom: 0; margin-bottom: -4px; border: none; }
+.bubble.remote code { background: rgba(0,0,0,.12); }
+

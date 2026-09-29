@@ -1,0 +1,100 @@
+/* ===================== FASE 3 — DELIGHT (MOTION_DESIGN.md) ===================== */
+
+/* A1 — Checkbox marcado: tick desenhado + pop no box (o gesto mais repetido do app) */
+@keyframes checkPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.md-check input[type="checkbox"]:checked {
+  animation: checkPop 220ms var(--ease-spring) both;
+}
+@keyframes tickDraw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+/* tick SVG desenhado dentro do checkbox custom */
+.md-check input[type="checkbox"] {
+  accent-color: var(--accent);
+  transition: background-color var(--dur-fast, 120ms), border-color var(--dur-fast, 120ms);
+}
+.md-check.done span { text-decoration: line-through; opacity: .6; }
+
+/* A3 — Fixar mensagem: badge dourado escala de 0 com ease-out-back */
+.bubble.pinned .pin-badge { transform-origin: center; }
+.bubble.pinned.pin-anim .pin-badge {
+  animation: badgePop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes badgePop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* A6 — Nota chegando de outro usuário: slide do topo + tint azulado que decai */
+.bubble.incoming-note {
+  animation: incomingSlide 500ms var(--ease-soft) both;
+}
+.bubble.incoming-note::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  pointer-events: none;
+  background: rgba(90, 160, 255, .25);
+  animation: incomingTint 800ms ease-out both;
+}
+@keyframes incomingSlide {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes incomingTint {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Day separator: fade */
+.day-sep {
+  animation: emptyIn .2s ease both;
+}
+
+/* Load older: fade */
+.load-older:not(.hidden) {
+  animation: emptyIn .15s ease both;
+}
+
+/* Lightbox image: scale in */
+.lightbox:not(.hidden) .lightbox-img {
+  animation: modalIn .2s ease both;
+}
+
+/* Nova conversa card na sidebar: entrada */
+.empty-tree {
+  animation: emptyIn .2s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Touch targets ≥44px (WCAG 2.5.5 / revisão Play a11y)
+   Estende a HIT AREA via ::after transparente, sem alterar o
+   visual dos controles pequenos (M3.4).
+   ============================================================ */
+/* .toggle-pass fica de fora: é position:absolute dentro de .password-field,
+   que já cria o contexto de posicionamento do ::after (M3.4) */
+.btn-icon-sm, .sync-status, .np-close, .attach-rm,
+.cozy-composer-bar .fmt-btn { position: relative; }
+
+.btn-icon-sm::after, .toggle-pass::after, .sync-status::after,
+.np-close::after, .attach-rm::after,
+.cozy-composer-bar .fmt-btn::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+}
+

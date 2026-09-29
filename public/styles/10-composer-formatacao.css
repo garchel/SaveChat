@@ -1,0 +1,9 @@
+/* ===================== BARRA DE FORMATAÇÃO DO COMPOSER ===================== */
+.fmt-btn {
+  min-width: 44px; min-height: 44px; width: 44px; height: 44px; border: none; background: none; border-radius: 7px; cursor: pointer;
+  color: var(--text-dim); font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s;
+}
+.fmt-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.fmt-btn:active { transform: scale(var(--press-scale, .96)); }
+

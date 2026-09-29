@@ -1,8 +1,29 @@
 // NoteThread Service Worker — app shell offline + cache-first para assets.
 // Bump CACHE (vN) a cada deploy para invalidar versões anteriores.
-const CACHE = 'notethread-v137';
+const CACHE = 'notethread-v138';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './CHANGELOG.md',
+  './styles/00-tokens-base.css',
+  './styles/01-temas.css',
+  './styles/02-auth.css',
+  './styles/03-app-layout.css',
+  './styles/03a-sidebar-explorer.css',
+  './styles/03b-chat-bolhas.css',
+  './styles/04-responsive.css',
+  './styles/05-ui-ux-v6.css',
+  './styles/06-markdown-notas.css',
+  './styles/07-mencoes.css',
+  './styles/08-lightbox.css',
+  './styles/09-ordenacao.css',
+  './styles/10-composer-formatacao.css',
+  './styles/11-titulo-conversa.css',
+  './styles/12-drag-drop.css',
+  './styles/13-botao-perigo.css',
+  './styles/14-animacoes.css',
+  './styles/15-delight-motion.css',
+  './styles/16-explorer-busca-paginas.css',
+  './styles/17-workspace-paginas.css',
+  './styles/18-boot-splash.css',
   './assets/logo.svg', './assets/logo.png',
   './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js', './js/audio.js',
   './js/store.js', './js/sound.js', './js/sync-supabase.js', './js/offline-queue.js', './js/confetti.js',

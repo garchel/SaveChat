@@ -1,0 +1,162 @@
+/* ===================== MEJORAS UI/UX v6 ===================== */
+
+/* Focus visível (acessibilidade por teclado) — SEM border-radius: inherit:
+   inherit pegaria o raio do PAI (0) e achatava inputs arredondados ao focar.
+   O outline nativo já acompanha o raio do próprio elemento. */
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [contenteditable]:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+/* o input cozy já tem contêiner com raio próprio; o outline acompanha esse raio */
+.cozy-input-row:focus-within {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--accent);
+  /* o raio do glow acompanha o raio do campo (24px) — nunca quadrado */
+  border-radius: 24px;
+}
+.composer.cozy-composer textarea:focus-visible, .composer.cozy-composer textarea:focus {
+  outline: none; /* a borda de foco fica no .cozy-input-row arredondado (o textarea segue transparente e redondeado) */
+}
+button:focus { outline: none; }
+
+/* Micro-feedback ao enviar nota */
+@keyframes pop-in {
+  0% { opacity: 0; transform: translateY(8px) scale(.96); }
+  100% { opacity: 1; transform: none; }
+}
+.bubble.just-sent { animation: pop-in var(--dur-slow, 250ms) var(--ease-spring, cubic-bezier(.2,.9,.3,1.2)); }
+
+/* Day separator nas bolhas */
+.day-sep {
+  text-align: center; color: var(--text-dim); font-size: 11.5px; font-weight: 600;
+  margin: 10px auto 4px; padding: 4px 10px; background: var(--bg-elev);
+  border: 1px solid var(--border); border-radius: 999px;
+  display: inline-block; align-self: center; box-shadow: var(--shadow-sm);
+}
+.day-sep-wrap { display: flex; justify-content: center; margin: 8px 0; }
+
+/* Empty state da sidebar (sem threads) */
+.tree-empty {
+  margin: 16px 14px; padding: 18px 16px; text-align: center;
+  background: var(--accent-soft); border-radius: 16px; color: var(--text);
+}
+.tree-empty .te-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.tree-empty .te-sub { font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.45; }
+.tree-empty .te-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: var(--on-accent); border: none; border-radius: 10px;
+  padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-sm); transition: background .15s, box-shadow .15s;
+  transform: translateZ(0); backface-visibility: hidden;
+}
+.tree-empty .te-btn:hover { background: var(--accent); box-shadow: var(--shadow-md); filter: brightness(.92); }
+.tree-empty .te-btn:active { background: var(--accent); transform: translateZ(0) scale(0.98); filter: brightness(.85); }
+
+/* Contador de notas: oculto no estilo cozy (lista limpa, sem contagem) */
+.cozy-caderno .note-count { display: none; }
+.tnode .note-count {
+  font-size: 11px; color: var(--text-dim); background: var(--bg);
+  padding: 1px 7px; border-radius: 10px; font-weight: 600; margin-left: auto;
+}
+.tnode.fav .note-count { background: rgba(245,185,66,.15); color: #b8841a; }
+
+/* Pin badge: dentro da bolha, canto superior direito — não colide com o botão pin (topo-esquerda do fluxo) */
+.bubble .pin-badge {
+  top: -10px; right: -10px; left: auto; width: 24px; height: 24px;
+  font-size: 12px; z-index: 2;
+  display: grid; place-items: center;
+}
+
+/* Tags nas bolhas: contraste melhor (para bolhas roxas, branco translúcido) */
+.bubble .tag-chip {
+  background: rgba(255,255,255,.28);
+  color: inherit;
+  border: 1px solid rgba(255,255,255,.25);
+}
+.bubble.remote .tag-chip {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid transparent;
+}
+
+/* Composer: mais confortável no mobile */
+@media (max-width: 760px) {
+  .composer:not(.cozy-composer) { padding: 12px 12px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 8px; min-height: 70px; }
+  .composer textarea { padding: 12px 16px; min-height: 44px; }
+  .composer textarea::placeholder { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn-attach { width: 40px; height: 40px; }
+  .btn-send { width: 44px; height: 44px; }
+  .attach-thumb { width: 48px; height: 48px; }
+}
+/* Safe-area para notch (iPhone X+) */
+.sidebar { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.chat-header { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+.composer:not(.cozy-composer) { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+/* Campo de entrada flutuante: margem superior = margem inferior */
+.cozy-composer { bottom: 14px; }
+
+/* Sidebar footer: avatar e texto um pouco mais harmoniosos */
+.sidebar-footer {
+  padding: 14px 16px; gap: 12px; margin-top: auto;
+  border-top: none;
+  background: transparent;
+}
+.sidebar-footer .avatar, .sidebar-footer .avatar-img { width: 36px; height: 36px; border-radius: 50%; }
+.sidebar-footer .me-name { font-size: 14px; font-weight: 700; }
+.sidebar-footer .me-mail { display: none; }
+.sidebar-footer .footer-actions { margin-left: auto; }
+.sidebar-footer .btn-link { opacity: .6; }
+
+/* Bolhas: max-width um pouco maior para melhor leitura */
+.bubble { max-width: min(78%, 620px); }
+
+/* Empty state da thread quando vazia (sem notas) */
+.empty-state .es-hint { font-size: 14.5px; color: var(--text); font-weight: 700; margin-bottom: 6px; }
+.empty-state p { font-size: 13.5px; line-height: 1.55; max-width: 360px; margin: 0 auto; }
+
+/* Esconder pin-badge em bubble.remote quando não for importante */
+.bubble.remote .pin-badge { background: var(--accent); color: var(--on-accent); }
+
+/* Toast mais amigável */
+.app-toast { border-radius: 14px; padding: 11px 20px; font-size: 14px; }
+
+/* Friendly Names — devtools style.
+   Oculto em touch/mobile: além de inútil ali, em 390px ele cobria o botão Enviar
+   (fixed z-9999 sobrepõe o composer) — só faz sentido com hover+desktop. */
+.friendly-toggle {
+  position: fixed; bottom: 16px; right: 16px; z-index: 9999;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px; border: none;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  box-shadow: var(--shadow-md); transition: transform .15s, box-shadow .2s;
+}
+@media (pointer: coarse), (max-width: 768px) {
+  .friendly-toggle { display: none !important; }
+}
+.friendly-toggle.active { background: #15803d !important; } /* verde escuro: branco ≥4.5:1 */
+.friendly-toggle.inactive { background: #b91c1c !important; } /* vermelho escuro: branco ≥4.5:1 */
+.friendly-tooltip {
+  position: fixed; z-index: 10000; background: #1f2937; color: #fff;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  pointer-events: none; white-space: nowrap; box-shadow: var(--shadow-md);
+}
+.friendly-tooltip.hidden { display: none; }
+.friendly-highlight {
+  outline: 2px dashed #22c55e !important; outline-offset: 2px; background: rgba(34,197,94,.08) !important;
+}
+
+/* Densidade adaptativa */
+[data-density="compact"] .tnode { padding: 6px 8px; font-size: 13px; }
+[data-density="compact"] .bubble { padding: 8px 12px 20px; font-size: 14px; }
+[data-density="compact"] .composer:not(.cozy-composer) { padding: 8px 10px; }
+
+/* Densidade adaptativa (médio prazo UI_UX): em telas pequenas o modo compact
+   ganha mais respiro automaticamente (padding intermediário), sem mudar desktop. */
+@media (max-width: 760px) {
+  [data-density="compact"] .tnode { padding: 8px 10px; font-size: 13.5px; }
+  [data-density="compact"] .bubble { padding: 10px 14px 21px; font-size: 14px; }
+}
+@media (max-height: 700px) and (min-width: 761px) {
+  .tnode { padding: 6px 8px; }
+  .bubble { padding: 8px 12px 20px; font-size: 14px; }
+}
+

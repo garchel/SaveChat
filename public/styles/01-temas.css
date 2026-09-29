@@ -1,0 +1,461 @@
+/* ===================== TEMAS ===================== */
+/* Tema padrão = lavanda quente (já em :root). Abaixo, variações via
+   data-theme no <html>. Cada tema reescreve só as variáveis de cor. */
+
+/* Lavanda — paleta própria lilás/lavanda (não herda mais o laranja do :root) */
+[data-theme="lavender"] {
+  --bg: #f4f1fb;
+  --bg-nav: #ece7f8;
+  --bg-elev: #ffffff;
+  --bg-explorer: #faf8fe;
+  --bg-chat: #f7f5fd;
+  --bg-chat-inner: #fbfaff;
+  --bubble-me: #6d4fe0;
+  --bubble-me-2: #5a3ed1;
+  --bubble-cream: #7e64e6;
+  --bubble-blue: #8a72ea;
+  --bubble-gray: #8470e2;
+  --bubble-sys: #7e64e6;
+  --text: #2e283e;
+  --on-bubble: #ffffff;
+  --bubble-meta: #ffffff;
+  --text-dim: #716988;
+  --text-light: #73679B;
+  --border: #e0daf2;
+  --border-light: #ebe6f7;
+  --accent: #7c5cff;
+  --accent-soft: #eae4ff;
+  --accent-teal: #589b99;
+  --accent-teal-soft: #e6f2f2;
+  --gold: #f5b942;
+  --ok: #46c98a;
+  --on-accent: #2e283e;
+  --bg-glow-1: #e6defc;
+  --bg-glow-2: #ded6f8;
+  --surf-chat: #f9f7fe;
+  --surf-explorer: #f1edfa;
+  --surf-nav: #e6dff5;
+  --glyph-stars: #b3a3d9;
+  --glyph-hearts: #c4aede;
+  --glyph-clouds: #a99cd0;
+  --glyph-leaves: #9a8cc4;
+  --glyph-circles: #cbbfe4;
+  --glyph-dots: #cbbfe4;
+}
+
+/* Sakura — rosa cerejeira, cozy e suave */
+[data-theme="sakura"] {
+  --bg: #fdf3f5;
+  --bg-nav: #fbe9ee;
+  --bg-elev: #ffffff;
+  --bg-explorer: #fef7f9;
+  --bg-chat: #fef6f8;
+  --bg-chat-inner: #fffafb;
+  --bubble-me: #e86a8a;
+  --bubble-me-2: #d95a7a;
+  --bubble-cream: #f28aa5;
+  --bubble-blue: #f496ac;
+  --bubble-gray: #ef8ba4;
+  --bubble-sys: #f28aa5;
+  --text: #42303a;
+  --on-bubble: #ffffff;
+  --bubble-meta: #ffffff;
+  --text-dim: #8d7280;
+  --text-light: #96788a;
+  --border: #f6dde4;
+  --border-light: #fae8ed;
+  --accent: #e86a8a;
+  --accent-soft: #fce4ea;
+  --accent-teal: #7fb5a3;
+  --accent-teal-soft: #e3f2ed;
+  --danger: #e5484d;
+  --gold: #f0b95c;
+  --ok: #6db99a;
+  --on-accent: #42303a;
+  --bg-glow-1: #fce0e8;
+  --bg-glow-2: #f8d4de;
+  --surf-chat: #fef6f8;
+  --surf-explorer: #fbeef2;
+  --surf-nav: #f7e4ea;
+  --glyph-stars: #e8a7bc;
+  --glyph-hearts: #e08ca6;
+  --glyph-clouds: #d9a8bc;
+  --glyph-leaves: #b8c9a8;
+  --glyph-circles: #efc3d2;
+  --glyph-dots: #efc3d2;
+  --glyph-sakura: #f09bb4;
+  --glyph-butterflies: #c79ade;
+  --glyph-strawberries: #ef8f9d;
+  --glyph-rainbows: #f2b268;
+}
+
+/* Bubblegum — rosa chiclete vibrante, pop e divertido */
+/* Napolitano — sorvete: morango (accent) + chocolate (bolhas/texto) + baunilha (fundos) */
+[data-theme="napolitano"] {
+  --bg: #fbf5ec;
+  --bg-nav: #f4ecdd;
+  --bg-elev: #ffffff;
+  --bg-explorer: #fdf8f0;
+  --bg-chat: #faf4ea;
+  --bg-chat-inner: #fdf9f1;
+  --bubble-me: #a06a4a;
+  --bubble-me-2: #8a563a;
+  --bubble-cream: #e88a9a;
+  --bubble-blue: #eda2ad;
+  --bubble-gray: #e28a99;
+  --bubble-sys: #e88a9a;
+  --text: #4a3428;
+  --on-bubble: #ffffff;
+  --bubble-meta: #ffffff;
+  --text-dim: #8a7462;
+  --text-light: #967e6c;
+  --border: #ecdfc9;
+  --border-light: #f3e9d8;
+  --accent: #e0567a;
+  --accent-soft: #fadbe3;
+  --accent-teal: #5a9e8a;
+  --accent-teal-soft: #ddeee6;
+  --danger: #e5484d;
+  --gold: #d99a3d;
+  --ok: #4a9e7a;
+  --on-accent: #4a3428;
+  --bg-glow-1: #f6e3d3;
+  --bg-glow-2: #f0d9c4;
+  --surf-chat: #faf4ea;
+  --surf-explorer: #f5ecdd;
+  --surf-nav: #efe4d0;
+  --glyph-stars: #d9a86a;
+  --glyph-hearts: #e07a92;
+  --glyph-clouds: #c4a88a;
+  --glyph-leaves: #a8b89a;
+  --glyph-circles: #d9c4a8;
+  --glyph-dots: #d9c4a8;
+  --glyph-sakura: #ec8fa4;
+  --glyph-butterflies: #b08a5a;
+  --glyph-strawberries: #e0567a;
+  --glyph-rainbows: #d98a4a;
+}
+
+/* Escuro (dark) — preto e cinza */
+[data-theme="dark"] {
+  --bg: #0f0f0f;
+  --bg-nav: #050505;
+  --bg-elev: #1a1a1a;
+  --bg-explorer: #141414;
+  --bg-chat: #1a1a1a;
+  --bg-chat-inner: #1e1e1e;
+  --bubble-me: #2a2a2a;
+  --bubble-me-2: #1f1f1f;
+  --bubble-cream: #2a2a2a;
+  --bubble-blue: #2a2a2a;
+  --bubble-gray: #2a2a2a;
+  --bubble-sys: #2a2a2a;
+  --on-bubble: #ffffff;
+  --bubble-meta: rgba(255,255,255,.7);
+  --text: #e5e5e5;
+  --text-dim: #8a8a8a;
+  --text-light: #858585;
+  --border: #2a2a2a;
+  --border-light: #222222;
+  --accent: #9e9e9e;
+  --accent-soft: #262626;
+  --accent-teal: #8c8c8c;
+  --accent-teal-soft: #242424;
+  --danger: #ff6b70;
+  --gold: #d4d4d4;
+  --ok: #8f8f8f;
+  --on-accent: #ffffff;
+  --bg-glow-1: #161616;
+  --bg-glow-2: #111111;
+  --glyph-stars: #5a5a5a;
+  --glyph-hearts: #5a5a5a;
+  --glyph-clouds: #5a5a5a;
+  --glyph-leaves: #5a5a5a;
+  --glyph-circles: #5a5a5a;
+  --glyph-dots: #5a5a5a;
+  --glyph-sakura: #6a6a6a;
+  --glyph-butterflies: #6a6a6a;
+  --glyph-strawberries: #6a6a6a;
+  --glyph-rainbows: #6a6a6a;
+  --surf-chat: #171717;
+  --surf-explorer: #101010;
+  --surf-nav: #000000;
+}
+
+/* Hortelã (mint) */
+[data-theme="mint"] {
+  --bg: #eef8f3;
+  --bg-nav: #e2f1e9;
+  --bg-elev: #ffffff;
+  --bg-explorer: #f7fcfa;
+  --bg-chat: #f4fbf7;
+  --bg-chat-inner: #fafdfa;
+  --bubble-me: #0f8f6f;
+  --bubble-me-2: #0c805f;
+  --bubble-cream: #12997a;
+  --bubble-blue: #16a186;
+  --bubble-gray: #14987c;
+  --bubble-sys: #12997a;
+  --text: #1d2b27;
+  --on-bubble: #ffffff;
+  --bubble-meta: #ffffff;
+  --text-dim: #5E756E;
+  --text-light: #59756B;
+  --border: #d6ece2;
+  --border-light: #e4f1eb;
+  --accent: #1faa86;
+  --accent-soft: #dcf3ea;
+  --accent-teal: #178f70;
+  --accent-teal-soft: #d2ede4;
+  --gold: #e8a33d;
+  --ok: #1faa86;
+  --on-accent: #1d2b27;
+  --bg-glow-1: #d9efe4;
+  --bg-glow-2: #cfe8dd;
+  --surf-chat: #f4fbf7;
+  --surf-explorer: #e9f5ee;
+  --surf-nav: #dcefe4;
+  --glyph-stars: #7fae9b;
+  --glyph-hearts: #a3c4b5;
+  --glyph-clouds: #93b5aa;
+  --glyph-leaves: #6f9c8b;
+  --glyph-circles: #a8c8bb;
+  --glyph-dots: #a8c8bb;
+}
+
+/* Pêssego (peach) */
+[data-theme="peach"] {
+  --bg: #fff3ee;
+  --bg-nav: #ffe9df;
+  --bg-elev: #ffffff;
+  --bg-explorer: #fffaf7;
+  --bg-chat: #fff8f4;
+  --bg-chat-inner: #fffcfa;
+  --bubble-me: #f05a35;
+  --bubble-me-2: #e14e2c;
+  --bubble-cream: #ef6644;
+  --bubble-blue: #f27152;
+  --bubble-gray: #ec6040;
+  --bubble-sys: #ef6644;
+  --text: #3a2420;
+  --on-bubble: #ffffff;
+  --bubble-meta: #ffffff;
+  --text-dim: #976257;
+  --text-light: #996153;
+  --border: #f6ddd2;
+  --border-light: #fbeae2;
+  --accent: #ff7a59;
+  --accent-soft: #ffdccf;
+  --accent-teal: #589B99;
+  --accent-teal-soft: #dff0ef;
+  --gold: #f3b13a;
+  --ok: #36a878;
+  --on-accent: #3a2420;
+  --bg-glow-1: #ffe3d6;
+  --bg-glow-2: #ffdcd0;
+  --surf-chat: #fff8f4;
+  --surf-explorer: #fdeee5;
+  --surf-nav: #fae2d4;
+  --glyph-stars: #d9a58f;
+  --glyph-hearts: #e0a494;
+  --glyph-clouds: #d9b0a2;
+  --glyph-leaves: #c99e8c;
+  --glyph-circles: #dcb5a6;
+  --glyph-dots: #dcb5a6;
+}
+
+/* Oceano (ocean) */
+[data-theme="ocean"] {
+  --bg: #eaf3fb;
+  --bg-nav: #dbeaf7;
+  --bg-elev: #ffffff;
+  --bg-explorer: #f5fafe;
+  --bg-chat: #f2f8fd;
+  --bg-chat-inner: #f8fcff;
+  --bubble-me: #1f7fc2;
+  --bubble-me-2: #166fae;
+  --bubble-cream: #2489cf;
+  --bubble-blue: #2b93d8;
+  --bubble-gray: #2688cc;
+  --bubble-sys: #2489cf;
+  --text: #1b2a36;
+  --on-bubble: #ffffff;
+  --bubble-meta: #ffffff;
+  --text-dim: #5B7184;
+  --text-light: #557085;
+  --border: #d6e6f2;
+  --border-light: #e4eff8;
+  --accent: #2b8fd6;
+  --accent-soft: #d9edfa;
+  --accent-teal: #1faa86;
+  --accent-teal-soft: #d7f0e9;
+  --gold: #e8a33d;
+  --ok: #2bb673;
+  --on-accent: #1b2a36;
+  --bg-glow-1: #d8eafa;
+  --bg-glow-2: #d3e9f6;
+  --surf-chat: #f2f8fd;
+  --surf-explorer: #e7f1fa;
+  --surf-nav: #d9e9f6;
+  --glyph-stars: #8aa9c4;
+  --glyph-hearts: #9fb3cc;
+  --glyph-clouds: #86a5bf;
+  --glyph-leaves: #7a99b4;
+  --glyph-circles: #b0c5d8;
+  --glyph-dots: #b0c5d8;
+}
+
+/* Meia-noite (midnight) — azul profundo */
+[data-theme="midnight"] {
+  --bg: #0e1525;
+  --bg-nav: #0b1120;
+  --glyph-stars: #5a6f8a;
+  --glyph-hearts: #6a7a95;
+  --glyph-clouds: #4a607a;
+  --glyph-leaves: #4a6a7a;
+  --glyph-circles: #7a8aa0;
+  --glyph-dots: #7a8aa0;
+  --glyph-sakura: #8a7a9a;
+  --glyph-butterflies: #8a7a9a;
+  --glyph-strawberries: #8a7a8a;
+  --glyph-rainbows: #9a8a6a;
+  --bg-elev: #16203a;
+  --bg-explorer: #131c31;
+  --bg-chat: #0a0f1c;
+  --bg-chat-inner: #0d1424;
+  --bubble-me: #4f8cff;
+  --bubble-me-2: #3a6fe0;
+  --bubble-cream: #1b2742;
+  --bubble-blue: #182338;
+  --bubble-gray: #1e2a44;
+  --bubble-sys: #1b2742;
+  --on-bubble: #ffffff;
+  --bubble-meta: rgba(255,255,255,.7);
+  --text: #e7ecf7;
+  --text-dim: #8595b5;
+  --text-light: #7487a9;
+  --border: #243453;
+  --border-light: #1c2a45;
+  --accent: #4f8cff;
+  --accent-soft: #1a2745;
+  --accent-teal: #3ecfb2;
+  --accent-teal-soft: #12302c;
+  --danger: #ff6b70;
+  --gold: #f5b942;
+  --ok: #46c98a;
+  --on-accent: #ffffff;
+  --bg-glow-1: #14213f;
+  --bg-glow-2: #101a30;
+  --surf-chat: #0a0f1c;
+  --surf-explorer: #101830;
+  --surf-nav: #070b14;
+}
+
+/* Wrapper de ícones SVG injetados via JS */
+.svg-ic { display: inline-block; vertical-align: middle; line-height: 0; }
+.svg-ic svg { display: block; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+/* controles de formulário herdam a fonte do tema (--app-font): botões/inputs
+   NÃO herdam por padrão no UA stylesheet — era por isso que os botões da
+   sidebar ficavam na fonte do sistema ("dura"), ignorando as configurações */
+button, input, select, textarea { font-family: inherit; }
+body {
+  font-family: var(--app-font);
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+h1, .brand h1, .chat-name, .tree-title, .explorer-label { font-family: var(--heading-font); }
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 800px 600px at 20% 80%, var(--bg-glow-1) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 90% 20%, var(--bg-glow-2) 0%, transparent 50%),
+    var(--bg);
+}
+.hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* App container cozy — agora 2 colunas (explorer + canvas) */
+.app {
+  display: grid; grid-template-columns: var(--sidebar-w) 1fr;
+  height: calc(100vh - 32px); margin: 16px;
+  background: var(--bg-explorer);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+}
+/* Itens do grid não podem crescer além da linha — sem isso, muitas mensagens
+   empurram composer e rodapé para fora da tela */
+.app > * { min-height: 0; min-width: 0; }
+.sidebar { background: var(--surf-explorer, var(--bg-explorer)); }
+.chat { background: var(--surf-chat, var(--bg-chat)); }
+.explorer-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 14px 10px; border-bottom: 1px solid var(--border-light);
+}
+.brand-mark-img { width: 40px; height: 40px; border-radius: 11px; box-shadow: var(--shadow-sm); flex-shrink: 0; }
+.brand-text { flex: 1; min-width: 0; }
+.brand-name { font-weight: 800; font-size: 15px; letter-spacing: -.3px; }
+.brand-sub { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.profile-btn {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 12px;
+  text-align: left; transition: background .12s;
+}
+.profile-btn:hover { background: var(--bg); }
+/* Seta do menu de perfil: era estilo inline (opacity .5), que não é tematizável.
+   Nos temas escuros a cor do texto é cinza-claro e a seta sumia no fundo — lá
+   ela vai em branco puro, com um pouco mais de presença. */
+.profile-caret {
+  /* <button> não herda `color` (o UA põe buttontext = preto), então a cor é
+     fixada aqui para acompanhar a paleta como o resto do rodapé. */
+  color: var(--text-dim);
+  margin-left: auto; flex-shrink: 0; opacity: .55;
+  transition: opacity .15s, transform .15s;
+}
+.profile-btn:hover .profile-caret { opacity: 1; }
+[data-theme="dark"] .profile-caret,
+[data-theme="midnight"] .profile-caret { color: #ffffff; opacity: .8; }
+[data-theme="dark"] .profile-btn:hover .profile-caret,
+[data-theme="midnight"] .profile-btn:hover .profile-caret { opacity: 1; }
+.profile-popover { min-width: 200px; }
+
+/* ---- Botão Atualizar app + chip de status (menu do perfil) ---- */
+#profile-update { position: relative; }
+.update-chip {
+  margin-left: auto;
+  font-size: 11px; font-weight: 700; letter-spacing: .2px;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--bg); color: var(--text-dim);
+  border: 1px solid var(--border);
+  max-width: 118px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.update-chip[data-state="current"] { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.update-chip[data-state="update"] {
+  color: #7c4a03; background: rgba(245, 166, 35, .18);
+  border-color: rgba(245, 166, 35, .5);
+}
+.update-chip[data-state="checking"] { color: var(--accent); border-color: var(--accent-soft); }
+/* dot âmbar no avatar: sinal de novidade com o popover fechado */
+#me-avatar.has-update, #me-avatar-img.has-update { position: relative; }
+#me-avatar.has-update::after, #me-avatar-img.has-update::after {
+  content: ""; position: absolute; top: -2px; right: -2px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #f5a623; border: 2px solid var(--bg-elev);
+}
+/* tema escuro: texto âmbar mais claro p/ contraste */
+[data-theme="dark"] .update-chip[data-state="update"],
+[data-theme="midnight"] .update-chip[data-state="update"] {
+  color: #ffd08a; background: rgba(245, 166, 35, .16); border-color: rgba(245, 166, 35, .4);
+}
+/* estado instalando: ícone do botão gira */
+#profile-update.updating svg { animation: updSpin .8s linear infinite; }
+#profile-update.updating { opacity: .75; }
+@keyframes updSpin { to { transform: rotate(360deg); } }
+

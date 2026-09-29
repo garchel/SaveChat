@@ -1,0 +1,5 @@
+/* ===================== TÍTULO DA CONVERSA EDITÁVEL ===================== */
+#chat-name { cursor: text; border-radius: 6px; padding: 2px 6px; transition: background .12s; outline: none; }
+#chat-name:hover { background: var(--accent-soft); }
+#chat-name.editing { background: var(--bg-elev); box-shadow: 0 0 0 2px var(--accent); }
+

@@ -1,0 +1,82 @@
+/* ===================== EXPLORER: Novo + Lupa · painel de busca · seletor de páginas ===================== */
+.explorer-row { display: flex; gap: 8px; align-items: stretch; }
+.explorer-row .grow { flex: 1; min-width: 0; }
+/* Modo busca: o botão NOVO some em fade OUT puro (largura fixa, sem encolher)
+   e a lupa fica exatamente no lugar — só o NOVO desaparece. */
+#btn-new-thread { transition: opacity .22s ease, transform .22s ease, filter .15s, box-shadow .2s; }
+.explorer-row.searching #btn-new-thread {
+  opacity: 0;
+  transform: translateX(6px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+}
+/* Painel de busca: OVERLAY na exata área do NOVO (a lupa não se move e nada
+   no layout é empurrado). Resultados fluem por baixo, em dropdown, com scroll
+   interno SEM scrollbar visível. */
+.explorer-row { position: relative; }
+.explorer-search-panel {
+  position: absolute; top: 0; left: 0; right: 52px; /* largura do NOVO: linha − lupa(44) − gap(8) */
+  z-index: 30;
+  visibility: hidden; opacity: 0; transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s;
+}
+.explorer-search-panel.open {
+  visibility: visible; opacity: 1; transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity .22s ease, transform .22s ease;
+}
+.explorer-search-panel .search-box { margin: 0; }
+.explorer-search-panel .search-results {
+  margin: 8px 0 0;
+  max-height: 45vh; overflow-y: auto;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.explorer-search-panel .search-results::-webkit-scrollbar { display: none; }
+.btn-explorer-icon {
+  width: 44px; flex: 0 0 44px; border-radius: 14px;
+  background: transparent; color: var(--text); border: 1.5px solid var(--border);
+  cursor: pointer; display: grid; place-items: center;
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
+  position: relative;
+}
+.btn-explorer-icon::after { content: ""; position: absolute; inset: -6px; } /* hit-area 56px */
+.btn-explorer-icon:hover { background: var(--bg); border-color: var(--text-dim); }
+.btn-explorer-icon:active { transform: scale(.94); }
+.btn-explorer-icon.active {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+}
+
+
+/* Seletor de páginas do explorador (Cadernos | IA | Diária):
+   faixa própria abaixo da marca, acima do NOVO — navegação principal. */
+.page-switcher {
+  display: flex; gap: 4px;
+  margin: 10px 14px 2px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border: 1px solid var(--border); border-radius: 14px;
+}
+.page-switch {
+  flex: 1; min-height: 44px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: none; border-radius: 10px;
+  background: transparent; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .2px;
+  color: var(--text-dim);
+  transition: background .15s, color .15s, transform .1s;
+  position: relative;
+}
+.page-switch svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.page-switch:hover { background: var(--bg-elev); color: var(--text); }
+.page-switch:active { transform: scale(.95); }
+.page-switch.active { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-sm); }
+@media (max-width: 760px) {
+  /* mobile: o sub do brand cede, mas marca e seletor continuam legíveis */
+  .explorer-brand .brand-sub { display: none; }
+  .explorer-brand { padding: 12px 12px 8px; }
+  .page-switcher { margin: 8px 12px 0; }
+  .page-switch span { font-size: 11px; }
+}
+

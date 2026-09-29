@@ -1,0 +1,37 @@
+/* ===================== BOTÃO DE PERIGO (modal de exclusão) ===================== */
+.btn-danger {
+  background: var(--danger); color: #fff; border: none;
+}
+.btn-danger:hover { filter: brightness(1.05); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+/* ============================================================
+   SISTEMA UNIFICADO DE BOTÕES (UI_UX quick-win 1)
+   Uma única linguagem visual: .btn + variante
+     primary   → ação principal (accent sólido)
+     secondary → ação secundária (borda, fundo transparente)
+     ghost     → terciária/texto
+     danger    → destrutiva
+   As classes legadas (.btn-primary, .btn-ghost, .btn-explorer.*,
+   .btn-google, .seg-btn) continuam funcionando como aliases.
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: 12px; font-weight: 700; font-size: var(--text-base);
+  padding: 11px 20px; cursor: pointer; letter-spacing: -0.1px;
+  transition: transform .1s ease, box-shadow .2s, filter .15s, background .15s, border-color .15s;
+}
+.btn:active { transform: scale(.97); }
+
+.btn.primary { background: var(--accent); color: var(--on-accent); border: none; box-shadow: var(--shadow-sm); }
+.btn.primary:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+.btn.secondary { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
+.btn.secondary:hover { background: var(--bg-elev); border-color: var(--accent); }
+
+.btn.ghost { background: transparent; color: var(--text-dim); border: none; font-weight: 600; }
+.btn.ghost:hover { background: var(--bg); color: var(--text); }
+
+.btn.danger { background: var(--danger); color: #fff; border: none; }
+.btn.danger:hover { filter: brightness(1.05); }
+

@@ -1,0 +1,114 @@
+/* ===================== ANIMAÇÕES (≤0.25s) ===================== */
+
+/* ============================================================
+   BRAND MOTION IDENTITY — "Playful contido" (MOTION_DESIGN.md)
+   Assinatura: ~8% overshoot no release; saídas aceleradas.
+   Mobile: durações ×0.8 via var. Reduced-motion: kill-all global.
+   ============================================================ */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);  /* assinatura: entradas/settle */
+  --ease-exit:   cubic-bezier(0.3, 0, 1, 1);        /* saídas (MD3 accelerate) */
+  --ease-soft:   cubic-bezier(0.2, 0, 0, 1);        /* on-screen */
+  --dur-fast:    120ms;
+  --dur-base:    200ms;
+  --dur-slow:    300ms;
+  --press-scale:  0.96;   /* press padronizado (M4) */
+}
+
+/* Bolhas de mensagem: entrada suave — SÓ em bolhas novas (.is-new),
+   nunca replayando a thread inteira ao trocar de nota/sync (fix M1) */
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.bubble { animation: none; }
+.bubble.is-new {
+  animation: bubbleIn var(--dur-base) var(--ease-soft) both;
+}
+.bubble.is-new.remote { animation-delay: .02s; }
+
+/* Itens da árvore: entrada — SÓ no nó realmente novo (.tree-new, aplicado pelo
+   renderTree); a animação global re-animbava a LISTA INTEIRA a cada renderTree
+   (o flick ao criar conversa/caderno) */
+@keyframes treeItemIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.tnode.tree-new, .folder-node.tree-new {
+  animation: treeItemIn .18s ease both;
+}
+
+/* Modal: fade + scale */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.modal:not(.hidden) {
+  animation: modalIn .2s ease both;
+}
+
+/* Popovers (msg-popover, pin-popover, settings-popover): fade + slide */
+@keyframes popoverIn {
+  from { opacity: 0; transform: translateY(-4px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.msg-popover:not(.hidden),
+.pin-popover:not(.hidden),
+#settings-popover:not(.hidden) {
+  animation: popoverIn .18s ease both;
+}
+
+/* Context menu: fade + scale */
+@keyframes ctxIn {
+  from { opacity: 0; transform: scale(.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.ctx-menu:not(.hidden) {
+  animation: ctxIn .15s ease both;
+}
+
+/* Toast: slide up + fade */
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+.app-toast {
+  animation: toastIn .2s ease both;
+}
+
+/* Empty state: fade + scale suave */
+@keyframes emptyIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.empty-state:not(.hidden) {
+  animation: emptyIn .25s ease both;
+}
+
+/* Botões de ação: press suave */
+.btn-send:active, .btn-attach:active, .fmt-btn:active {
+  transform: scale(.94);
+  transition: transform .08s;
+}
+
+/* Pin button: aparece com fade (sem vencer o estado .no-pin) */
+.btn-pin:not(.hidden):not(.no-pin) {
+  animation: bubbleIn .2s ease both;
+}
+.btn-pin.no-pin { animation: none; }
+
+/* Anexos preview: entrada */
+.attach-thumb {
+  animation: bubbleIn .18s ease both;
+}
+
+/* Search results: entrada */
+.sr-item {
+  animation: treeItemIn .15s ease both;
+}
+
+/* Favoritos na sidebar: entrada — idem árvore: só nó novo */
+.fav-list .tnode.tree-new {
+  animation: treeItemIn .15s ease both;
+}
+

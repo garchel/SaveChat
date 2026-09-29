@@ -1,0 +1,38 @@
+/* ===================== DRAG & DROP DE THREADS ===================== */
+.tnode[draggable="true"] { cursor: grab; }
+/* A7 — drag & drop: lift físico (escala + sombra cresce) ao pegar o item */
+.tnode.dnd-dragging {
+  opacity: .85;
+  transform: scale(1.03);
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--dur-fast, 120ms) var(--ease-spring), box-shadow var(--dur-base, 200ms);
+  position: relative; z-index: 5;
+}
+.tnode.dnd-over { box-shadow: inset 0 2px 0 var(--accent); background: var(--accent-soft); }
+
+/* ---- Destino de drop (DnD): pasta realçada + linha de inserção + chip flutuante ---- */
+.folder-node.dnd-over-folder {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: var(--accent-soft); border-radius: 8px;
+  outline: 2px dashed var(--accent); outline-offset: 2px;
+}
+.tnode { position: relative; }
+.tnode.dnd-above::before, .tnode.dnd-below::before {
+  content: ""; position: absolute; left: 6px; right: 6px; height: 3px;
+  border-radius: 3px; background: var(--accent);
+  box-shadow: 0 1px 2px rgba(0,0,0,.15);
+}
+.tnode.dnd-above::before { top: -2px; }
+.tnode.dnd-below::before { bottom: -2px; }
+.dnd-chip {
+  position: fixed; z-index: 400; pointer-events: none;
+  background: var(--bg-elev); color: var(--text);
+  border: 1.5px solid var(--accent); border-radius: 999px;
+  padding: 5px 12px; font-size: 12.5px; font-weight: 700;
+  box-shadow: var(--shadow-md);
+  display: flex; align-items: center; gap: 6px;
+  max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transform: translate(14px, 16px);
+}
+.dnd-chip svg { width: 15px; height: 15px; color: var(--accent); flex-shrink: 0; }
+

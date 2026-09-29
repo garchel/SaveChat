@@ -1,0 +1,62 @@
+:root {
+  --on-bubble: #3A2E2A;
+  --bubble-meta: rgba(0,0,0,.55);
+  /* Design System Cozy — Off-white / Creme + Laranja/Teal */
+  --bg: #F8F5EE;
+  --bg-nav: #F5EFE6;
+  --bg-elev: #ffffff;
+  --bg-explorer: #FFFDFA;
+  --bg-chat: #FFFBF5;
+  --bg-chat-inner: #FFFDF8;
+  --bubble-me: #E28D42;
+  --bubble-me-2: #D97A2B;
+  --bubble-cream: #FFF3D9;
+  --bubble-blue: #E3F0FA;
+  --bubble-gray: #E8E0D6;
+  --bubble-sys: #FFF3D9;
+  --text: #3A2E2A;
+  --text-dim: #786E67;
+  --text-light: #796D60;
+  --border: #F0E6D3;
+  --border-light: #F5EFE6;
+  --accent: #E28D42;
+  --accent-teal: #589B99;
+  --accent-soft: #FFF0E0;
+  --accent-teal-soft: #E6F2F2;
+  --danger: #e5484d;
+  --gold: #f5b942;
+  --ok: #589B99;
+  --on-accent: #3A2E2A;
+  --bg-glow-1: #F5E6C8;
+  --bg-glow-2: #E8DCC8;
+  --glyph-stars: #c9a86a;
+  --glyph-hearts: #d98a8a;
+  --glyph-clouds: #a9bfcf;
+  --glyph-leaves: #8fb89a;
+  --glyph-circles: #d9cdb8;
+  --glyph-dots: #d9cdb8;
+  --glyph-sakura: #e59ab2;
+  --glyph-butterflies: #b48ed6;
+  --glyph-strawberries: #e57373;
+  --glyph-rainbows: #f0a04b;
+  /* Hierarquia de superfícies 60/30/10: chat claro > explorer médio > nav escura */
+  --surf-chat: #FFFBF5;
+  --surf-explorer: #FBF4E8;
+  --surf-nav: #F3EADA;
+  /* Fonte da interface — cozy padrão */
+  --app-font: "Quicksand", "Plus Jakarta Sans", sans-serif;
+  --heading-font: "Baloo 2", "Quicksand", sans-serif;
+  --sidebar-w: 320px;
+  --nav-w: 64px;
+  --radius: 20px;
+  --radius-lg: 24px;
+  --shadow-sm: 0 4px 16px rgba(139, 111, 78, .08);
+  --shadow-md: 0 8px 24px rgba(139, 111, 78, .10);
+  --shadow-lg: 0 12px 32px rgba(139, 111, 78, .12);
+  /* Escala tipográfica */
+  --text-xs: 11px; --text-sm: 12px; --text-base: 13.5px; --text-md: 15px; --text-lg: 17px; --text-xl: 20px; --text-2xl: 24px;
+  /* Espaçamento 4/8 */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px;
+  font-synthesis: none;
+}
+

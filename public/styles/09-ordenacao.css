@@ -1,0 +1,9 @@
+/* ===================== ORDENAÇÃO (settings) ===================== */
+.seg { display: flex; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+.seg-btn {
+  flex: 1; border: none; background: none; padding: 7px 10px; border-radius: 7px; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--text-dim); transition: background .12s, color .12s;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-sm); }
+

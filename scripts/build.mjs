@@ -48,6 +48,25 @@ function walk(dir, cb) {
   }
 }
 
+// No dev, styles.css é um índice de @import (o código vive em styles/*.css).
+// Cada @import é um request bloqueante e sequencial: o browser só descobre o
+// 2º arquivo DEPOIS de aplicar o 1º, então o FCP paga a latência N vezes.
+// Em produção não há ganho em manter isso separado — o build achata tudo num
+// stylesheet só, na MESMA ordem dos @import (a cascata depende da ordem).
+function resolveImports(css, baseDir) {
+  if (!css.includes('@import')) return css;
+  return css.replace(/@import url\("([^"]+)"\);?/g, (_m, href) => {
+    const p = join(baseDir, href);
+    try {
+      const part = readFileSync(p, 'utf8');
+      return '/* ==== ' + href.split('/').pop() + ' ==== */\n' + resolveImports(part, dirname(p));
+    } catch (err) {
+      console.warn('build: @import não encontrado -> ' + href);
+      return '';
+    }
+  });
+}
+
 if (existsSync(OUT)) rmSync(OUT, { recursive: true });
 mkdirSync(OUT, { recursive: true });
 
@@ -58,10 +77,17 @@ walk(SRC, (file) => {
   mkdirSync(dirname(dest), { recursive: true });
   const ext = file.split('.').pop();
   if (ext === 'css' || ext === 'js') {
-    const src = readFileSync(file, 'utf8');
+    const raw = readFileSync(file, 'utf8');
+    // achata @import ANTES de minificar (minificar antes quebraria o regex)
+    const src = ext === 'css' ? resolveImports(raw, dirname(file)) : raw;
     const min = ext === 'css' ? minifyCss(src) : minifyJs(src);
     origTotal += src.length; minTotal += min.length;
     writeFileSync(dest, min);
+    // as partes do CSS já foram inline no styles.css achatado: copiar
+    // styles/*.css para o dist só duplicaria ~155KB que ninguém carrega
+    if (ext === 'css' && rel === 'styles.css') {
+      try { rmSync(join(OUT, 'styles'), { recursive: true, force: true }); } catch {}
+    }
   } else {
     copyFileSync(file, dest);
     origTotal += statSync(file).size; minTotal += statSync(file).size;
