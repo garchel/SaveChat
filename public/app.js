@@ -393,7 +393,7 @@ showModal(title, bodyHtml, onOk) {
 
   Store.load();
   // aplica tema salvo antes de montar a UI
-  const savedTheme = (Store.data.ui && Store.data.ui.theme) || 'peach';
+  const savedTheme = (Store.data.ui && Store.data.ui.theme) || 'terracota';
   document.documentElement.dataset.theme = savedTheme;
   UI.init();
 

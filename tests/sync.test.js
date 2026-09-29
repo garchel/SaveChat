@@ -88,9 +88,28 @@ describe('PWA', ()=>{
     assert.ok(!/gh pr create/.test(pr), 'promote não deve abrir PR');
     assert.ok(!/push origin main/.test(pr), 'promote nunca envia para main');
   });
-  it('sw.js é v142', ()=>{
+  it('tipografia: nenhum TEXTO corrido abaixo de 12px', ()=>{
+    const fs2 = require('fs');
+    const dir = 'public/styles';
+    // badge/contador/avatar sao glifo numerico, nao texto: o piso nao se aplica
+    const ICON = /badge|count|chip|dot|png|ini\b|av-|glyph|indicator|\.del\b/i;
+    const oficiais = [];
+    for (const f of fs2.readdirSync(dir).filter(x => x.endsWith('.css'))) {
+      const src = fs2.readFileSync(`${dir}/${f}`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+      for (const m of src.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const sel = m[1].replace(/\s+/g, ' ').trim();
+        if (ICON.test(sel)) continue;
+        for (const fs of m[2].matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)) {
+          if (parseFloat(fs[1]) < 12) oficiais.push(`${f}: ${sel} = ${fs[1]}px`);
+        }
+      }
+    }
+    assert.deepEqual(oficiais, [],
+      `texto abaixo de 12px (piso WCAG/legibilidade):\n  ${oficiais.join('\n  ')}`);
+  });
+  it('sw.js é v145', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v142/);
+    assert.match(sw, /notethread-v145/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);

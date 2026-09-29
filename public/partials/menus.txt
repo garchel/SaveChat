@@ -40,7 +40,7 @@
     <div class="settings-section">
       <div class="settings-label">Tema</div>
       <div class="theme-grid" id="theme-grid">
-        <button class="theme-chip" data-set="theme" data-val="peach" title="Pêssego"><span class="swatch" style="--c1:#ff7a59;--c2:#f3b13a;--c3:#ffdccf"></span><span class="theme-name">Pêssego</span></button>
+        <button class="theme-chip" data-set="theme" data-val="terracota" title="Terracota"><span class="swatch" style="--c1:#ff7a59;--c2:#f3b13a;--c3:#ffdccf"></span><span class="theme-name">Terracota</span></button>
         <button class="theme-chip" data-set="theme" data-val="dark" title="Escuro"><span class="swatch" style="--c1:#9e9e9e;--c2:#5a5a5a;--c3:#2a2a2a"></span><span class="theme-name">Escuro</span></button>
         <button class="theme-chip" data-set="theme" data-val="lavender" title="Lavanda"><span class="swatch" style="--c1:#7c5cff;--c2:#f5b942;--c3:#efeaff"></span><span class="theme-name">Lavanda</span></button>
         <button class="theme-chip" data-set="theme" data-val="mint" title="Hortelã"><span class="swatch" style="--c1:#1faa86;--c2:#e8a33d;--c3:#dcf3ea"></span><span class="theme-name">Hortelã</span></button>
@@ -155,7 +155,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.15.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.16.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
