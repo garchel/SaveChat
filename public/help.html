@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Como usar — SaveChat</title>
+<meta name="description" content="Guia completo das funcionalidades do SaveChat: conversas, cadernos, IA, Diária, busca, sincronização e atalhos.">
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Página estática de ajuda — reaproveita styles.css (tokens do tema) e
+     acrescenta só a tipografia de leitura longa. Não carrega o app. */
+  body.help-page {
+    max-width: 780px; margin: 0 auto; padding: 28px 20px 64px;
+    background: var(--bg); color: var(--text);
+    font-family: var(--font, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+    line-height: 1.65; -webkit-text-size-adjust: 100%;
+  }
+  .help-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .help-nav a {
+    display: inline-block; padding: 9px 15px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--bg-elev);
+    color: var(--text); text-decoration: none; font-size: 13.5px; font-weight: 600;
+  }
+  .help-nav a:hover { border-color: var(--accent); color: var(--accent); }
+  .help-hero { border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+  .help-hero h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.4px; }
+  .help-hero p { margin: 0; color: var(--text-dim); font-size: 15px; }
+
+  /* Índice lateral vira lista no topo quando a tela é estreita */
+  .help-layout { display: grid; grid-template-columns: 208px 1fr; gap: 40px; align-items: start; margin-top: 28px; }
+  .help-toc { position: sticky; top: 20px; font-size: 13.5px; }
+  .help-toc h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+                 color: var(--text-dim); margin: 0 0 10px; }
+  .help-toc ul { list-style: none; margin: 0; padding: 0; }
+  .help-toc li { margin-bottom: 2px; }
+  .help-toc a { color: var(--text-dim); text-decoration: none;
+                display: block; padding: 6px 8px; margin-left: -8px; border-radius: 8px; }
+  .help-toc a:hover { color: var(--accent); background: var(--bg-elev); }
+
+  section { margin-bottom: 40px; scroll-margin-top: 20px; }
+  section h2 { font-size: 20px; margin: 0 0 6px; letter-spacing: -0.2px; }
+  section > p.lead { margin: 0 0 16px; color: var(--text-dim); }
+  h3 { font-size: 15.5px; margin: 22px 0 7px; }
+  .help-page ul, .help-page ol { margin: 0 0 14px; padding-left: 22px; }
+  .help-page li { margin-bottom: 7px; }
+
+  /* "Como fazer": o passo a passo dentro de um cartão destacado */
+  .howto { border: 1px solid var(--border); border-left: 3px solid var(--accent);
+           border-radius: 12px; padding: 14px 16px; margin: 0 0 16px; background: var(--bg-elev); }
+  .howto .do { font-size: 12px; font-weight: 700; text-transform: uppercase;
+               letter-spacing: .07em; color: var(--accent); margin-bottom: 5px; }
+  .howto ol { margin: 0; padding-left: 20px; }
+
+  code, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+  code { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; }
+  kbd { border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px;
+        padding: 1px 6px; font-size: 12px; background: var(--bg-elev); }
+
+  table { width: 100%; border-collapse: collapse; margin: 0 0 16px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+
+  .help-foot { border-top: 1px solid var(--border); padding-top: 18px;
+               display: flex; flex-wrap: wrap; gap: 16px; font-size: 13.5px; }
+  /* alvo de toque: o link cresce, o texto continua com a leitura de link comum */
+  .help-foot a { color: var(--accent); display: inline-block; padding: 8px 0; }
+
+  /* Recursos que ainda não existem — sinaliza sem poluir */
+  .soon { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: .05em; color: var(--text-dim); border: 1px solid var(--border);
+          border-radius: 999px; padding: 1px 8px; vertical-align: 2px; }
+
+  @media (max-width: 720px) {
+    .help-layout { grid-template-columns: 1fr; gap: 26px; }
+    .help-toc { position: static; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .help-hero h1 { font-size: 23px; }
+  }
+</style>
+</head>
+<body class="help-page">
+
+<div class="help-nav">
+  <a href="./">← Voltar ao app</a>
+  <a href="privacy.html">Privacidade</a>
+  <a href="terms.html">Termos</a>
+</div>
+
+<header class="help-hero">
+  <h1>Como usar o SaveChat</h1>
+  <p>Guia de cada ferramenta do app — do básico ao que dá pra fazer com suas notas.</p>
+</header>
+
+<div class="help-layout">
+
+  <nav class="help-toc" aria-label="Índice">
+    <h2>Neste guia</h2>
+    <ul>
+      <li><a href="#conversas">Conversas</a></li>
+      <li><a href="#cadernos">Cadernos</a></li>
+      <li><a href="#mensagens">Mensagens</a></li>
+      <li><a href="#ia">IA</a></li>
+      <li><a href="#diaria">Diária</a></li>
+      <li><a href="#lembretes">Lembretes</a></li>
+      <li><a href="#pendencias">Pendências</a></li>
+      <li><a href="#busca">Busca</a></li>
+      <li><a href="#sincronizacao">Sincronização</a></li>
+      <li><a href="#atalhos">Atalhos &amp; gestos</a></li>
+      <li><a href="#config">Configurações</a></li>
+    </ul>
+  </nav>
+
+  <main>
+
+    <section id="conversas">
+      <h2>Conversas</h2>
+      <p class="lead">A conversa é a unidade principal do SaveChat. Tudo que você anota mora dentro de uma.</p>
+
+      <h3>Criar</h3>
+      <div class="howto">
+        <div class="do">Como criar</div>
+        <ol>
+          <li>Na barra lateral, clique em <strong>Nova conversa</strong> (ou no botão <code>+</code> ao lado de Cadernos).</li>
+          <li>Dê um nome — sem nome, o app cria “Nova conversa” para você renomear depois.</li>
+        </ol>
+      </div>
+
+      <h3>Renomear, excluir e convidar</h3>
+      <p>As duas primeiras ações ficam no menu <code>⋮</code> ao lado do nome da conversa, no topo:</p>
+      <div class="howto">
+        <div class="do">Como abrir o menu da conversa</div>
+        <ol>
+          <li>Abra a conversa.</li>
+          <li>Clique no <code>⋮</code> no canto direito do cabeçalho.</li>
+          <li>Escolha <strong>Renomear conversa</strong> ou <strong>Excluir conversa</strong>.</li>
+        </ol>
+      </div>
+      <p>No mesmo menu você vê em quantas conversas esta foi mencionada (<code>@</code> n) e a opção <strong>Convidar</strong>, que hoje avisa que o compartilhamento entre pessoas ainda não existe.</p>
+    </section>
+
+    <section id="cadernos">
+      <h2>Cadernos</h2>
+      <p class="lead">O caderno é a pasta onde você organiza conversas — para separar projetos, áreas ou contextos.</p>
+
+      <h3>Criar</h3>
+      <div class="howto">
+        <div class="do">Como criar um caderno</div>
+        <ol>
+          <li>Na barra lateral, clique no <code>+</code> ao lado de <strong>Cadernos</strong>.</li>
+          <li>Digite o nome e confirme.</li>
+        </ol>
+      </div>
+
+      <h3>Organizar</h3>
+      <p>Com o botão direito (ou o menu <code>⋮</code>) em um caderno você pode <strong>renomear</strong> ou <strong>excluir</strong> a pasta inteira. Para mover uma conversa, arraste-a para o caderno desejado.</p>
+      <p>A estrela marca conversas como favoritas — elas sobem para o topo da lista.</p>
+    </section>
+
+    <section id="mensagens">
+      <h2>Messages</h2>
+      <p class="lead">Dentro de cada conversa, cada mensagem é uma nota. E uma nota aceita formatação, checklist e mencionar outras conversas.</p>
+
+      <h3>Formatar</h3>
+      <p>Os botões da barra do campo de envio aplicam formatação. <strong>Negrito</strong> e <em>itálico</em> funcionam como interruptor: ligue, digite, desligue. Com texto selecionado, envolve o trecho.</p>
+      <table>
+        <thead><tr><th>Botão</th><th>O que faz</th></tr></thead>
+        <tbody>
+          <tr><td><strong>B</strong></td><td>Negrito</td></tr>
+          <tr><td><em>I</em></td><td>Itálico</td></tr>
+          <tr><td><code>&lt;&gt;</code></td><td>Bloco de código</td></tr>
+          <tr><td>Lista</td><td>Lista com marcadores</td></tr>
+          <tr><td>Checklist</td><td>Caixas de tarefa marcáveis</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Checklist</h3>
+      <p>Marque <code>[ ]</code> no início da linha — o app converte em caixa marcável e registra o item na mensagem. Use <code>[x]</code> para começar concluído.</p>
+      <p>Para não acumular itens prontos, use a opção de ocultar concluídos em <strong>Configurações → Checklists</strong>.</p>
+
+      <h3>Mencionar outra conversa</h3>
+      <p>Digite <code>@</code> e escolha da lista, ou escreva <code>@[Nome da conversa](t:id)</code> à mão. A menção vira um link: <strong>um clique</strong> mostra um cartão de pré-visualização, <strong>dois cliques</strong> abrem a conversa.</p>
+    </section>
+
+    <section id="ia">
+      <h2>IA</h2>
+      <p class="lead">A IA conhece suas notas. Peça resumos, ideias e respostas com base no que você já escreveu.</p>
+
+      <h3>Perguntar</h3>
+      <div class="howto">
+        <div class="do">Como perguntar</div>
+        <ol>
+          <li>Clique em <strong>IA</strong> no seletor de páginas (a segunda aba da barra lateral).</li>
+          <li>Escreva o pedido no campo e toque no botão de enviar (ou <kbd>Enter</kbd>).</li>
+          <li>A resposta aparece no histórico da própria página.</li>
+        </ol>
+      </div>
+      <p>Na primeira vez você precisa cadastrar sua chave do Gemini em <strong>Configurações → Ambiente</strong>. Sem a chave, o app pede que você informe em vez de chamar a API.</p>
+      <p>O botão de <strong>mic</strong> no campo da IA grava um áudio: o app transcreve o que você falou e coloca o texto no campo para você revisar antes de enviar.</p>
+    </section>
+
+    <section id="diaria">
+      <h2>Diária</h2>
+      <p class="lead">A Diária é a rotina do dia: as tarefas que você se propõe a fazer, com o check de conclusão ao lado.</p>
+
+      <div class="howto">
+        <div class="do">Como usar a rotina</div>
+        <ol>
+          <li>Clique em <strong>Diária</strong> no seletor de páginas.</li>
+          <li>Clique em <strong>Nova tarefa</strong> — abre um modal com o texto, o horário e o switch de aviso.</li>
+          <li>Marque o check quando concluir.</li>
+        </ol>
+      </div>
+      <p>A rotina se renova: o que você marca hoje não aparece amanhã.</p>
+    </section>
+
+    <section id="lembretes">
+      <h2>Lembretes</h2>
+      <p class="lead">Lembretes são avisos programados que te chamam de volta no horário que você escolheu.</p>
+      <div class="howto">
+        <div class="do">Como criar</div>
+        <ol>
+          <li>Clique em <strong>Lembretes</strong> no seletor de páginas.</li>
+          <li>Escreva o texto do lembrete e o horário.</li>
+          <li>O app guarda o item e te avisa quando chegar.</li>
+        </ol>
+      </div>
+      <p>O sino na barra lateral (<strong>Notificações</strong>) abre a lista do que está agendado; <kbd>Esc</kbd> fecha.</p>
+    </section>
+
+    <section id="pendencias">
+      <h2>Pendências</h2>
+      <p class="lead">Pendências reúne, num lugar só, todas as caixas de tarefa (<code>[ ]</code>) em aberto de todas as conversas — inclusive as que você esqueceu em conversas antigas.</p>
+      <div class="howto">
+        <div class="do">Como usar</div>
+        <ol>
+          <li>Crie um item de checklist numa mensagem usando <code>[ ]</code> no início da linha.</li>
+          <li>Abra <strong>Pendências</strong> no seletor de páginas (ou o botão de lista na barra lateral).</li>
+          <li>Marque a caixa para concluir, ou clique na linha para ir direto à mensagem original.</li>
+        </ol>
+      </div>
+      <p>Cada linha mostra a qual conversa o item pertence e quando ele foi criado. Concluir aqui também marca na conversaoriginal.</p>
+    </section>
+
+    <section id="busca">
+      <h2>Busca</h2>
+      <p class="lead">A lupa na barra lateral busca em todas as suas notas, em tempo real.</p>
+      <div class="howto">
+        <div class="do">Como buscar</div>
+        <ol>
+          <li>Clique na lupa (ou <kbd>Ctrl</kbd>+<kbd>K</kbd>).</li>
+          <li>Digite. Os resultados aparecem enquanto você escreve.</li>
+        </ol>
+      </div>
+      <p>Além do texto livre, há dois operadores — passe o mouse sobre a lupa para ver o lembrete:</p>
+      <table>
+        <thead><tr><th>Escreva</th><th>Resultado</th></tr></thead>
+        <tbody>
+          <tr><td><code>#tag</code></td><td>Só notas com aquela tag</td></tr>
+          <tr><td><code>in:conversa</code></td><td>Só dentro daquela conversa</td></tr>
+          <tr><td>texto livre</td><td>Busca em todas as notas</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="sincronizacao">
+      <h2>Synchronização</h2>
+      <p class="lead">Suas notas sincronizam pela sua conta, entre os dispositivos. O ponto na barra lateral mostra o estado.</p>
+      <div class="howto">
+        <div class="do">O que cada estado significa</div>
+        <ol>
+          <li><strong>Online</strong> — conectado; tudo já está sincronizando.</li>
+          <li><strong>Offline</strong> — sem internet. Suas notas continuam salvas localmente e sobem sozinhas quando a conexão voltar.</li>
+          <li>Se aparecer um aviso vermelho no campo de envio, as notas estão seguras: é só tocar em <strong>Tentar agora</strong>.</li>
+        </ol>
+      </div>
+      <p>Cada conta tem seu próprio espaço — trocar de conta no mesmo aparelho não mistura as notas.</p>
+    </section>
+
+    <section id="atalhos">
+      <h2>Atalhos &amp; gestos</h2>
+      <p class="lead">No celular, o app troca os atalhos de teclado por gestos, porque a tecla <kbd>Enter</kbd> seria enviada.</p>
+      <table>
+        <thead><tr><th>Ação</th><th>Computador</th><th>Celular</th></tr></thead>
+        <tbody>
+          <tr><td>Enviar mensagem</td><td><kbd>Enter</kbd></td><td>Botão de enviar</td></tr>
+          <tr><td>Quebra de linha</td><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td><td>—</td></tr>
+          <tr><td>Continuar lista</td><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td><td><kbd>Enter</kbd></td></tr>
+          <tr><td>Continuar checklist</td><td><kbd>Shift</kbd>+<kbd>Enter</kbd></td><td><kbd>Enter</kbd></td></tr>
+          <tr><td>Buscar</td><td><kbd>Ctrl</kbd>+<kbd>K</kbd></td><td>Lupa</td></tr>
+          <tr><td>Fechar painel</td><td><kbd>Esc</kbd></td><td>Botão Voltar</td></tr>
+        </tbody>
+      </table>
+      <p>As listas numeradas se completam sozinhas: ao apertar <kbd>Enter</kbd>, o app escreve o próximo número.</p>
+    </section>
+
+    <section id="config">
+      <h2>Configurações</h2>
+      <p class="lead">Tudo se ajusta pelo menu do seu perfil, no canto inferior da barra lateral (o botão com seu nome).</p>
+      <table>
+        <thead><tr><th>Seção</th><th>O que você muda</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Tema</strong></td><td>Pêssego, Escuro, Lavanda, Hortelã, Oceano, Meia-noite</td></tr>
+          <tr><td><strong>Ordenar conversas</strong></td><td>Recentes, Nome (alfabética) ou Manual (arraste para reordenar)</td></tr>
+          <tr><td><strong>Densidade</strong></td><td>Espaçamento das linhas e itens</td></tr>
+          <tr><td><strong>Checklists</strong></td><td>Esconder concluídos; esconder a caixa</td></tr>
+          <tr><td><strong>Aparência do cabeçalho</strong></td><td>Botões visíveis no topo</td></tr>
+          <tr><td><strong>Ambiente</strong></td><td>Chave do Gemini e modelo da IA</td></tr>
+          <tr><td><strong>Fonte</strong></td><td>Tipografia do app</td></tr>
+          <tr><td><strong>Fundo da área principal</strong></td><td>O padrão decorativo do fundo</td></tr>
+          <tr><td><strong>Sons</strong></td><td>Som ao enviar e ao receber</td></tr>
+          <tr><td><strong>Dados</strong></td><td>Exportar (JSON/Markdown), importar backup, apagar tudo</td></tr>
+          <tr><td><strong>Sincronização</strong></td><td>Reconectar, limpar cache do app</td></tr>
+        </tbody>
+      </table>
+      <div class="howto">
+        <div class="do">Instalar no celular</div>
+        <ol>
+          <li>Abra o menu do perfil e toque em <strong>Instalar app</strong> (o botão só aparece quando o navegador permite).</li>
+          <li>O SaveChat passa a abrir como um aplicativo próprio, com ícone na tela inicial.</li>
+        </ol>
+      </div>
+      <p>Atualização é manual por escolha: quando houver versão nova, o menu mostra o chip <strong>vX disponível</strong> e um ponto no avatar. Toque em <strong>Atualizar app</strong> para instalar.</p>
+    </section>
+
+  </main>
+</div>
+
+<footer class="help-foot">
+  <a href="./">← Voltar ao app</a>
+  <a href="privacy.html">Política de Privacidade</a>
+  <a href="terms.html">Termos de Uso</a>
+</footer>
+
+</body>
+</html>

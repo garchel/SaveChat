@@ -3,7 +3,7 @@
 // Estratégia conservadora: remove comentários/whitespace redundantes.
 // NÃO renomeia identificadores (segurança p/ ES Modules).
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, copyFileSync, existsSync, rmSync } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, sep } from 'path';
 
 const SRC = 'public';
 const OUT = 'dist';
@@ -92,6 +92,11 @@ mkdirSync(OUT, { recursive: true });
 let origTotal = 0, minTotal = 0;
 walk(SRC, (file) => {
   const rel = file.slice(SRC.length + 1);
+  // partials/ e styles/ são as FONTES do que o build achata em index.html e
+  // styles.css. Copiá-las para o dist duplicaria ~40KB + ~155KB que ninguém
+  // carrega: no dist não existe @import nem marcador #include, então nada as
+  // referencia. (O mesmo motivo faz o SW ainda precisar delas em public/.)
+  if (rel.startsWith('partials' + sep) || rel.startsWith('styles' + sep)) return;
   const dest = join(OUT, rel);
   mkdirSync(dirname(dest), { recursive: true });
   const ext = file.split('.').pop();
@@ -102,11 +107,6 @@ walk(SRC, (file) => {
     const min = ext === 'css' ? minifyCss(src) : minifyJs(src);
     origTotal += src.length; minTotal += min.length;
     writeFileSync(dest, min);
-    // as partes do CSS já foram inline no styles.css achatado: copiar
-    // styles/*.css para o dist só duplicaria ~155KB que ninguém carrega
-    if (ext === 'css' && rel === 'styles.css') {
-      try { rmSync(join(OUT, 'styles'), { recursive: true, force: true }); } catch {}
-    }
   } else if (ext === 'html') {
     const raw = readFileSync(file, 'utf8');
     const outHtml = resolvePartials(raw, dirname(file));

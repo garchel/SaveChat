@@ -68,4 +68,20 @@ describe('CSS modularizado', () => {
     const build = readFileSync('scripts/build.mjs', 'utf8');
     assert.match(build, /resolveImports/, 'build.mjs precisa resolver os @import antes de minificar');
   });
+
+  it('o build não copia partials/ nem styles/ para o dist', () => {
+    // as duas pastas são a FONTE do que o build achata. No dist não existe
+    // @import nem marcador #include, então ninguém referencia esses arquivos:
+    // copiar as duas somava ~195KB de lixo no deploy.
+    const build = readFileSync('scripts/build.mjs', 'utf8');
+    assert.match(build, /partials/,
+      'build.mjs precisa pular a pasta partials/');
+    assert.match(build, /styles/,
+      'build.mjs precisa pular a pasta styles/');
+    // e o pulo precisa acontecer ANTES do copyFile, não depois
+    const skip = build.indexOf("rel.startsWith('partials'");
+    const copia = build.indexOf('copyFileSync(file, dest)');
+    assert.ok(skip > 0 && skip < copia,
+      'o pulo de partials/ e styles/ precisa vir antes da cópia do arquivo');
+  });
 });
