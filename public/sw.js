@@ -1,6 +1,6 @@
 // NoteThread Service Worker — app shell offline + cache-first para assets.
 // Bump CACHE (vN) a cada deploy para invalidar versões anteriores.
-const CACHE = 'notethread-v139';
+const CACHE = 'notethread-v140';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './CHANGELOG.md',
   './styles/00-tokens-base.css',
@@ -29,6 +29,7 @@ const ASSETS = [
   './js/store.js', './js/sound.js', './js/sync-supabase.js', './js/offline-queue.js', './js/confetti.js',
   './js/bg-patterns.js', './js/friendly-names.js', './js/error-tracking.js', './js/updater.js',
   './js/ui/picker.js', './js/ui/navigation.js', './js/ui/messages.js',
+  './js/ui/messages-bubble.js', './js/ui/messages-reactions.js', './js/ui/messages-edit.js', './js/ui/messages-scroll.js',
   './js/ui/mentions.js', './js/ui/reminders.js',
   './js/ui/settings.js', './js/ui/auth.js', './js/ui/tree.js', './js/ui/tasks.js',
   './js/ui/composer.js', './js/ui/composer-audio.js', './js/ui/composer-markdown.js',

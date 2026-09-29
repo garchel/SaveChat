@@ -9,6 +9,10 @@ import { Updater } from './js/updater.js';
 import { PickerMethods } from './js/ui/picker.js';
 import { NavigationMethods } from './js/ui/navigation.js';
 import { MessagesMethods } from './js/ui/messages.js';
+import { MessagesBubbleMethods } from './js/ui/messages-bubble.js';
+import { MessagesReactionsMethods } from './js/ui/messages-reactions.js';
+import { MessagesEditMethods } from './js/ui/messages-edit.js';
+import { MessagesScrollMethods } from './js/ui/messages-scroll.js';
 import { MentionMethods } from './js/ui/mentions.js';
 import { ReminderMethods } from './js/ui/reminders.js';
 import { TasksMethods } from './js/ui/tasks.js';
@@ -374,7 +378,8 @@ showModal(title, bodyHtml, onOk) {
   // todas entram no mesmo UI plano, entao a ordem aqui nao muda comportamento
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
-    ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods);
+    ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
+    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods);
 
   Store.load();
   // aplica tema salvo antes de montar a UI

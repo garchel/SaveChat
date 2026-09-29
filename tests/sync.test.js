@@ -38,9 +38,9 @@ describe('PWA', ()=>{
     // offline: a página de ajuda abre sem internet
     assert.match(sw, /'\.\/help\.html'/);
   });
-  it('sw.js é v139', ()=>{
+  it('sw.js é v140', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v139/);
+    assert.match(sw, /notethread-v140/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);
