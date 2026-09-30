@@ -4,9 +4,14 @@ import { test, describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
 import { copyFileSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
-const WT = path.join(process.env.TEMP || process.env.TMPDIR, `wt-seq-${process.pid}`);
+// `os.tmpdir()` e nao `process.env.TEMP || process.env.TMPDIR`: no Linux do CI
+// TMPDIR nao existe e o path.join recebia undefined, derrubando o arquivo
+// inteiro no import (6 suites vermelhas). TMPDIR e so uma das variaveis que o
+// Node consulta; tmpdir() ja sabe qual usar em cada plataforma.
+const WT = path.join(os.tmpdir(), `wt-seq-${process.pid}`);
 
 const sh = (c, cwd = WT) => execSync(c, { encoding: 'utf8', shell: true, cwd }).trim();
 
