@@ -307,9 +307,24 @@ export const MessagesMethods = {
       }
       empty.classList.add('hidden');
       const { items, hasMore, cursor, oldestTs } = Store.pageNotes(this.activeThread, this.oldestKey, PAGE_SIZE);
+      const frag = document.createDocumentFragment();
       if (reset) {
         this._daySepNodes(box).forEach((n) => n.remove());
         this.renderedClientIds.clear();
+        // O reset tem que ESVAZIAR o fluxo, não só o conjunto de ids.
+        //
+        // Limpar `renderedClientIds` sozinho não remove nada do DOM: as bolhas
+        // da conversa anterior continuavam dentro de #messages, e a página nova
+        // era inserida logo abaixo do #load-slot — ou seja, ACIMA delas. O
+        // resultado era o fluxo mostrando as duas conversas misturadas.
+        //
+        // Só saem as BOLHAS e os separadores. Os elementos de interface que
+        // vivem dentro de #messages por posição no DOM (o #load-slot, que
+        // segura o indicador, e o #empty-state, o estado "nada por aqui") são
+        // preservados: removê-los quebrava o render seguinte, que.ENCONTRAVA o
+        // #empty-state como null e morria antes de pintar a conversa nova —
+        // o que devolvia o sintoma original (a anterior ficava na tela).
+        box.querySelectorAll('.bubble, .day-sep-wrap, .day-sep').forEach((el) => el.remove());
         // A âncora NÃO é gravada aqui de propósito.
         //
         // `pageNotes` devolve `cursor` = a chave da primeira nota desta
@@ -327,7 +342,6 @@ export const MessagesMethods = {
         // ficava visível sem efeito.
         this.oldestTs = oldestTs;
       }
-      const frag = document.createDocumentFragment();
       const before = box.querySelector('.bubble, .day-sep-wrap');
       // No load-older (não reset), sincroniza o dia-base com a bolha já existente
       // para que o separador certo apareça entre notas novas (mais antigas) e as já renderizadas.
