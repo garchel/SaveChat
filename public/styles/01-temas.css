@@ -223,45 +223,65 @@
   --glyph-dots: #a8c8bb;
 }
 
-/* Terracota (antigo "pêssego") */
+/* Terracota (antigo "pêssego").
+
+   A rampa inteira foi recalibrada em OKLCh para o tom que a BOLHA ja tem
+   (#953821, H=35). Antes so os 6 tokens de bolha tinham mudado (65d3568),
+   por exigencia de contraste: o resto continuava no coral antigo (#ff7a59,
+   H=35 mas C=0.170 contra 0.131 da bolha), entao as surfaces carregavam
+   matizes de 30 a 56 graus ao lado de uma familia unica de 35.
+
+   Metodo: cada token manteve a SUA luminancia e a SUA croma e so teve o
+   matiz convergido para 35. A unica excecao sao --text-dim e --text-light,
+   cuja L desceu para 0.52 — estavam em 4.27 e 4.01 sobre --surf-nav (piso
+   4.5, e o valor antigo ja falhava); a croma nao foi tocada.
+
+   --accent e' o token que equilibra dois usos conflitantes: fundo de botao
+   (texto --on-accent) e cor de texto. L=0.67/C=0.13 foi escolhido como o
+   ponto em que o texto no botao passa de AA (4.58) e o accent-como-texto
+   chega a 3.01 — a mediana dos outros temas (lavender 4.12, ocean 3.12,
+   napolitano 3.44, sakura 2.82, mint 2.71). Antes era 5.63 e 2.36.
+
+   --accent-teal, --gold e --ok NAO foram tocados: sao constantes semanticas
+   (azul-petroleo, ambar, verde) iguais em todos os temas. */
 [data-theme="terracota"] {
-  --bg: #fff3ee;
-  --bg-nav: #ffe9df;
+  --bg: #fff3ef;
+  --bg-nav: #ffe8e3;
   --bg-elev: #ffffff;
-  --bg-explorer: #fffaf7;
-  --bg-chat: #fff8f4;
-  --bg-chat-inner: #fffcfa;
+  --bg-explorer: #fffaf8;
+  --bg-chat: #fff8f6;
+  --bg-chat-inner: #fffcfb;
   --bubble-me: #953821;
   --bubble-me-2: #8b311b;
   --bubble-cream: #b54d34;
   --bubble-blue: #b7563e;
   --bubble-gray: #ec6040;
   --bubble-sys: #b54d34;
-  --text: #3a2420;
+  --text: #3a241f;
   --on-bubble: #ffffff;
   --bubble-meta: #ffffff;
-  --text-dim: #976257;
-  --text-light: #996153;
-  --border: #f6ddd2;
-  --border-light: #fbeae2;
-  --accent: #ff7a59;
-  --accent-soft: #ffdccf;
+  --text-dim: #8d5a4d;
+  --text-light: #8f584a;
+  --border: #f7dcd5;
+  --border-light: #fce9e4;
+  --accent: #d9755d;
+  --accent-soft: #ffdbd2;
   --accent-teal: #589B99;
   --accent-teal-soft: #dff0ef;
   --gold: #f3b13a;
   --ok: #36a878;
-  --on-accent: #3a2420;
-  --bg-glow-1: #ffe3d6;
-  --bg-glow-2: #ffdcd0;
-  --surf-chat: #fff8f4;
-  --surf-explorer: #fdeee5;
-  --surf-nav: #fae2d4;
-  --glyph-stars: #d9a58f;
+  --on-accent: #3a241f;
+  --bg-glow-1: #ffe2db;
+  --bg-glow-2: #ffdbd2;
+  --surf-chat: #fff8f6;
+  --surf-explorer: #ffede8;
+  --surf-nav: #fce0d9;
+  --glyph-stars: #dba395;
   --glyph-hearts: #e0a494;
-  --glyph-clouds: #d9b0a2;
-  --glyph-leaves: #c99e8c;
-  --glyph-circles: #dcb5a6;
-  --glyph-dots: #dcb5a6;
+  --glyph-clouds: #daafa4;
+  --glyph-leaves: #ca9d91;
+  --glyph-circles: #ddb4aa;
+  --glyph-dots: #ddb4aa;
 }
 
 /* Oceano (ocean) */
