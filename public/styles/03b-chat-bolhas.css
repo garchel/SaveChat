@@ -3,14 +3,31 @@
 /* ---- Padrões de fundo da área principal ----
    O SVG (tile 320px, gerado por js/bg-patterns.js) contém os glifos já na escala escolhida.
    O background-size é FIXO em 320px — o slider nunca altera o espaçamento, só o glifo.
-   A imagem vem de --pattern-image (inline via JS) — nenhuma regra de tema compete aqui. */
+   A imagem vem de --pattern-image (inline via JS) — nenhuma regra de tema compete aqui.
+
+   z-index: 0 e isolation: isolate no .chat fecham a PILHA DE PLANOS da conversa.
+   Sem isso o wallpaper fica com z-index:auto e compete na ordem do DOM com o
+   compositor (z:5) e o banner (sem z) — o resultado é o padrão piscar sobre a
+   área de mensagens a cada re-render. Com o .chat virando contexto de
+   empilhamento próprio, wallpaper = fundo (0) e o conteúdo = plano de cima (1). */
 .chat::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
+  z-index: 0;
   opacity: var(--pattern-opacity, .55);
   background-image: var(--pattern-image, none);
   background-size: 320px 320px;
   background-repeat: repeat;
 }
+
+/* ---- PLANO DE CONTEÚDO ----
+   Nome da conversa (banner), botão de fixar, campo de entrada e o fluxo de
+   mensagens ficam TODOS no mesmo plano, acima do wallpaper e sem competir
+   entre si. A regra é declarativa e por seletor: qualquer um desses elementos
+   que ganhe `position: absolute` no futuro continua no plano 1, porque o
+   índice é explícito — não depende da ordem do DOM.
+   (A regra em si fica no FIM do arquivo: a do compositor, z:5, vem antes e
+   a sobrescreveria se esta estivesse no topo.) */
+.chat { isolation: isolate; }
 .cozy-banner {
   background: var(--accent); color: var(--on-accent); margin: 16px 16px 0; padding: 14px 18px;
   border-radius: 14px; font-weight: 800; font-size: var(--text-lg); box-shadow: var(--shadow-sm);
@@ -964,3 +981,24 @@
 .bubble.remote.editing { background: var(--bubble-sys); color: var(--text); }
 .bubble.editing:empty::before { content: "Escreva sua nota…"; opacity: .5; }
 
+
+/* ============================================================
+PILHA DE PLANOS DA CONVERSA (no fim do arquivo de propósito)
+
+A cascata deste projeto e por ordem: varias regras vencem por declaracao, nao
+por especificidade. A regra do compositor (z:5) vem antes no arquivo, entao
+esta so pode valer no fim.
+
+Wallpaper no plano 0 (fundo, `pointer-events: none`). Conteudo — nome da
+conversa, botao de fixar, campo de entrada e fluxo de mensagens — no MESMO
+plano 1. Como nenhum deles compete entre si, a ordem do DOM nao consegue
+gerar o flicker: o fundo e explicitamente o fundo.
+
+O compositor entra com `.composer.cozy-composer` (0-2-0) porque a regra dele
+mesmo, na linha 38, tem especificidade 0-2-0 e declara z-index. Um seletor de
+classe unico (0-1-0) perderia para ela mesmo estando no fim do arquivo.
+============================================================ */
+.chat-header,
+.composer.cozy-composer,
+#btn-pin,
+#messages { z-index: 1; }
