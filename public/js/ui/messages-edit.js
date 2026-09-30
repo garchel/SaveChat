@@ -280,7 +280,7 @@ export const MessagesEditMethods = {
       });
     },
 
-    // indicador de carregamento do load-older: SLOT RESERVADO no topo do fluxo
+    // indicador de carregamento: SLOT RESERVADO no topo do fluxo
     // (#load-slot, no HTML) — o espaço existe SEMPRE (como o pull-indicator);
     // mostrar/esconder só liga/desliga a classe .loading. Layout idêntico nos
     // dois estados = flick de layout impossível, e as mensagens nunca alcançam
