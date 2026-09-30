@@ -468,21 +468,17 @@
 .messages::-webkit-scrollbar-thumb:active { background: var(--accent); background-clip: padding-box; }
 /* Firefox:_properties equivalentes às pseudo-elementais do WebKit */
 .messages { scrollbar-color: color-mix(in srgb, var(--text-dim) 45%, transparent) transparent; }
-.load-older {
-  text-align: center; color: var(--text-dim); font-size: var(--text-sm); padding: var(--space-2) var(--space-3);
-  cursor: pointer; border-radius: 12px; transition: background .15s;
-}
-.load-older:hover { background: var(--accent-soft); color: var(--accent); }
 .skeleton {
   height: 56px; border-radius: 12px; margin: var(--space-2) 0;
   background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
   background-size: 200% 100%; animation: shimmer 1.2s infinite;
 }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-/* slot de carregamento do load-older (infinite scroll): espaço RESERVADO no
-   fluxo, SEMPRE presente com altura fixa — as mensagens nunca chegam a ele.
-   O indicador apenas aparece/some dentro (opacity): layout idêntico nos dois
-   estados = zero flick, por construção */
+/* Indicador ÚNICO de carregamento (o antigo botão "Carregar mensagens
+   anteriores…" foi removido): slot RESERVADO no fluxo, SEMPRE presente com
+   altura fixa — as mensagens nunca chegam a ele. O conteúdo apenas
+   aparece/some dentro (opacity): layout idêntico nos dois estados = zero
+   flick, por construção. */
 .load-slot {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   height: 30px; margin: 0; padding: 0; overflow: hidden; flex-shrink: 0;

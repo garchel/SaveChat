@@ -413,6 +413,10 @@ import { now } from './utils.js';
       // âncora de ordenação da nota, e o ts para a paginação do SUPABASE
       // (.lt('ts')), que é sempre por timestamp mesmo com drag reordenando.
       const anchorOf = (x) => x ? (ref ? x.sortOrder : x.ts) : null;
+      // O corte é `>=` e a âncora é a chave da PRIMEIRA nota da página: com
+      // esse par a paginação avança sem repetir e sem pular (conferido
+      // exaustivamente em tests/store-pagination.test.js, contra as outras
+      // três combinações de corte/cursor).
       const idx = beforeKey == null ? all.length : all.findIndex((x) => key(x) >= beforeKey);
       const end = idx < 0 ? all.length : idx;
       const start = Math.max(0, end - count);
@@ -420,7 +424,7 @@ import { now } from './utils.js';
       return {
         items,
         hasMore: start > 0,
-        // próxima âncora: a chave da nota mais antiga desta página
+        // âncora da página seguinte: a chave da primeira nota desta página
         cursor: items.length ? anchorOf(items[0]) : beforeKey,
         // ts equivalente, para o fetch do servidor
         oldestTs: items.length ? items[0].ts : null,

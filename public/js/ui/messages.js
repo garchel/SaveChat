@@ -298,7 +298,7 @@ export const MessagesMethods = {
       const notes = Store.notesFor(this.activeThread);
       if (!notes.length) {
         empty.classList.remove('hidden');
-        $('#load-older').classList.add('hidden');
+        this._hideLoadSkeleton();
         this._daySepNodes(box).forEach((n) => n.remove());
         this._syncScrollMetrics();
         this._applyCozyEmptyCopy(empty);
@@ -310,15 +310,26 @@ export const MessagesMethods = {
       if (reset) {
         this._daySepNodes(box).forEach((n) => n.remove());
         this.renderedClientIds.clear();
-        // a âncora local é a chave de ordenação; a do servidor é o ts
-        this.oldestKey = cursor;
+        // A âncora NÃO é gravada aqui de propósito.
+        //
+        // `pageNotes` devolve `cursor` = a chave da primeira nota desta
+        // página, e o corte da próxima chamada é `>=` — ou seja, o cursor
+        // aponta para a PRIMEIRA nota, que o `findIndex` reencontra como
+        // início da página seguinte. Deixar `oldestKey` em `null` faz o
+        // primeiro scroll do usuário paginar a partir do fim da lista, que é
+        // exatamente o que ainda não foi pintado.
+        //
+        // Gravar aqui consumia essa página duas vezes: o boot pintava 25
+        // notas e deixava a âncora no início delas, então o primeiro scroll
+        // recebia de novo as mesmas 25, o filtro de idempotência descartava
+        // tudo, e a âncora saltava para a página seguinte sem renderizar
+        // nada. Medido: 60 notas, 25 apareciam, e o botão de carregar mais
+        // ficava visível sem efeito.
         this.oldestTs = oldestTs;
       }
-      const loader = $('#load-older');
-      loader.classList.toggle('hidden', !hasMore);
       const frag = document.createDocumentFragment();
       const before = box.querySelector('.bubble, .day-sep-wrap');
-      // Em load-older (não reset), sincroniza o dia-base com a bolha já existente
+      // No load-older (não reset), sincroniza o dia-base com a bolha já existente
       // para que o separador certo apareça entre notas novas (mais antigas) e as já renderizadas.
       // O separador é o WRAPPER, que não tem data-day: usa a da bolha que vem depois.
       let lastDay = before && !reset
@@ -334,7 +345,10 @@ export const MessagesMethods = {
         lastDay = dayKey;
         frag.appendChild(this.bubbleEl(n));
       });
-      box.insertBefore(frag, reset ? loader.nextSibling : (before || loader));
+      // o ponto de inserção é o SLOT, que fica no topo do fluxo e sempre
+      // presente — as mensagens entram logo abaixo dele
+      const slot = $('#load-slot');
+      box.insertBefore(frag, reset ? slot.nextSibling : (before || slot));
       // separadores que ficaram sem mensagem do seu dia saem com animação
       this._pruneOrphanDaySeps(box);
       if (reset) box.scrollTop = box.scrollHeight;
