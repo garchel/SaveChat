@@ -155,3 +155,38 @@ describe('Pilha de planos da conversa', () => {
   });
 });
 
+// O compositor (campo de input) era `position: absolute; bottom: 16px`:
+// flutuava SOBRE a conversa, e o #messages recebia `padding-bottom:
+// var(--composer-pad)` = altura do composer + 22px, medida em JS a cada
+// render, só para as mensagens caberem por baixo. O defeito: tudo que
+// escapasse do cálculo aparecia ATRÁS do campo de input. Agora o composer é
+// o último item do fluxo do .chat e a medição não existe mais.
+describe('Campo de entrada no fim do fluxo', () => {
+  const css = readFileSync('public/styles/03b-chat-bolhas.css', 'utf8');
+  const composer = css.match(/\.composer\.cozy-composer\s*\{([^}]*)\}/)[1];
+  // sem os comentários: eles CITAM --composer-pad para explicar o histórico
+  const messages = css.replace(/\/\*[\s\S]*?\*\//g, '').match(/\.messages\s*\{([^}]*)\}/)[1];
+
+  it('o compositor NÃO é flutuante (sem position: absolute)', () => {
+    assert.ok(!/position:\s*absolute/.test(composer),
+      'o compositor voltou a ser absolute — as mensagens voltam a passar por trás dele');
+    assert.match(composer, /flex:\s*0 0 auto/,
+      'o compositor precisa de flex: 0 0 auto para não encolher quando o campo cresce');
+  });
+
+  it('o #messages não reserva mais padding para o compositor', () => {
+    assert.ok(!/--composer-pad/.test(messages),
+      'padding-bottom: var(--composer-pad) reintroduz a faixa morta e o cálculo em JS');
+    assert.match(messages, /min-height:\s*0/,
+      'sem min-height: 0 o flex:1 não encolhe e o #messages invade o compositor');
+  });
+
+  it('a medição em JS do --composer-pad foi removida', () => {
+    const js = readFileSync('public/js/ui/composer.js', 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')       // comentários explicam o histórico
+      .replace(/\/\/.*$/gm, '');             // e linhas de comentário solto
+    assert.ok(!/--composer-pad/.test(js), 'o JS ainda calcula o --composer-pad');
+    assert.ok(!/_syncComposerPad/.test(js), 'o JS ainda chama o ResizeObserver do composer');
+  });
+});
+
