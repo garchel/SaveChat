@@ -85,3 +85,47 @@ describe('CSS modularizado', () => {
       'o pulo de partials/ e styles/ precisa vir antes da cópia do arquivo');
   });
 });
+
+// Regressão do flicker da conversa aberta: o wallpaper (`.chat::before`)
+// ficava com `z-index: auto` e competia na ordem do DOM com o compositor
+// (z:5) e o banner (sem z). O sintoma era o padrão piscar sobre a área de
+// mensagens a cada re-render. A correção fecha a pilha de planos no `.chat`.
+describe('Pilha de planos da conversa', () => {
+  const css = readFileSync('public/styles/03b-chat-bolhas.css', 'utf8');
+  const regraPlanos = css.slice(css.indexOf('PILHA DE PLANOS DA CONVERSA'));
+  const wallpaper = (css.match(/\.chat::before\s*\{([^}]*)\}/) || [, ''])[1];
+
+  it('o wallpaper fica no plano 0 e não intercepta clique', () => {
+    assert.match(wallpaper, /z-index:\s*0/, 'o wallpaper precisa de z-index: 0 explícito');
+    assert.match(wallpaper, /pointer-events:\s*none/, 'o wallpaper não pode interceptar clique');
+  });
+
+  it('.chat é contexto de empilhamento próprio (isolation: isolate)', () => {
+    // sem isso os filhos escapam do contexto e a ordem do DOM volta a decidir
+    assert.match(css, /\.chat\s*\{[^}]*isolation:\s*isolate/, '.chat precisa de isolation: isolate');
+  });
+
+  it('nome, botão de fixar, campo de entrada e mensagens dividem o MESMO plano', () => {
+    // Os quatro precisam de z-index IDÊNTICO. Se divergirem, a ordem do DOM
+    // (ou um @import posterior) volta a decidir quem fica na frente.
+    // A busca ancoreia no ÚLTIMO bloco: a regra do compositor (mais acima no
+    // arquivo) também declara z-index e seria capturada antes.
+    const bloco = (regraPlanos.match(/([^{}]+)\{([^}]*z-index[^}]*)\}/g) || []).pop() || '';
+    for (const sel of ['.chat-header', '.composer.cozy-composer', '#btn-pin', '#messages']) {
+      assert.ok(bloco.includes(sel), `faltou ${sel} na regra de plano único`);
+    }
+    const z = (bloco.match(/z-index:\s*([^;]+)/) || [])[1];
+    assert.equal(z, '1', 'os quatro precisam do mesmo z-index (1)');
+  });
+
+  it('a regra de plano vem DEPOIS da regra do compositor (cascata por ordem)', () => {
+    // A regra do compositor (linha ~38) também declara z-index e tem
+    // especificidade 0-2-0. Se a regra de plano único subir no arquivo, ela
+    // perde. Este teste é o guard contra alguém reorganizar o arquivo.
+    const iCompositor = css.indexOf('.composer.cozy-composer {');
+    const iPlanos = css.indexOf('PILHA DE PLANOS DA CONVERSA');
+    assert.ok(iCompositor > 0 && iPlanos > iCompositor,
+      'a regra de plano único precisa ficar depois da regra do compositor no arquivo');
+  });
+});
+
