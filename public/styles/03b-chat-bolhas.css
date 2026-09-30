@@ -280,9 +280,12 @@
 }
 .btn-icon-sm.header-btn:hover { background: var(--bg); color: var(--text); }
 
-/* Botão de pin no canto superior esquerdo da área de mensagens */
+/* Botão de pin no canto superior esquerdo da área de mensagens.
+   Sem z-index aqui de propósito: o plano único da conversa, no fim deste
+   arquivo, já fixa #btn-pin em 1 junto do nome, do campo e das mensagens.
+   Este `z-index: 20` era código morto — perdia para o #btn-pin (0-1-0). */
 .btn-pin {
-  position: absolute; top: 84px; left: 16px; z-index: 20;
+  position: absolute; top: 84px; left: 16px;
   background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
   width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
   display: grid; place-items: center; transition: background .15s, transform .1s, box-shadow .15s, opacity .2s, color .15s;

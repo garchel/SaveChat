@@ -44,8 +44,12 @@
 }
 
 /* btn-pin (mensagem fixada): pertence ao chat — não vaza para Busca/Lembretes/Pendências
-   nem aparece sobre a lista de cadernos no mobile */
-.btn-pin { z-index: 5; }
+   nem aparece sobre a lista de cadernos no mobile.
+   O z-index NÃO é declarado aqui de propósito: o plano único da conversa
+   (03b-chat-bolhas.css, no fim do arquivo) já fixa #btn-pin em 1, junto do
+   nome da conversa, do campo de entrada e do fluxo de mensagens. Antes
+   havia `z-index: 5` aqui, que perdia para o `#btn-pin` (0-1-0 vs 0-1-0,
+   import posterior) e era código morto — duas linhas de conflito à toa. */
 @media (max-width: 760px) {
   .app:not(.show-chat) .btn-pin { display: none; } /* lista de cadernos */
 }

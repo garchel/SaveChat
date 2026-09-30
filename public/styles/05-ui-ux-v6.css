@@ -141,7 +141,10 @@ button:focus { outline: none; }
    Dev-only: nasce escondido e o próprio JS mostra em localhost, evitando
    qualquer flash do botão em produção antes do script decidir. */
 .friendly-toggle {
-  position: fixed; bottom: 16px; right: 16px; z-index: 9999;
+  position: fixed; bottom: 196px; right: 16px; z-index: 9999;
+  /* `bottom` (nao margin): o compositor ocupa left/right 16px e ~160px de
+     altura, entao 196px deixa o selo acima dele em vez de sobre o campo de
+     entrada. `margin-bottom` nao moveria um elemento com `bottom` fixo. */
   display: none; align-items: center; gap: 6px;
   padding: 8px 14px; border-radius: 999px; border: none;
   font-size: 13px; font-weight: 700; cursor: pointer;
