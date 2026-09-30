@@ -57,11 +57,87 @@
   z-index: 1;
 }
 .composer.cozy-composer .composer-bar:not(.cozy-composer-bar) { display: none; }
-/* Barra de inserção do composer cozy: lista, lista numerada, checklist e código */
-.cozy-composer-bar {
-  display: flex; align-items: center; gap: 2px;
-  padding: 0 4px 8px;
+
+/* Barra de inserção (lista, lista numerada, checklist, código, negrito, itálico).
+
+   IRMÃ do compositor, não filha: a barra saiu de dentro do .cozy-composer e
+   passou a ser filha de #chat-active-ui, irmã do #messages e do compositor
+   (ver public/index.html). É isso que resolve o defeito: como filha do
+   compositor ela transbordava com `bottom: 100%` e caía sobre a ÁREA DO
+   #messages, que é um container rolável. Item sobre container com
+   `overflow-y: auto` inevitavelmente atravessa o que rola por baixo — foi
+   medido: 21px no desktop e 27px no mobile. Fora do #messages não há o que
+   atravessar.
+
+   Especificidade 0-3-0 de propósito. A regra `.composer-bar { width: 100% }`
+   mais abaixo neste arquivo TAMBÉM casa com este elemento (ele tem
+   `class="composer-bar cozy-composer-bar"`) e, com 0-1-0, venceria a
+   `.cozy-composer-bar` (0-1-0) só por estar depois. Foi ela que segurou a
+   barra em 926px — a largura inteira da conversa.
+
+   `display: none` (e não `visibility: hidden`) porque a barra está no
+   FLUXO: com visibility ela continuaria ocupando 42px das mensagens. Só
+   aparece com o campo em foco, e some devolvendo a altura. */
+/* Barra de inserção (lista, lista numerada, checklist, código, negrito, itálico).
+
+   FLUTUANTE: `position: absolute` com `bottom: 100%` — sai do fluxo e se apoia
+   sobre a faixa logo acima do campo. Medido: 42px que deixam de pesar nas
+   mensagens, e o compositor não muda de altura (118px antes e depois).
+
+   Especificidade 0-3-0 de propósito. A regra `.composer-bar { width: 100% }`
+   mais abaixo TAMBÉM casa com este elemento (ele tem
+   `class="composer-bar cozy-composer-bar"`) e, com 0-1-0, venceria a
+   `.cozy-composer-bar` (0-1-0) só por estar depois no arquivo. Foi ela que
+   segurou a barra em 926px — a largura inteira da conversa. O `fit-content`
+   dá a largura dos seis botões: medido 222px.
+
+   A barra é filha do compositor e `position: absolute` a retira do fluxo, de
+   modo que o #messages precisa de `padding-bottom` igual à altura dela (42px)
+   para as mensagens terminarem ACIMA dela. Ver a regra do #messages abaixo:
+   esse padding acompanha a visibilidade da barra, então ler a conversa não
+   paga por botões que não estão na tela. */
+/* Barra de inserção (lista, lista numerada, checklist, código, negrito, itálico).
+
+   NÃO é `position: absolute`. Medido: barra absoluta dentro do compositor
+   transborda com `bottom: 100%` e cai sobre a ÁREA DO #messages — que é um
+   container rolável. Item posicionado sobre container com `overflow-y: auto`
+   atravessa o que rola por baixo: 23px no desktop, 29px no mobile, mesmo
+   com `padding-bottom` de reserva.
+
+   No FLUXO (position: static, dentro do compositor, acima do composer-row)
+   o cruzamento é ZERO — medido: `bolhasSobBarra: 0` com a conversa no fim
+   da rolagem. A barra fica entre o #messages e o campo de entrada, sem
+   sobrepor nenhum dos dois.
+
+   Ela não custa altura quando não está em uso: `display: none` a retira do
+   fluxo (com `visibility: hidden` ela continuaria ocupando os 42px), e
+   volta com `display: flex` quando o campo recebe foco. Ler a conversa não
+   paga por botões fora da tela.
+
+   Especificidade 0-3-0 de propósito: `.composer-bar { width: 100% }` mais
+   abaixo neste arquivo TAMBÉM casa (o elemento tem
+   `class="composer-bar cozy-composer-bar"`) e, com 0-1-0, venceria a
+   `.cozy-composer-bar` (0-1-0) só por estar depois. Foi ela que segurou a
+   barra em 926px — a largura inteira da conversa. */
+.composer.cozy-composer .cozy-composer-bar.cozy-composer-bar {
+  position: static;
+  display: none;
+  width: fit-content;
+  align-self: flex-start;
+  margin: 0 0 2px;
+  padding: 4px;
+  align-items: center;
+  gap: 2px;
+  /* fundo opaco: os botões precisam de contraste contra o wallpaper da
+     conversa que passa por trás */
+  background: var(--surf-chat, var(--bg-chat));
+  z-index: 2;
 }
+.composer.cozy-composer:focus-within .cozy-composer-bar.cozy-composer-bar {
+  display: flex;
+}
+
+
 .cozy-composer-bar .fmt-btn {
   width: 34px; height: 34px; min-width: 34px; min-height: 34px;
   border-radius: 9px; color: var(--text-dim);
@@ -358,6 +434,10 @@
      manual da faixa de load (mensagens subiam 27px). A compensação é feita no JS */
   overflow-anchor: none;
 }
+/* A barra de formatação é `position: static` dentro do compositor (ver a
+   regra dela acima): ela ocupa lugar no fluxo, entre o #messages e o campo.
+   O #messages encolhe sozinho (flex: 1) para ceder os 42px, sem padding
+   reservado — que aqui seria DUPLA CONTAGEM: o flex já reservou. */
 /* ============================================================
    Barra de rolagem do fluxo de mensagens.
    Antes: trilho invisível e polegar cinza-claro, sem feedback de
