@@ -215,6 +215,7 @@ async init() {
       this.bindSearch();
       this.bindShortcuts();
       this.bindSwipe();
+      this.bindHistoryBack();
       this.bindWorkspace();
       this.initReminders();
       // persistência de login: restaura sessão Supabase antes do primeiro render

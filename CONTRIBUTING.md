@@ -103,6 +103,7 @@ Portões — nada sobe sem passar por eles:
 | branch de origem | recusa rodar em `main` ou `staging` |
 | árvore limpa | recusa com pendência não commitada |
 | branch no remoto | recusa se `git push -u` não foi feito |
+| **staging parada** | **recusa se outro agente promoveu algo que a branch não viu** |
 | suíte local | `check` + `test` + `e2e` — **nada sobe com a suíte vermelha** |
 | revisão do diff | mostra o que vai para `staging` antes de enviar |
 | CI | acompanha até `success`/`failure` e imprime o comando de log |
@@ -112,6 +113,35 @@ Ao final: `staging` com o código, CI verde, pronto para
 
 O script **não** abre PR nem mergeia em `main` — produção continua
 sendo sua decisão, depois do teste manual.
+
+#### O portão "staging parada" (vários agentes em paralelo)
+
+A worktree isola os **arquivos**, não o **merge**. Dois agentes que
+promovem em paralelo partem da mesma base, e o segundo faria merge em
+cima do merge do primeiro — com o conflito aparecendo tarde, depois de
+`npm test`/`e2e` já terem rodado sobre uma árvore que mudou embaixo.
+
+Por isso o `promote` compara a base da branch com a ponta de
+`origin/staging` **antes de validar**. Se a staging andou desde que a
+branch partiu dela, o promote para e imprime os commits novos mais os
+comandos para resolver:
+
+```bash
+git fetch origin
+git rebase origin/staging
+npm test && npm run e2e
+git push --force-with-lease
+npm run promote
+```
+
+A referência é a `staging` **remota**, nunca a local: a worktree
+principal fica na `staging` alguns commits atrás da remota enquanto
+outro agente promove, e comparar com a local acusaria uma defasagem que
+não existe.
+
+Consequência prática: **um promote por vez**. Se dois agentes promoverem
+no mesmo minuto, o segundo recebe essa mensagem e rebaixa em ~10s —
+bem melhor que um conflito resolvido no escuro.
 
 ### `staging` no CI
 
