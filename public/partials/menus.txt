@@ -155,7 +155,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.18.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.19.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>

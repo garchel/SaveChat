@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.19.0] — 2026-09-30
+### Modificado
+- Trocar de conversa esvazia o fluxo de mensagens: as bolhas da conversa anterior saiam do DOM (2 notas apareciam como 4). Preserva o #empty-state, que mora dentro de #messages.
+
 ## [1.18.0] — 2026-09-29
 ### Modificado
 - versao sobe na promocao via scripts/release.mjs
