@@ -100,8 +100,12 @@ server.listen(port, () => {
    Branch: ${branch}
    URL:    http://localhost:${port}
   ─────────────────────────────────────────────
-   Update do service worker é pelo botão "Atualizar app"
-   (menu do perfil) — Ctrl+Shift+R não substitui.
+   Ctrl+R NÃO atualiza o CSS com o service worker ligado.
+   Use uma destas:
+     • http://localhost:%PORT/?nosw=1  — desregistra o SW e limpa os caches
+     • botão "Atualizar app" (menu do perfil)
+     • Ctrl+Shift+R  — recarrega ignorando cache
+   Sem SW o Ctrl+R passa a pegar o build novo direto.
   ─────────────────────────────────────────────
 `);
 });

@@ -392,7 +392,16 @@ import { now } from './utils.js';
       arr.forEach((x, i) => { x.sortOrder = i; });
       this.save();
     },
-    pageNotes(threadId, beforeTs, count) {
+    // Pagina as notas mais antigas que ainda não foram entregues.
+    //
+    // `beforeKey` é a chave de ordenação (sortOrder quando existe, senão ts) da
+    // PRIMEIRA nota já entregue — não um timestamp. O contrato devolve `cursor`:
+    // exatamente o valor a passar na próxima chamada. Quem usava `items[0].ts`
+    // como âncora quebrava o infinite scroll: o findIndex comparava sortOrder
+    // (0,1,2…) contra um timestamp em ms, nunca achava o corte e devolvia a MESMA
+    // página com hasMore:true para sempre — o indicador de "Carregando
+    // mensagens…" acendia, não trazia nada, e o scroll voltava para o topo.
+    pageNotes(threadId, beforeKey, count) {
       // ordem por sortOrder (drag) ou ts (criação) como fallback
       const all = this.notesFor(threadId).slice().sort((a, b) => {
         const ao = a.sortOrder != null ? a.sortOrder : a.ts;
@@ -401,10 +410,24 @@ import { now } from './utils.js';
       });
       const ref = all[0] && all[0].sortOrder != null;
       const key = (x) => ref ? x.sortOrder : x.ts;
-      const beforeKey = beforeTs == null ? null : beforeTs;
+      // âncora de ordenação da nota, e o ts para a paginação do SUPABASE
+      // (.lt('ts')), que é sempre por timestamp mesmo com drag reordenando.
+      const anchorOf = (x) => x ? (ref ? x.sortOrder : x.ts) : null;
+      // O corte é `>=` e a âncora é a chave da PRIMEIRA nota da página: com
+      // esse par a paginação avança sem repetir e sem pular (conferido
+      // exaustivamente em tests/store-pagination.test.js, contra as outras
+      // três combinações de corte/cursor).
       const idx = beforeKey == null ? all.length : all.findIndex((x) => key(x) >= beforeKey);
       const end = idx < 0 ? all.length : idx;
       const start = Math.max(0, end - count);
-      return { items: all.slice(start, end), hasMore: start > 0 };
+      const items = all.slice(start, end);
+      return {
+        items,
+        hasMore: start > 0,
+        // âncora da página seguinte: a chave da primeira nota desta página
+        cursor: items.length ? anchorOf(items[0]) : beforeKey,
+        // ts equivalente, para o fetch do servidor
+        oldestTs: items.length ? items[0].ts : null,
+      };
     },
   };

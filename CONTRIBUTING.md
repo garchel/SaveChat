@@ -103,6 +103,7 @@ Portões — nada sobe sem passar por eles:
 | branch de origem | recusa rodar em `main` ou `staging` |
 | árvore limpa | recusa com pendência não commitada |
 | branch no remoto | recusa se `git push -u` não foi feito |
+| **staging parada** | **recusa se outro agente promoveu algo que a branch não viu** |
 | suíte local | `check` + `test` + `e2e` — **nada sobe com a suíte vermelha** |
 | revisão do diff | mostra o que vai para `staging` antes de enviar |
 | CI | acompanha até `success`/`failure` e imprime o comando de log |
@@ -112,6 +113,35 @@ Ao final: `staging` com o código, CI verde, pronto para
 
 O script **não** abre PR nem mergeia em `main` — produção continua
 sendo sua decisão, depois do teste manual.
+
+#### O portão "staging parada" (vários agentes em paralelo)
+
+A worktree isola os **arquivos**, não o **merge**. Dois agentes que
+promovem em paralelo partem da mesma base, e o segundo faria merge em
+cima do merge do primeiro — com o conflito aparecendo tarde, depois de
+`npm test`/`e2e` já terem rodado sobre uma árvore que mudou embaixo.
+
+Por isso o `promote` compara a base da branch com a ponta de
+`origin/staging` **antes de validar**. Se a staging andou desde que a
+branch partiu dela, o promote para e imprime os commits novos mais os
+comandos para resolver:
+
+```bash
+git fetch origin
+git rebase origin/staging
+npm test && npm run e2e
+git push --force-with-lease
+npm run promote
+```
+
+A referência é a `staging` **remota**, nunca a local: a worktree
+principal fica na `staging` alguns commits atrás da remota enquanto
+outro agente promove, e comparar com a local acusaria uma defasagem que
+não existe.
+
+Consequência prática: **um promote por vez**. Se dois agentes promoverem
+no mesmo minuto, o segundo recebe essa mensagem e rebaixa em ~10s —
+bem melhor que um conflito resolvido no escuro.
 
 ### `staging` no CI
 
@@ -208,6 +238,34 @@ nunca é tocado. É o caminho normal quando o agente promove o próprio trabalho
 > Não use `git switch` para começar uma tarefa paralela. Crie a worktree.
 > O atalho do Hermes (⌘⇧B / `/worktree new`) faz o mesmo por outro caminho,
 > mas o agente consegue chamar este script sem depender de UI.
+
+#### `--as <prefixo>`: nome sequencial para identificar a conversa
+
+Com várias worktrees vivas, varrer a pasta para saber qual é a sua é lento.
+`--as` numera o **diretório** em sequência, mantendo a branch como está:
+
+```bash
+node scripts/wt.mjs new fix/modal --as hermes   # → .worktrees/hermes1
+node scripts/wt.mjs new fix/cabecalho --as hermes   # → .worktrees/hermes2
+node scripts/wt.mjs new fix/tarefas --as hermes    # → .worktrees/hermes3
+```
+
+O `wt.mjs list` marca o número na saída, e o `remove` aceita o nome
+sequencial sem precisar saber a branch:
+
+```
+▫  hermes#2   fix/modal-altura   …/.worktrees/hermes2
+▫  maia#1     fix/cabecalho      …/.worktrees/maia1
+
+node scripts/wt.mjs remove hermes2      # ou: remove fix/modal-altura
+```
+
+Sem `--as` o diretório continua sendo o slug da branch — as worktrees já
+existentes pelo nome não quebram. O número é reusado quando um slot é
+liberado; um buraco na sequência é inofensivo, e o invariante que importa é
+nunca dois agentes com o mesmo número (uma colisão sobrescreveria o trabalho
+de um deles — ver `tests/wt-sequential.test.js`).
+
 
 ### Commits
 

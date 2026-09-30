@@ -65,6 +65,48 @@ try {
 }
 ok(`branch remota ${ORIGIN}/${source} existe`);
 
+// ---------- 2.5. a ${TARGET} andou desde que a branch partiu? ----------
+//
+// O isolamento da worktree cobre os ARQUIVOS, não o merge. Dois agentes que
+// promovem em paralelo partem da mesma base: o segundo faz merge em cima do
+// merge do primeiro, e se ambos mexeram nos mesmos arquivos o conflito
+// aparece no meio do caminho — tarde demais, com npm test/e2e já rodados
+// sobre uma árvore que mudou embaixo deles.
+//
+// A falha aqui é BARATA e ANTES de qualquer validação. Se a staging andou
+// desde que a branch partiu dela, o promote para e diz o que fazer.
+//
+// O critério é "a base da branch ainda é a ponta da staging": se for, o merge
+// é linear e não há o que reconciliar. Se a staging tem commits que a branch
+// nunca viu, outro agente promoveu algo que ainda precisa ser reconciliado.
+//
+// Consequência aceita: um promote por vez, na prática. Se dois agentes
+// promoverem no mesmo minuto, o segundo recebe esta mensagem e rebaixa em
+// ~10s. Melhor que um conflito resolvido no escuro.
+//
+// A referência é a staging REMOTA, nunca a local: a worktree principal costuma
+// estar na `staging` alguns commits atrás da remota (outro agente acabou de
+// promover e o fetch desta worktree ainda não viu). Comparar com a local
+// acusaria uma defasagem que não existe.
+const base = sh(`git merge-base ${ORIGIN}/${TARGET} ${source}`);
+const stageNow = sh(`git rev-parse ${ORIGIN}/${TARGET}`);
+if (base !== stageNow) {
+  const novos = sh(`git log --oneline ${base}..${ORIGIN}/${TARGET}`).split('\n').filter(Boolean);
+  console.log(`\n  ⚠ ${TARGET} andou desde que ${source} partiu dela.`);
+  console.log(`    ${novos.length} commit(s) entraram enquanto você trabalhava:\n`);
+  console.log(novos.slice(0, 8).map(l => '      ' + l).join('\n'));
+  if (novos.length > 8) console.log(`      … e mais ${novos.length - 8}`);
+  console.log(`\n    Rebaseie antes de promover:\n`);
+  console.log(`      git fetch origin`);
+  console.log(`      git rebase origin/${TARGET}`);
+  console.log(`      npm test && npm run e2e`);
+  console.log(`      git push --force-with-lease`);
+  console.log(`      npm run promote`);
+  console.log(`\n    Nada foi enviado para ${TARGET}.`);
+  process.exit(1);
+}
+ok(`${TARGET} não andou desde que ${source} partiu dela`);
+
 // ---------- 3. validação local (o portão) ----------
 console.log('\n  Validando localmente…');
 const step = (label, cmd) => {

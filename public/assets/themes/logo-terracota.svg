@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="115 115 270 270" width="100%" height="100%">
   <defs>
-    <!-- Gradiente de fundo do ícone (tema peach) -->
+    <!-- Gradiente de fundo do ícone (tema terracota: acento #d9755d / accent-soft #ffdbd2) -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffdccf" />
-      <stop offset="100%" stop-color="#ff7a59" />
+      <stop offset="0%" stop-color="#ffdbd2" />
+      <stop offset="100%" stop-color="#d9755d" />
     </linearGradient>
 
     <!-- Gradiente do balão de fala -->
@@ -32,7 +32,7 @@
            C 355 192 308 145 250 145 Z"
         fill="url(#bubbleGrad)" filter="url(#shadow)" stroke="#ffffff" stroke-width="4"/>
 
-  <g stroke="#976257" stroke-width="8" stroke-linecap="round">
+  <g stroke="#8d5a4d" stroke-width="8" stroke-linecap="round">
     <line x1="185" y1="200" x2="270" y2="200" />
     <line x1="185" y1="230" x2="260" y2="230" />
     <line x1="185" y1="260" x2="315" y2="260" />
@@ -41,9 +41,9 @@
 
   <g transform="translate(285, 215) rotate(-35) scale(1.1)" filter="url(#lightShadow)">
     <polygon points="0,0 25,-12 25,12" fill="#FFF0EA" />
-    <polygon points="0,0 7,-3.5 7,3.5" fill="#E06B48" />
-    <rect x="25" y="-12" width="60" height="12" fill="#FFAB90" />
-    <rect x="25" y="0" width="60" height="12" fill="#F58260" />
+    <polygon points="0,0 7,-3.5 7,3.5" fill="#B34A31" />
+    <rect x="25" y="-12" width="60" height="12" fill="#E39A82" />
+    <rect x="25" y="0" width="60" height="12" fill="#CE6A51" />
     <path d="M 85 -12 L 105 -12 C 110 -12 110 12 105 12 L 85 12 Z" fill="#FFC3BA" />
     <line x1="85" y1="-12" x2="85" y2="12" stroke="#e0e0e0" stroke-width="2"/>
   </g>

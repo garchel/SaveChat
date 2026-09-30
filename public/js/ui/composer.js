@@ -33,30 +33,24 @@ export const ComposerMethods = {
       };
       // reset garantido do tamanho (após envio): zero estado inline, altura volta ao mínimo
       // e o overflowY NUNCA fica 'auto' no editor vazio (senão o fieldset não encolhe de volta)
-      // também sincroniza o padding do #messages na hora (o RO pode atrasar 1 frame)
       this.resetComposerSize = () => {
         ta.style.height = '';
         ta.style.overflowY = 'hidden';
         // reflow para o browser recalcular a altura mínima antes do próximo input
         void ta.offsetHeight;
-        if (this._syncComposerPad) this._syncComposerPad();
+        // (o #messages nao precisa mais de ajuste: o composer e item do fluxo,
+        //  entao a area rolavel ja termina em cima dele)
       };
-      // padding inferior de #messages = altura REAL do composer flutuante (+ folga).
-      // Garante: última mensagem nunca escondida atrás do input e rolagem "até" o composer.
-      const composerEl = ta.closest('.composer');
-      const msgBox = $('#messages');
-      const syncComposerPad = () => {
-        if (!composerEl || !msgBox) return;
-        const h = Math.ceil(composerEl.getBoundingClientRect().height);
-        msgBox.style.setProperty('--composer-pad', (h + 22) + 'px');
-      };
-      this._syncComposerPad = syncComposerPad;
-      syncComposerPad();
-      if (window.ResizeObserver && composerEl) new ResizeObserver(syncComposerPad).observe(composerEl);
-      window.addEventListener('resize', syncComposerPad);
-      // sync a cada render de mensagens (garante pad correto mesmo se o RO atrasar — aba 2º plano)
-      const origRender = this.renderMessages;
-      this.renderMessages = function (...a) { syncComposerPad(); return origRender.apply(this, a); };
+      // O composer NÃO é mais flutuante: virou o último item do fluxo do .chat,
+      // logo abaixo do #messages. Antes ele era `position: absolute` e o
+      // #messages recebia `padding-bottom: var(--composer-pad)` = altura real do
+      // composer + 22px, medida aqui a cada render e resize, só para as
+      // mensagens caberem POR BAIXO dele.
+      //
+      // Isso custava: uma faixa morta de ~180px no fim da conversa, uma
+      // medicao por frame, e o defeito real que motivou a mudanca — tudo que
+      // escapasse do calculo aparecia ATRAS do campo de input. No fluxo normal
+      // a rolagem termina em cima do composer e a medicao nao e necessaria.
       ta.addEventListener('input', () => { resize(); this._updateSendAudioState(ta, send); });
       // retry inline do banner de sync
       const retryBtn = $('#sync-retry');

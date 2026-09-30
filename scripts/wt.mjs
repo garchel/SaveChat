@@ -71,11 +71,39 @@ function ensureWorktreesIgnored() {
 
 const slug = (b) => b.replace(/^[a-z]+\//, '').replace(/[^a-zA-Z0-9._-]/g, '-');
 
+// Nome sequencial por prefixo: `hermes` → hermes1, hermes2, hermes3…
+//
+// O prefixo é explícito (`--as hermes`) porque o script não sabe o nome do
+// agente. O número é o menor livre acima do maior existente, e o diretório
+// continua descrevendo a branch de verdade: o nome é para o USUÁ varrer a
+// pasta e saber qual conversa é qual, não para o git.
+//
+// Reaproveitar um número livre (removido no meio) é intencional: o objetivo
+// é "qual worktree é a minha agora", e um buraco na sequência não custa nada
+// — um número duplicado, sim.
+function nextSequential(prefix) {
+  const re = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\d+)$`);
+  let max = 0;
+  let hasAny = false;
+  let entries = [];
+  try { entries = fs.readdirSync(WT_DIR); } catch { /* dir ainda não existe */ }
+  for (const e of entries) {
+    const m = e.match(re);
+    if (!m) continue;
+    hasAny = true;
+    max = Math.max(max, parseInt(m[1], 10));
+  }
+  // a primeira da sequência é 1, não 0: "hermes0" lê como índice de array
+  return { name: `${prefix}${max + 1}`, n: max + 1, firstEver: !hasAny };
+}
+
 function cmdNew() {
   const branch = args[1];
-  if (!branch) fail('uso: node scripts/wt.mjs new <branch> [--base <ref>]');
+  if (!branch) fail('uso: node scripts/wt.mjs new <branch> [--base <ref>] [--as <prefixo>]');
   const bi = args.indexOf('--base');
   const base = bi > -1 ? args[bi + 1] : BASE_DEFAULT;
+  const ai = args.indexOf('--as');
+  const prefix = ai > -1 ? args[ai + 1] : null;
 
   if (!isMainCheckout()) {
     fail('você já está dentro de uma worktree — uma worktree por agente.\n    Para outra tarefa: rode a partir do repo raiz.');
@@ -106,7 +134,11 @@ function cmdNew() {
     fail(`base ${base} não existe`);
   }
 
-  const name = slug(branch);
+  // Com --as, o DIRETÓRIO é sequencial (hermes1, hermes2…) e a branch segue
+  // sendo a da tarefa. Sem --as, mantém o comportamento antigo: diretório = slug
+  // da branch, para não quebrar as worktrees que já existem pelo nome.
+  const seq = prefix ? nextSequential(prefix) : null;
+  const name = seq ? seq.name : slug(branch);
   const wtPath = path.join(WT_DIR, name);
   if (fs.existsSync(wtPath)) {
     const cur = execSync(`git -C "${wtPath}" branch --show-current`, { encoding: 'utf8' }).trim();
@@ -127,7 +159,8 @@ function cmdNew() {
         throw e;
       }
     }
-    ok(`worktree criada em .worktrees/${name}`);
+    if (seq) ok(`worktree criada em .worktrees/${name}  (${prefix} #${seq.n})`);
+    else ok(`worktree criada em .worktrees/${name}`);
   }
 
   // node_modules: junction, não cópia. A worktree está dentro do repo, então
@@ -155,6 +188,9 @@ function cmdNew() {
 
   console.log('\n  Trabalhe a partir daqui:\n');
   console.log(`    cd "${wtPath}"\n`);
+  if (seq) {
+    console.log(`  Identificação: ${prefix}#${seq.n}  →  .worktrees/${name}\n`);
+  }
   console.log('  Ao terminar, promova com:\n');
   console.log(`    node scripts/promote.mjs ${branch}\n`);
   console.log(`  E2E desta worktree (porta própria, ${port}):\n`);
@@ -170,20 +206,46 @@ function cmdList() {
     const [p, , ref] = line.trim().split(/\s+/);
     if (!p) continue;
     const isMain = p === ROOT.replace(/\\/g, '/');
+    // número do agente no nome sequencial: o que o usuário escaneia para
+    // saber qual worktree é a conversa dele
+    const base = path.basename(p);
+    const seq = base.match(/^(.+?)(\d+)$/);
+    const tag = (!isMain && seq) ? `  ${seq[1]}#${seq[2]}` : '';
     let dirty = '';
     try {
       const s = execSync(`git -C "${p}" status --porcelain`, { encoding: 'utf8' }).trim();
       if (s) dirty = `  ⚠ ${s.split('\n').length} arquivo(s) alterado(s)`;
     } catch { /* worktree já removido */ }
-    console.log(`    ${isMain ? '▪' : '▫'} ${(ref || '').replace(/[[\]]/g, '').padEnd(34)} ${p}${dirty}`);
+    console.log(`    ${isMain ? '▪' : '▫'}${tag.padEnd(10)} ${(ref || '').replace(/[[\]]/g, '').padEnd(34)} ${p}${dirty}`);
   }
   console.log('');
 }
 
 function cmdRemove() {
   const name = args[1];
-  if (!name) fail('uso: node scripts/wt.mjs remove <branch-slug>');
-  const wtPath = path.join(WT_DIR, name);
+  if (!name) fail('uso: node scripts/wt.mjs remove <branch-slug | prefixoNN>');
+  // aceita o slug da branch OU o nome sequencial do diretório: remover
+  // "hermes2" tem que funcionar sem saber em qual branch ele estava
+  let resolved = name;
+  const byDir = path.join(WT_DIR, name);
+  if (!fs.existsSync(byDir)) {
+    // tenta o slug: `remove fix/x` acha a worktree cujo diretório é "x"
+    const asSlug = slug(name);
+    if (fs.existsSync(path.join(WT_DIR, asSlug))) resolved = asSlug;
+    else {
+      // último recurso: procura a worktree cujo ref é a branch pedida
+      for (const line of git('worktree', 'list').split('\n')) {
+        const [p, , ref] = line.trim().split(/\s+/);
+        if (p && ref && ref.replace(/[[\]]/g, '') === name) {
+          resolved = path.basename(p); break;
+        }
+      }
+      if (!fs.existsSync(path.join(WT_DIR, resolved))) {
+        fail(`"${name}" não é uma worktree. Use o nome do diretório (hermes2) ou o slug da branch.`);
+      }
+    }
+  }
+  const wtPath = path.join(WT_DIR, resolved);
   if (!fs.existsSync(wtPath)) fail(`${wtPath} não existe`);
   const s = execSync(`git -C "${wtPath}" status --porcelain`, { encoding: 'utf8' }).trim();
   if (s) {
@@ -205,8 +267,13 @@ else {
   Worktree de tarefa — isolamento entre agentes
 
     node scripts/wt.mjs new <branch>      cria a worktree e prepara o workspace
-    node scripts/wt.mjs list              worktrees vivas
-    node scripts/wt.mjs remove <slug>     descarta (recusa se suja)
+    node scripts/wt.mjs new <branch> --as hermes    diretório sequencial: hermes1, hermes2…
+    node scripts/wt.mjs list              worktrees vivas (marca hermes#N)
+    node scripts/wt.mjs remove <slug|hermes2>   descarta (recusa se suja)
+
+  --as <prefixo> dá nome sequencial ao DIRETÓRIO (hermes1, hermes2, …) para
+  você identificar qual worktree é cada conversa ao varrer a pasta. A branch
+  continua sendo a da tarefa. Sem --as o diretório é o slug da branch.
 
   Substitui git switch para trabalho paralelo. Ver CONTRIBUTING.md.
 `);

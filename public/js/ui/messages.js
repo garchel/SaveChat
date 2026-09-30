@@ -10,7 +10,14 @@ export const MessagesMethods = {
       if (this.activeThread === id) return;
       this.activeThread = id;
       this.renderedClientIds = new Set();
-      this.oldestTs = null; this.loading = false;
+      this.oldestTs = null; this.oldestKey = null; this.loading = false;
+      // cada conversa tem sua própria história de servidor: abrir outra
+      // reabre a busca (o fim da lista anterior não vale para a nova)
+      this.serverExhaustedUntil = 0;
+      // abre a conversa SEM o indicador aceso: o fetch só começa no scroll, e
+      // um slot herdado de uma conversa anterior piscaria "Carregando
+      // mensagens…" sobre a nova sem que nada esteja carregando.
+      this._hideLoadSkeleton();
       Sound.play('open');
       $('#app').classList.add('show-chat');
       const t = Store.getThread(id);
@@ -291,7 +298,7 @@ export const MessagesMethods = {
       const notes = Store.notesFor(this.activeThread);
       if (!notes.length) {
         empty.classList.remove('hidden');
-        $('#load-older').classList.add('hidden');
+        this._hideLoadSkeleton();
         this._daySepNodes(box).forEach((n) => n.remove());
         this._syncScrollMetrics();
         this._applyCozyEmptyCopy(empty);
@@ -299,13 +306,44 @@ export const MessagesMethods = {
         return;
       }
       empty.classList.add('hidden');
-      const { items, hasMore } = Store.pageNotes(this.activeThread, this.oldestTs, PAGE_SIZE);
-      if (reset) { this._daySepNodes(box).forEach((n) => n.remove()); this.renderedClientIds.clear(); this.oldestTs = items.length ? items[0].ts : null; }
-      const loader = $('#load-older');
-      loader.classList.toggle('hidden', !hasMore);
+      const { items, hasMore, cursor, oldestTs } = Store.pageNotes(this.activeThread, this.oldestKey, PAGE_SIZE);
       const frag = document.createDocumentFragment();
+      if (reset) {
+        this._daySepNodes(box).forEach((n) => n.remove());
+        this.renderedClientIds.clear();
+        // O reset tem que ESVAZIAR o fluxo, não só o conjunto de ids.
+        //
+        // Limpar `renderedClientIds` sozinho não remove nada do DOM: as bolhas
+        // da conversa anterior continuavam dentro de #messages, e a página nova
+        // era inserida logo abaixo do #load-slot — ou seja, ACIMA delas. O
+        // resultado era o fluxo mostrando as duas conversas misturadas.
+        //
+        // Só saem as BOLHAS e os separadores. Os elementos de interface que
+        // vivem dentro de #messages por posição no DOM (o #load-slot, que
+        // segura o indicador, e o #empty-state, o estado "nada por aqui") são
+        // preservados: removê-los quebrava o render seguinte, que.ENCONTRAVA o
+        // #empty-state como null e morria antes de pintar a conversa nova —
+        // o que devolvia o sintoma original (a anterior ficava na tela).
+        box.querySelectorAll('.bubble, .day-sep-wrap, .day-sep').forEach((el) => el.remove());
+        // A âncora NÃO é gravada aqui de propósito.
+        //
+        // `pageNotes` devolve `cursor` = a chave da primeira nota desta
+        // página, e o corte da próxima chamada é `>=` — ou seja, o cursor
+        // aponta para a PRIMEIRA nota, que o `findIndex` reencontra como
+        // início da página seguinte. Deixar `oldestKey` em `null` faz o
+        // primeiro scroll do usuário paginar a partir do fim da lista, que é
+        // exatamente o que ainda não foi pintado.
+        //
+        // Gravar aqui consumia essa página duas vezes: o boot pintava 25
+        // notas e deixava a âncora no início delas, então o primeiro scroll
+        // recebia de novo as mesmas 25, o filtro de idempotência descartava
+        // tudo, e a âncora saltava para a página seguinte sem renderizar
+        // nada. Medido: 60 notas, 25 apareciam, e o botão de carregar mais
+        // ficava visível sem efeito.
+        this.oldestTs = oldestTs;
+      }
       const before = box.querySelector('.bubble, .day-sep-wrap');
-      // Em load-older (não reset), sincroniza o dia-base com a bolha já existente
+      // No load-older (não reset), sincroniza o dia-base com a bolha já existente
       // para que o separador certo apareça entre notas novas (mais antigas) e as já renderizadas.
       // O separador é o WRAPPER, que não tem data-day: usa a da bolha que vem depois.
       let lastDay = before && !reset
@@ -321,7 +359,10 @@ export const MessagesMethods = {
         lastDay = dayKey;
         frag.appendChild(this.bubbleEl(n));
       });
-      box.insertBefore(frag, reset ? loader.nextSibling : (before || loader));
+      // o ponto de inserção é o SLOT, que fica no topo do fluxo e sempre
+      // presente — as mensagens entram logo abaixo dele
+      const slot = $('#load-slot');
+      box.insertBefore(frag, reset ? slot.nextSibling : (before || slot));
       // separadores que ficaram sem mensagem do seu dia saem com animação
       this._pruneOrphanDaySeps(box);
       if (reset) box.scrollTop = box.scrollHeight;

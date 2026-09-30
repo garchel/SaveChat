@@ -387,6 +387,44 @@ export const NavigationMethods = {
       return this.minimizeApp() ? 'minimized' : 'nothing';
     },
 
+    // ---------- Botão FÍSICO de voltar do celular ----------
+    //
+    // O botão ‹ na tela e o arrasto chamavam goBack(), mas o botão do
+    // aparelho (e o gesto de voltar do navegador) não tinham integração
+    // nenhuma: não existe handler de popstate no app. No Android isso
+    // significa que sair de um modal, de um menu ou de uma nota levava a
+    // um "sai do app" em vez de fechar a camada.
+    //
+    // A estratégia é espelhar o estado navegável no histórico, com um
+    // pushState por camada que o usuário abriu. Assim o botão físico consome
+    // uma entrada por gesto e o goBack roda UMA vez — igual ao botão ‹:
+    // fechar um modal e depois fechar a conversa são dois gestos distintos.
+    //
+    // Por que empilhar e não só reagir no popstate: sem uma entrada por
+    // camada, fechar um modal seria indistinguível de sair do app, porque
+    // é isso que o navegador faz quando a pilha acaba.
+    bindHistoryBack() {
+      if (this._historyBackBound) return;
+      this._historyBackBound = true;
+      // Guarda de arranque: um push base no bind. Sem ele, um deep link
+      // (?new=1, ?thread=) deixaria o app com a pilha contendo só a entrada
+      // do próprio documento, e o primeiro "voltar" do aparelho fecharia o
+      // app em vez de passar por dismissTopLayer/goBack.
+      this._pushBackEntry('boot');
+      window.addEventListener('popstate', () => {
+        const r = this.goBack();
+        if (r === 'nothing') this.toast('Você já está na lista de conversas', { kind: 'info', duration: 2200 });
+        // devolve uma entrada para o gesto seguinte. Não re-empilha ao
+        // minimizar: o app está saindo, não há o que desfazer depois disso.
+        if (r !== 'minimized') this._pushBackEntry(r || 'back');
+      });
+    },
+    _pushBackEntry(reason) {
+      try {
+        history.pushState({ t: Date.now(), reason }, '', location.pathname);
+      } catch { /* history bloqueado — o botão ‹ e o arrasto seguem funcionando */ }
+    },
+
     // Minimizar o app. Existe API real numa WebView (Capacitor/Cordova). Numa
     // PWA instalada o navegador NÃO expõe minimize, e window.close() é
     // ignorado fora de janelas abertas por script — chamar isso aqui fecharia

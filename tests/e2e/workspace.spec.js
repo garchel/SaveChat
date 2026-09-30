@@ -166,18 +166,33 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   // vazio: os dois estao em modo microfone (accent-soft)
   const convEmpty = await right('#btn-send');
   await page.fill('#composer-input', 'ola');
-  // o botão troca de accent-soft (microfone) para accent (enviar) com texto:
-  // espera o estado real em vez de um sleep curto que pode medir o vazio
-  await expect(page.locator('#btn-send')).toHaveCSS('background-color', 'rgb(255, 122, 89)');
+  // o botao troca de accent-soft (microfone) para accent (enviar) com texto:
+  // espera o estado real em vez de um sleep curto que pode medir o vazio.
+  // O gatilho e' lido do token, nao escrito a mao: a cor de accent foi
+  // recalibrada (OKLCh, v1.18) e um literal aqui viraria falha falsa —
+  // o que este teste verifica e' a MUDANCA de estado, nao a paleta.
+  const accent = await page.evaluate(() =>
+    getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+  const accentRgb = await page.evaluate(h => {
+    const d = document.createElement('div');
+    d.style.color = h; document.body.append(d);
+    const c = getComputedStyle(d).color; d.remove(); return c;
+  }, accent);
+  await expect(page.locator('#btn-send')).toHaveCSS('background-color', accentRgb);
   const convFull = await right('#btn-send');
   const convPill = await pillOf('.composer .cozy-input-row');
+
+  // o estado PRECISA ter virado: se accent-soft e accent fossem iguais (ou
+  // audio-mode deixasse de existir), o `toEqual` entre os dois campos passaria
+  // mesmo com o botao travado no microfone. Esta e' a assercao que pega.
+  expect(convEmpty.bg).not.toBe(convFull.bg);
 
   await page.click('.page-switch[data-page="ai"]');
   await expect(page.locator('.ai-input-row')).toBeVisible();
   const aiEmpty = await right('#ai-send');
   await page.fill('#ai-prompt', 'ola');
   // mesmo estado do composer: accent no modo enviar (era sleep de 200ms)
-  await expect(page.locator('#ai-send')).toHaveCSS('background-color', 'rgb(255, 122, 89)');
+  await expect(page.locator('#ai-send')).toHaveCSS('background-color', accentRgb);
   const aiFull = await right('#ai-send');
   const aiPill = await pillOf('.ai-input-row');
 

@@ -105,7 +105,10 @@ button:focus { outline: none; }
 }
 /* Safe-area para notch (iPhone X+) */
 .sidebar { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-.chat-header { padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+/* Safe-area para notch (iPhone X+). O 10px acompanha o padding vertical
+   compacto do .cozy-banner (03b-chat-bolhas.css); com os 16px daqui esta
+   regra vencia o banner e o cabeçalho voltava a 72px. */
+.chat-header { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
 .composer:not(.cozy-composer) { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 /* Campo de entrada flutuante: margem superior = margem inferior */
 .cozy-composer { bottom: 14px; }
