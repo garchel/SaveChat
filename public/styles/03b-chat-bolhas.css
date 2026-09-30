@@ -29,7 +29,11 @@
    a sobrescreveria se esta estivesse no topo.) */
 .chat { isolation: isolate; }
 .cozy-banner {
-  background: var(--accent); color: var(--on-accent); margin: 16px 16px 0; padding: 14px 18px;
+  /* Altura compacta: o vertical foi de 14px para 10px. Medido antes/depois
+     (Playwright, 1280px): o cabeçalho da conversa cai de 72px para 60px, que
+     é a altura do botão Voltar (40px) + 2x10 de respiro — ou seja, o menor
+     valor que ainda deixa a linha de base do título centralizada. */
+  background: var(--accent); color: var(--on-accent); margin: 10px 16px 0; padding: 10px 18px;
   border-radius: 14px; font-weight: 800; font-size: var(--text-lg); box-shadow: var(--shadow-sm);
 }
 /* banner sem cor de thread: sem borda (a linha fina abaixo do banner era essa borda) */
@@ -249,8 +253,12 @@
 }
 
 .chat-header {
+  /* 10px vertical: casa com o .cozy-banner acima. Esta regra vem DEPOIS
+     daquela no mesmo arquivo e, sem o mesmo valor, o padding-bottom de 16px
+     segurava a altura em 66px em vez de 60px. O padding-top de 10px é
+     reescrito em 05-ui-ux-v6.css para somar o safe-area do notch. */
   display: flex; align-items: center; gap: 12px;
-  padding: 16px 20px; background: var(--bg-chat);
+  padding: 10px 20px; background: var(--bg-chat);
   backdrop-filter: blur(10px);
 }
 /* ============================================================

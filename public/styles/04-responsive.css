@@ -9,7 +9,7 @@
   }
   .app.show-chat .sidebar { transform: translateX(-100%); }
   .chat { width: 100%; }
-  .cozy-banner { margin: 8px 12px 0; padding: 12px 14px; font-size: 16px; }
+  .cozy-banner { margin: 8px 12px 0; padding: 10px 14px; font-size: 16px; }
   .cozy-input-row { padding: 6px; }
   /* Backdrop para contexto */
   .app::before {

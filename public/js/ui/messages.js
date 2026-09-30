@@ -10,7 +10,14 @@ export const MessagesMethods = {
       if (this.activeThread === id) return;
       this.activeThread = id;
       this.renderedClientIds = new Set();
-      this.oldestTs = null; this.loading = false;
+      this.oldestTs = null; this.oldestKey = null; this.loading = false;
+      // cada conversa tem sua própria história de servidor: abrir outra
+      // reabre a busca (o fim da lista anterior não vale para a nova)
+      this.serverExhaustedUntil = 0;
+      // abre a conversa SEM o indicador aceso: o fetch só começa no scroll, e
+      // um slot herdado de uma conversa anterior piscaria "Carregando
+      // mensagens…" sobre a nova sem que nada esteja carregando.
+      this._hideLoadSkeleton();
       Sound.play('open');
       $('#app').classList.add('show-chat');
       const t = Store.getThread(id);
@@ -299,8 +306,14 @@ export const MessagesMethods = {
         return;
       }
       empty.classList.add('hidden');
-      const { items, hasMore } = Store.pageNotes(this.activeThread, this.oldestTs, PAGE_SIZE);
-      if (reset) { this._daySepNodes(box).forEach((n) => n.remove()); this.renderedClientIds.clear(); this.oldestTs = items.length ? items[0].ts : null; }
+      const { items, hasMore, cursor, oldestTs } = Store.pageNotes(this.activeThread, this.oldestKey, PAGE_SIZE);
+      if (reset) {
+        this._daySepNodes(box).forEach((n) => n.remove());
+        this.renderedClientIds.clear();
+        // a âncora local é a chave de ordenação; a do servidor é o ts
+        this.oldestKey = cursor;
+        this.oldestTs = oldestTs;
+      }
       const loader = $('#load-older');
       loader.classList.toggle('hidden', !hasMore);
       const frag = document.createDocumentFragment();
