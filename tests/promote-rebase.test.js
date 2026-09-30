@@ -8,6 +8,7 @@ import { test, describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
 import { readFileSync, rmSync, mkdirSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 // o cálculo, copiado de scripts/promote.mjs
@@ -16,8 +17,11 @@ const bloqueia = (clone, branch) => {
   return sh(`git merge-base origin/staging ${branch}`) !== sh('git rev-parse origin/staging');
 };
 
+// `os.tmpdir()` e nao `process.env.TEMP || process.env.TMPDIR`: no Linux do CI
+// TMPDIR nao existe e o path.join recebia undefined, derrubando o arquivo no
+// import. tmpdir() ja sabe qual variavel usar em cada plataforma.
 const repoDescartavel = () => {
-  const tmp = path.join(process.env.TEMP || process.env.TMPDIR, `promote-rebase-${process.pid}`);
+  const tmp = path.join(os.tmpdir(), `promote-rebase-${process.pid}`);
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
   const remoto = path.join(tmp, 'origin.git');
