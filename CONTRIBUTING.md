@@ -239,6 +239,34 @@ nunca é tocado. É o caminho normal quando o agente promove o próprio trabalho
 > O atalho do Hermes (⌘⇧B / `/worktree new`) faz o mesmo por outro caminho,
 > mas o agente consegue chamar este script sem depender de UI.
 
+#### `--as <prefixo>`: nome sequencial para identificar a conversa
+
+Com várias worktrees vivas, varrer a pasta para saber qual é a sua é lento.
+`--as` numera o **diretório** em sequência, mantendo a branch como está:
+
+```bash
+node scripts/wt.mjs new fix/modal --as hermes   # → .worktrees/hermes1
+node scripts/wt.mjs new fix/cabecalho --as hermes   # → .worktrees/hermes2
+node scripts/wt.mjs new fix/tarefas --as hermes    # → .worktrees/hermes3
+```
+
+O `wt.mjs list` marca o número na saída, e o `remove` aceita o nome
+sequencial sem precisar saber a branch:
+
+```
+▫  hermes#2   fix/modal-altura   …/.worktrees/hermes2
+▫  maia#1     fix/cabecalho      …/.worktrees/maia1
+
+node scripts/wt.mjs remove hermes2      # ou: remove fix/modal-altura
+```
+
+Sem `--as` o diretório continua sendo o slug da branch — as worktrees já
+existentes pelo nome não quebram. O número é reusado quando um slot é
+liberado; um buraco na sequência é inofensivo, e o invariante que importa é
+nunca dois agentes com o mesmo número (uma colisão sobrescreveria o trabalho
+de um deles — ver `tests/wt-sequential.test.js`).
+
+
 ### Commits
 
 Convencional, em português, com escopo do subsistema:
