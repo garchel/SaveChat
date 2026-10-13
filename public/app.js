@@ -246,7 +246,10 @@ async init() {
       setInterval(() => this.updateSyncLabel(), 15000);
     },
 
-removeSplash() {
+    removeSplash() {
+      // acende o último passo antes do fade: o usuário vê "Pronto" no quadro
+      // em que a UI entra, e a saída não parece um corte seco
+      document.querySelectorAll('#boot-splash .boot-step').forEach((el) => el.classList.add('is-on'));
       // tira o boot splash (primeira carga no mobile/PWA): fade rápido + remoção
       const sp = document.getElementById('boot-splash');
       if (!sp) return;

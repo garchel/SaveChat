@@ -40,12 +40,26 @@
   </script>
 </head>
 <body>
-  <!-- ===== BOOT SPLASH (primeira carga / PWA) ===== -->
+  <!-- ===== BOOT SPLASH (primeira carga / PWA) =====
+       Aparece ANTES de qualquer JS rodar: é o HTML+CSS crus que o usuário
+       vê nos primeiros milissegundos no mobile. Por isso tudo aqui é
+       declarativo — sem JS, sem fonte carregada por cima, sem layout shift. -->
   <div id="boot-splash" aria-hidden="true">
-    <div class="boot-mark"><img src="icons/icon-512.png" alt="" width="96" height="96" /></div>
-    <div class="boot-name">SaveChat</div>
-    <div class="boot-bar"><span></span></div>
-    <div class="boot-tag">Preparando suas conversas…</div>
+    <div class="boot-orb" aria-hidden="true"></div>
+    <div class="boot-inner">
+      <div class="boot-mark">
+        <img src="assets/themes/logo-terracota.svg" alt="" width="88" height="88" />
+        <span class="boot-mark-glow" aria-hidden="true"></span>
+      </div>
+      <div class="boot-name">SaveChat</div>
+      <div class="boot-tag">Suas ideias em conversas que nunca acabam</div>
+      <div class="boot-bar"><span></span></div>
+      <div class="boot-meta">
+        <span class="boot-step" data-step="conversas">Conversas</span>
+        <span class="boot-step" data-step="sinais">Sinais</span>
+        <span class="boot-step" data-step="pronto">Pronto</span>
+      </div>
+    </div>
   </div>
 
   <!--#include file=partials/login.txt-->
