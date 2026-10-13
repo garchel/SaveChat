@@ -317,6 +317,12 @@
   width: 26px; height: 26px; flex: 0 0 26px; border: none; border-radius: 50%;
   background: transparent; color: var(--text-dim); cursor: pointer;
   display: grid; place-items: center; transition: background .15s, color .15s;
+  position: relative;
+}
+/* alvo de 44×44 sem crescer o glifo (piso WCAG 2.5.5) */
+.ai-info-btn::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .ai-info-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .ai-info-btn:hover, .ai-info-btn[aria-expanded="true"] { background: var(--bg); color: var(--accent); }
@@ -345,8 +351,13 @@
 .btn-thread-menu {
   background: rgba(255,255,255,.18); border: none; color: inherit;
   width: 32px; height: 32px; border-radius: 10px; cursor: pointer;
-  display: grid; place-items: center; flex-shrink: 0;
+  display: grid; place-items: center; flex-shrink: 0; position: relative;
   transition: background .13s, transform .1s;
+}
+/* alvo de 44×44 sem crescer o glifo (piso WCAG 2.5.5) */
+.btn-thread-menu::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .btn-thread-menu:hover { background: rgba(255,255,255,.32); }
 .btn-thread-menu:active { transform: scale(var(--press-scale, .96)); }
@@ -603,19 +614,28 @@
 .rp-grid .rp-grid-it { width: 100%; height: 34px; font-size: 18px; }
 @media (max-width: 480px) { .rp-grid { grid-template-columns: repeat(6, 1fr); } }
 
-/* Seta ▾ no canto SUPERIOR direito (abre popover da mensagem) — bloco único (dedup) */
-/* círculo do hover = só o miolo (~20px), desenhado num pseudo-elemento */
-.bubble .msg-toggle::before {
-  content: ""; position: absolute; inset: 50%; width: 22px; height: 22px;
-  transform: translate(-50%, -50%); border-radius: 50%;
-  background: rgba(255,255,255,.28); opacity: 0; transition: opacity .12s;
+/* Seta ▾ no canto SUPERIOR direito (abre popover da mensagem) — bloco único (dedup).
+   Área de toque 44×44 num ::after transparente: o glifo continua 13px e o
+   alvo é o do piso WCAG 2.5.5. O ::after também serve de "círculo" do
+   estado ativo — antes isso era um ::before de 22px, que deixava o alvo em
+   24×24 (medido) e não fechava o piso. */
+.bubble .msg-toggle::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: transparent; transition: background .15s;
 }
-.bubble.remote .msg-toggle::before { background: rgba(124, 92, 255, .18); }
-.bubble .msg-toggle:hover::before { opacity: 1; }
+.bubble .msg-toggle:active::after { background: var(--accent-soft); }
 .bubble .msg-toggle > * { position: relative; z-index: 1; }
 /* touch: seta sempre visível (não há hover) */
 @media (hover: none) {
   .bubble .msg-toggle { opacity: .55; }
+}
+/* `pointer: coarse` cobre o que `hover: none` não: laptop/tablet com tela de
+   toque E mouse. Nesses aparelhos o :hover não dispara por toque, então sem
+   esta regra o menu da mensagem ficaria invisível e inacessível. */
+@media (pointer: coarse) {
+  .bubble .msg-toggle { opacity: .55; }
+  .bubble .msg-toggle:hover { opacity: 1; }
 }
 
 /* Pull-to-refresh indicador no topo das mensagens */
@@ -796,12 +816,24 @@
 
 .va-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .va-wave {
-  display: flex; align-items: center; gap: 2px; height: 26px;
+  /* LARGURA FIXA e contida: as barras são o conteúdo, não o dono do espaço.
+     `width: 100%` + `max-width` impede o transbordo, e o `overflow: hidden`
+     é a rede de segurança para o caso de uma barra a mais (nota antiga com
+     picos de 120 pontos, ou o esqueleto de 34). Sem isto, 120 barras de
+     min-width 2px com gap de 2px somam ~480px e furam a bolha — medido
+     como transbordo horizontal no #messages. */
+  display: flex; align-items: center; gap: 2px;
+  width: 100%; max-width: 100%; min-width: 0;
+  height: 26px;
+  overflow: hidden;
   cursor: pointer; user-select: none;
 }
-/* cada barra cresce de baixo (transform) — mais barato que animar height */
+/* cada barra cresce de baixo (transform) — mais barato que animar height.
+   `flex: 1 1 0` + `min-width: 0` deixa TODAS as barras dividirem a largura
+   igualmente: o `min-width: 2px` de antes era o que, com muitas barras,
+   impedia o encolhimento e forçava o transbordo. */
 .va-bar {
-  flex: 1 1 0; min-width: 2px; height: var(--h, 40%);
+  flex: 1 1 0; min-width: 0; height: var(--h, 40%);
   border-radius: 2px; background: currentColor;
   opacity: .32; transition: opacity .12s;
 }
