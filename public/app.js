@@ -6,6 +6,7 @@ import { Store } from './js/store.js';
 import { CUELUME_SOUNDS, Sound } from './js/sound.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, USE_SUPABASE, getSupa, Sync } from './js/sync-supabase.js';
 import { Updater } from './js/updater.js';
+import * as AiThread from './js/ai-thread.js';
 import { PickerMethods } from './js/ui/picker.js';
 import { NavigationMethods } from './js/ui/navigation.js';
 import { MessagesMethods } from './js/ui/messages.js';
@@ -396,6 +397,12 @@ showModal(title, bodyHtml, onOk) {
   await injectPartials();
 
   Store.load();
+  // A thread da IA é estrutural: precisa existir antes da primeira
+  // renderTree(), senão o item não aparece na árvore no boot.
+  // Tem de rodar ANTES de `window.NoteThread` ser atribuído (linha ~421),
+  // porque ensureAiThread() lê `window.NoteThread.Store` — por isso o
+  // Store é passado como argumento em vez de lido do global.
+  AiThread.ensureAiThread(Store);
   // aplica tema salvo antes de montar a UI
   const savedTheme = (Store.data.ui && Store.data.ui.theme) || 'terracota';
   document.documentElement.dataset.theme = savedTheme;
@@ -414,7 +421,7 @@ showModal(title, bodyHtml, onOk) {
     return origSend(type, payload);
   };
   // expõe para debugging/inspeção no console
-  window.NoteThread = { Store, Sync, UI, Sound };
+  window.NoteThread = { Store, Sync, UI, Sound, AiThread };
   window.NoteThread.debugLog = () => dbg.slice(-50);
   // marcador de build: torna óbvio no console se o navegador rodou o build novo
   // (lê o número do cache direto do sw.js para nunca mais destoar da versão real)

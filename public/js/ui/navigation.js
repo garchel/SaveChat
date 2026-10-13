@@ -147,6 +147,8 @@ export const NavigationMethods = {
       const hits = [];
       Object.entries(Store.data.notes).forEach(([tid, arr]) => {
         const th = Store.getThread(tid); if (!th) return;
+        // thread da IA é local-only: o conteúdo não entra na busca global
+        if (th.localOnly) return;
         // in: filtro por nome da thread
         if (p.inFilter && !th.name.toLowerCase().includes(p.inFilter)) return;
         arr.forEach((n) => {
@@ -166,6 +168,9 @@ export const NavigationMethods = {
         });
       });
       Store.threadList().forEach((th) => {
+        // a thread da IA é local-only: o conteúdo da conversa com a IA não
+        // deve aparecer na busca global (é privado por escolha do usuário)
+        if (th.localOnly) return;
         if (p.tagFilter || p.depois || p.antes) return; // filtros de nota não aplicam a thread vazia
         if (p.inFilter && !th.name.toLowerCase().includes(p.inFilter)) return;
         if (p.text && !th.name.toLowerCase().includes(p.textLower)) return;

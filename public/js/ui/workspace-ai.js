@@ -81,6 +81,12 @@ export const WorkspaceAiMethods = {
     const history = Store.data.ui.aiChat || (Store.data.ui.aiChat = []);
     history.push({ role: 'user', text: prompt, ts: Date.now() });
     Store.save();
+    // A thread da IA é conversa permanente na árvore (ai-thread.js): o
+    // histórico também vira nota ali, para persistir como qualquer outra
+    // conversa — mas a thread é `localOnly`, então o conteúdo não sai do
+    // aparelho. `role` fica gravado em `aiRole` para o render saber de
+    // quem é a fala.
+    this._aiPersistTurn('user', prompt);
     input.value = '';
     this._growAiPrompt(input);
     input.disabled = true; button.disabled = true;
@@ -138,6 +144,10 @@ export const WorkspaceAiMethods = {
       history.push({ role: 'model', text: answer || '', actions, ts: Date.now() });
       if (history.length > 40) history.splice(0, history.length - 40);
       Store.save();
+      // espelha a resposta na thread da IA (a pergunta já foi espelhada
+      // antes da chamada; em falha, o catch desfaz só o ui.aiChat — ver
+      // o comentário de _aiPersistTurn)
+      this._aiPersistTurn('model', answer || '');
       this.renderAiMessages();
       haptic('success');
     } catch (error) {
@@ -151,6 +161,37 @@ export const WorkspaceAiMethods = {
       button.disabled = false;
       input.focus();
     }
+  },
+
+  // Espelha um turno da conversa com a IA na thread permanente
+  // (`ai-assistant`, ver ai-thread.js), como nota comum — com `aiRole`
+  // dizendo de quem é a fala, porque uma nota normal só distingue
+  // user/other. A thread é `localOnly`, então o sync ignora; nada disso
+  // vai para o servidor.
+  //
+  // O histórico CANÔNICO continua sendo `ui.aiChat` (que a página da IA já
+  // usava e que guarda `actions`/tool-calls, algo que nota não tem). Este
+  // espelho é o que aparece na árvore; se os dois divergirem, manda o
+  // `ui.aiChat`. Em falha da API o catch dá `history.pop()` no
+  // `ui.aiChat` mas NÃO desfaz a nota da pergunta — aceitável: a pergunta
+  // existiu e fica registrada como tentativa, o que é mais honesto do que
+  // sumir com ela.
+  _aiPersistTurn(role, text) {
+    const ai = window.NoteThread && window.NoteThread.AiThread;
+    if (!ai || !text) return;
+    ai.ensureAiThread();
+    const note = {
+      clientId: uid(),
+      threadId: ai.AI_THREAD_ID,
+      user: 'me',
+      text,
+      ts: Date.now(),
+      images: [],
+      aiRole: role === 'model' ? 'model' : 'user',
+      localOnly: true,
+    };
+    Store.upsertNote(note);
+    if (typeof this.renderTree === 'function') this.queueRenderTree();
   },
 
   async _aiFetch(model, key, body) {

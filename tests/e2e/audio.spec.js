@@ -76,7 +76,8 @@ test.describe('mensagem de voz', () => {
 
     await page.goto('/');
     await page.waitForTimeout(2000);
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore
+    await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
 
     // play à esquerda, remetente à direita
@@ -108,7 +109,7 @@ test.describe('mensagem de voz', () => {
     // player sobrevive ao reload (nota veio do storage)
     await page.reload();
     await page.waitForTimeout(2000);
-    await page.locator('.tnode').first().click();
+    await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible();
     await expect(page.locator('.va-dur')).toHaveText('0:07');
   });
@@ -131,7 +132,8 @@ test.describe('mensagem de voz', () => {
 
     await page.goto('/');
     await page.waitForTimeout(2000);
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore
+    await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
 
     // o esqueleto existe logo, mas depois de decodificar as barras ficam

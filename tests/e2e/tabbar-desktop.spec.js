@@ -36,9 +36,9 @@ test('no desktop, a tabbar não aparece', async ({ context, page }) => {
   expect(r.display, 'tabbar escondida no desktop').toBe('none');
   expect(r.switcherVisivel, 'seletor da sidebar segue visível').toBe(true);
 
-  // e navegar por ele ainda funciona
-  await page.evaluate(() => document.querySelector('.page-switch[data-page="ai"]')?.click());
+  // e navegar por ele ainda funciona (Diária continua na barra)
+  await page.evaluate(() => document.querySelector('.page-switch[data-page="daily"]')?.click());
   await page.waitForTimeout(700);
-  const naIa = await page.evaluate(() => !document.querySelector('#ai-page')?.classList.contains('hidden'));
-  expect(naIa, 'página da IA abre pelo seletor da sidebar').toBe(true);
+  const naDaily = await page.evaluate(() => !document.querySelector('#daily-page')?.classList.contains('hidden'));
+  expect(naDaily, 'página da Diária abre pelo seletor da sidebar').toBe(true);
 });

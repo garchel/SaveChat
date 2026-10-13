@@ -33,9 +33,10 @@ test('seletor de páginas: IA, Diária e volta para Cadernos', async ({ page }) 
   expect(switcherY).toBeGreaterThanOrEqual(brandY - 1);
   expect(rowY).toBeGreaterThanOrEqual(switcherY);
 
-  await page.click('.page-switch[data-page="ai"]');
+  // A IA saiu da barra de páginas (virou conversa permanente na árvore,
+  // acima dos favoritos) — o acesso é pelo item da árvore, não pela aba.
+  await page.click('.ai-thread-node');
   await expect(page.locator('#ai-page')).toBeVisible();
-  await expect(page.locator('.page-switch[data-page="ai"]')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#messages')).toBeHidden();
   // as abas antigas dentro da conversa não existem mais
   await expect(page.locator('#workspace-tabs')).toHaveCount(0);
@@ -159,7 +160,10 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   // ter montado a árvore). O sleep de 2000ms não garante isso sob carga
   // com 3 workers — a medição saía com w:0 porque o botão nem estava
   // renderizado. Espera o elemento, não o relógio.
-  const firstThread = page.locator('.tnode').first();
+  // `.tnode[data-tid="t1"]`, não `.tnode` + `.first()`: o item "Conversa com
+  // a IA" (ai-thread.js) é o primeiro nó da árvore e NÃO abre o composer —
+  // ele abre a página da IA. Clicar no `.first()` mediria o estado errado.
+  const firstThread = page.locator('.tnode[data-tid="t1"]').first();
   await expect(firstThread).toBeVisible();
   await firstThread.click();
   await expect(page.locator('.composer .cozy-input-row')).toBeVisible();
@@ -187,7 +191,7 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   // mesmo com o botao travado no microfone. Esta e' a assercao que pega.
   expect(convEmpty.bg).not.toBe(convFull.bg);
 
-  await page.click('.page-switch[data-page="ai"]');
+  await page.click('.ai-thread-node');
   await expect(page.locator('.ai-input-row')).toBeVisible();
   const aiEmpty = await right('#ai-send');
   await page.fill('#ai-prompt', 'ola');
@@ -218,7 +222,7 @@ test('IA sem chave: pede a chave e não chama a API', async ({ page }) => {
   page.on('request', (r) => { if (r.url().includes('generativelanguage')) geminiCalls++; });
   await page.goto('/');
   await page.waitForTimeout(2000);
-  await page.click('.page-switch[data-page="ai"]');
+  await page.click('.ai-thread-node');
   await page.fill('#ai-prompt', 'me ajude a planejar o dia');
   await page.click('#ai-send');
   await expect(page.locator('.app-toast')).toContainText('chave');

@@ -92,7 +92,19 @@ test('conta nova não enxerga as conversas, a chave da IA nem a rotina da conta 
   // e a troca persiste: após reload a conta nova segue vazia
   await page.reload();
   await page.waitForTimeout(1500);
-  const afterReload = await page.evaluate(() => window.NoteThread.Store.threadList().map((t) => t.name));
+  // A thread da IA é estrutural do DISPOSITIVO, não da conta: ela existe
+  // em qualquer conta e por isso `ensureAiThread` a recoloca no boot —
+  // `Store.threadList()` é a lista EM MEMÓRIA, que inclui essa thread. O
+  // que o contrato de isolamento verifica é o CONTEÚDO DA CONTA, então
+  // medimos o bucket: `data.threads` filtrado é exatamente o que `save()`
+  // grava no bucket (ver o filtro em save()).
+  //
+  // `threadList()` cru daria 1 (a thread da IA) em qualquer conta — medido
+  // assim antes deste ajuste.
+  const afterReload = await page.evaluate(() => {
+    const th = window.NoteThread.Store.data.threads;
+    return Object.keys(th).filter((id) => id !== 'ai-assistant').map((id) => th[id].name);
+  });
   expect(afterReload).toEqual([]);
 });
 

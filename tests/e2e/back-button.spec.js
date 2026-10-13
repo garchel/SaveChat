@@ -67,7 +67,8 @@ test.describe('botão físico de voltar do celular', () => {
   });
 
   test('conversa + nota são dois gestos: a nota fecha primeiro', async ({ page }) => {
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore (ver audio.spec.js)
+    await page.locator('.tnode[data-tid="seed-back"]').first().click();
     await expect.poll(() => showChat(page)).toBe(true);
     await page.evaluate(() => window.NoteThread.UI.showNotePreview('seed-back'));
     await expect.poll(() => vis(page, 'note-preview')).toBe(true);
@@ -104,7 +105,8 @@ test.describe('botão físico de voltar do celular', () => {
   });
 
   test('o botão ‹ na tela continua no mesmo nível (sem regressão)', async ({ page }) => {
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore (ver audio.spec.js)
+    await page.locator('.tnode[data-tid="seed-back"]').first().click();
     await expect.poll(() => showChat(page)).toBe(true);
     await page.locator('#btn-back').click();
     await expect.poll(() => showChat(page)).toBe(false);

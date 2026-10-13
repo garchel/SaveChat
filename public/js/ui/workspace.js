@@ -14,7 +14,7 @@ const TAB_LABEL = { conversations: 'Cadernos', ai: 'IA', reminders: 'Lembretes',
 
 export const WorkspaceMethods = {
   bindWorkspace() {
-    // Navegação de páginas: seletor da sidebar do explorador (Cadernos | IA | Diária)
+    // Navegação de páginas: seletor da sidebar do explorador (Cadernos | Tarefas | Diária)
     document.querySelectorAll('.page-switch').forEach((button) => {
       button.addEventListener('click', () => {
         const page = button.dataset.page;
@@ -22,6 +22,10 @@ export const WorkspaceMethods = {
           this.showWorkspaceTab('conversations');
           const app = document.getElementById('app');
           if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+        } else if (page === 'tasks') {
+          // Tarefas é a visão "Pendências" (tasks.js) — a mesma página que o
+          // botão #explorer-tasks abria, agora com aba própria na barra.
+          this.showTasksPage();
         } else {
           this.showWorkspaceTab(page);
         }
@@ -38,6 +42,9 @@ export const WorkspaceMethods = {
           this.showWorkspaceTab('conversations');
           const app = document.getElementById('app');
           if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+        } else if (page === 'tasks') {
+          // mesma ação do seletor da sidebar — fonte única
+          this.showTasksPage();
         } else {
           this.showWorkspaceTab(page);
         }
@@ -114,6 +121,9 @@ export const WorkspaceMethods = {
 
   showWorkspaceTab(name, { updateUrl = true } = {}) {
     const tab = TABS.includes(name) ? name : 'conversations';
+    // o item "Conversa com a IA" da árvore acende só enquanto a página da
+    // IA está aberta — em qualquer outra aba ele apaga
+    this._aiTabOpen = tab === 'ai';
     const app = document.getElementById('app');
     const pageIds = { ai: 'ai-page', reminders: 'reminders-page', daily: 'daily-page' };
     document.getElementById('search-page')?.classList.add('hidden');
