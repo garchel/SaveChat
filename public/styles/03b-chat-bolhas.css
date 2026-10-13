@@ -699,6 +699,12 @@
   transition: border-color .15s, box-shadow .15s;
 }
 .task-acc + .task-acc { margin-top: 12px; }
+/* `flex-shrink: 0` é OBRIGATÓRIO: o container `.tasks-page-list` é
+   `display:flex; flex-direction:column`, e itens flex encolhem por padrão
+   quando o conteúdo estoura a altura. Ao abrir o accordion de baixo, os
+   DOIS comprimiam — foi isso que "comeu o espaçamento" entre os cartões
+   (medido nas capturas: lacuna ausente e o de cima comprimido). */
+.task-acc { flex-shrink: 0; }
 .task-acc-head {
   width: 100%; display: flex; align-items: center; gap: 10px;
   padding: 14px 16px; background: none; border: none; cursor: pointer;
@@ -710,7 +716,11 @@
      não tem meio-termo. */
 }
 .task-acc-head:hover { background: var(--accent-soft); }
-.task-acc-head:active { transform: scale(var(--press-scale, .96)); }
+/* Feedback de toque SEM `transform: scale()`: escalar 0.96 encolhe a faixa
+   de fundo junto com o botão, e o cartão branco aparecia por baixo nas
+   laterais — o "flick" que a captura mostrou (~10px de cada lado, medido).
+   Aqui o fundo escurece no lugar: o retângulo não muda de tamanho. */
+.task-acc-head:active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .task-acc-chevron {
   display: grid; place-items: center; flex-shrink: 0;
   width: 22px; height: 22px; color: var(--text-dim);
