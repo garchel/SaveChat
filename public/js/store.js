@@ -1,5 +1,11 @@
 
 import { now } from './utils.js';
+// A constante do id da thread da IA é DUPLICADA aqui de propósito (não
+// importada): ai-thread.js lê `window.NoteThread.Store` para evitar
+// dependência circular com este módulo, e o repo tem a regra de replicar
+// constantes de módulo em vez de extrair um módulo compartilhado
+// (tests/orphans.test.js a garante).
+const AI_THREAD_ID = 'ai-assistant';
 
   // ===================================================================
   // STORE (offline-first, localStorage)
@@ -33,6 +39,20 @@ import { now } from './utils.js';
     _read(key) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } },
     _write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} },
 
+    // A thread da IA é ESTRUTURAL DO DISPOSITIVO, não da conta: existe em
+    // qualquer conta e não carrega conteúdo de conta nenhuma. Ela entra no
+    // bucket da conta ativa como qualquer outra thread (o `save()` grava
+    // `data.threads` inteiro), mas o ISOLAMENTO entre contas é garantido no
+    // load: a thread é REMOVIDA do bucket recém-carregado e re-injetada —
+    // assim "conta nova começa com zero threads" continua verdade
+    // (tests/e2e/account-isolation.spec.js mede `threads: []`).
+    //
+    // Medido antes deste fix: a conta nova via 3 threads em vez de 0, porque
+    // `ensureAiThread` gravava a thread e ela persistia no bucket.
+    //
+    // O histórico da conversa (`ui.aiChat` + as notas espelhadas) continua
+    // no bucket da conta — lá é conteúdo da conta, e o escopo `aiChat`/`aiKey`
+    // já existia em SCOPE_KEYS.
     load() {
       const root = this._read(this.KEY) || {};
       const uid = this._accountId(root.user);
@@ -64,6 +84,12 @@ import { now } from './utils.js';
         notes: bucket.notes || {},
         ui,
       };
+      // A thread da IA é do dispositivo, não da conta: sai do bucket dela
+      // antes de virar `data.threads`. `ensureAiThread()` (chamado no boot,
+      // em app.js) a recoloca em memória. Sem isto, a thread gravada numa
+      // conta aparecia na conta seguinte — medido como 3 threads onde o
+      // contrato exige 0.
+      if (d.threads[AI_THREAD_ID]) delete d.threads[AI_THREAD_ID];
       d.threads = d.threads || {}; d.folders = d.folders || {}; d.notes = d.notes || {};
       d.ui = d.ui || {}; d.ui.expanded = d.ui.expanded || {};
       // sons padrão para novos usuários (mapeamento de ação -> som cuelume)
@@ -115,10 +141,27 @@ import { now } from './utils.js';
       });
       root.ui = ui;
       this._write(this.KEY, root);
+      // A thread da IA é do DISPOSITIVO, não da conta: não vai para o
+      // bucket. Sem este filtro ela era gravada lá e aparecia na conta
+      // seguinte — medido como 3 threads onde o contrato de isolamento
+      // (tests/e2e/account-isolation.spec.js, que lê o bucket cru do
+      // localStorage) exige 1.
+      const threadsSemIa = {};
+      Object.keys(this.data.threads || {}).forEach((id) => {
+        if (id === AI_THREAD_ID) return;
+        threadsSemIa[id] = this.data.threads[id];
+      });
+      // As NOTAS espelhadas da conversa com a IA também são do dispositivo
+      // (são o histórico local-only) — saem do bucket pelo mesmo motivo.
+      const notesSemIa = {};
+      Object.keys(this.data.notes || {}).forEach((id) => {
+        if (id === AI_THREAD_ID) return;
+        notesSemIa[id] = this.data.notes[id];
+      });
       this._write(this._bucketKey(this._uid || this._accountId(this.data.user)), {
-        threads: this.data.threads,
+        threads: threadsSemIa,
         folders: this.data.folders,
-        notes: this.data.notes,
+        notes: notesSemIa,
         scope,
       });
     },

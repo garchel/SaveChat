@@ -32,7 +32,7 @@ test('tabbar entrega navegação em 1 toque no mobile', async ({ context, page }
       return { x: Math.round(b.x), w: Math.round(b.width), h: Math.round(b.height), bottom: Math.round(b.bottom),
         visivel: b.right > 0 && b.left < window.innerWidth && !e.classList.contains('hidden') && cs.display !== 'none',
         display: cs.display, temHidden: e.classList.contains('hidden') }; };
-    return { tabbar: r('#tabbar'), switcher: r('.page-switcher'), btnIa: r('.tabbar-btn[data-page="ai"]'),
+    return { tabbar: r('#tabbar'), switcher: r('.page-switcher'), btnTasks: r('.tabbar-btn[data-page="tasks"]'),
       composer: r('.cozy-composer'), messages: r('#messages'),
       appShowChat: document.getElementById('app')?.classList.contains('show-chat'),
       vw: window.innerWidth };
@@ -41,25 +41,24 @@ test('tabbar entrega navegação em 1 toque no mobile', async ({ context, page }
 
   // 1 toque: a tabbar está visível e alcançável
   expect(posicoes.tabbar?.visivel, 'tabbar visível com conversa aberta').toBe(true);
-  expect(posicoes.btnIa?.visivel, 'botão IA da tabbar visível').toBe(true);
+  expect(posicoes.btnTasks?.visivel, 'botão Tarefas da tabbar visível').toBe(true);
   // e o composer não está escondido atrás dela
   expect(posicoes.composer.bottom, 'composer acima do fim da viewport').toBeLessThanOrEqual(844);
   expect(posicoes.composer.bottom, 'composer não fica atrás da tabbar').toBeLessThanOrEqual(posicoes.tabbar.h + posicoes.tabbar.bottom - posicoes.tabbar.h + 1e9);
   console.log('COMPOSER_BOTTOM=' + posicoes.composer.bottom + ' TABBAR_TOP=' + (posicoes.tabbar.bottom - posicoes.tabbar.h));
 
-  // o gesto: 1 toque leva à IA
-  await page.tap('.tabbar-btn[data-page="ai"]');
+  // o gesto: 1 toque leva a Tarefas (a aba IA saiu da barra)
+  await page.tap('.tabbar-btn[data-page="tasks"]');
   await page.waitForTimeout(700);
-  const naIa = await page.evaluate(() => ({
-    pagina: document.querySelector('#chat-name')?.textContent?.trim(),
-    iaVisivel: !document.querySelector('#ai-page')?.classList.contains('hidden'),
-    tabbarAtivo: document.querySelector('.tabbar-btn[data-page="ai"]')?.classList.contains('active'),
-    switcherAtivo: document.querySelector('.page-switch[data-page="ai"]')?.classList.contains('active'),
+  const naTasks = await page.evaluate(() => ({
+    tasksVisivel: !document.querySelector('#tasks-page')?.classList.contains('hidden'),
+    tabbarAtivo: document.querySelector('.tabbar-btn[data-page="tasks"]')?.classList.contains('active'),
+    switcherAtivo: document.querySelector('.page-switch[data-page="tasks"]')?.classList.contains('active'),
   }));
-  console.log('APOS_1_TOQUE=' + JSON.stringify(naIa));
-  expect(naIa.iaVisivel, 'página da IA abriu').toBe(true);
-  expect(naIa.tabbarAtivo, 'tabbar marcou IA como ativa').toBe(true);
-  expect(naIa.switcherAtivo, 'e o switcher da sidebar também (fonte única)').toBe(true);
+  console.log('APOS_1_TOQUE=' + JSON.stringify(naTasks));
+  expect(naTasks.tasksVisivel, 'página de Tarefas abriu').toBe(true);
+  expect(naTasks.tabbarAtivo, 'tabbar marcou Tarefas como ativa').toBe(true);
+  expect(naTasks.switcherAtivo, 'e o switcher da sidebar também (fonte única)').toBe(true);
 
   // e volta: 1 toque na tabbar, sem precisar do #btn-back
   await page.tap('.tabbar-btn[data-page="daily"]');

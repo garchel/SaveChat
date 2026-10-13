@@ -23,6 +23,18 @@ export const TasksMethods = {
     document.getElementById('daily-page')?.classList.add('hidden');
     page.classList.remove('hidden');
     this.setChatActiveUi(true);
+    // A aba "Tarefas" da barra é a entrada desta página, então ela precisa
+    // acender aqui — senão abrir pelas Pendências (botão da marca) deixa a
+    // barra sem nenhum item ativo. `syncExplorerChrome` só cuida do botão
+    // #explorer-tasks, não do seletor de páginas.
+    // Marcada ANTES do syncExplorerChrome/_syncTabbar, porque o tabbar lê o
+    // estado do `.page-switch` — se marcasse depois, leria o estado velho.
+    document.querySelectorAll('.page-switch').forEach((button) => {
+      const active = button.dataset.page === 'tasks';
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+      button.tabIndex = active ? 0 : -1;
+    });
     this.renderTasksPage();
     this.updateTasksBadge();
     this.syncExplorerChrome();
