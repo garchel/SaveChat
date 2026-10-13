@@ -690,7 +690,12 @@
    conteúdo de altura variável. */
 .task-acc {
   background: var(--bg-elev); border: 1px solid var(--border);
-  border-radius: 16px; overflow: hidden;
+  border-radius: 16px;
+  /* `overflow: hidden` AQUI (no container) e não no `.task-acc-inner`:
+     com hidden só no inner, o cabeçalho vaza por cima do accordion de cima
+     durante a animação de abertura (medido: sobrepunha parte de "Minhas
+     tarefas"). O container é quem recorta. */
+  overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
 }
 .task-acc + .task-acc { margin-top: 12px; }
@@ -699,7 +704,10 @@
   padding: 14px 16px; background: none; border: none; cursor: pointer;
   color: var(--text); text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition: background .13s;
+  /* `background` NÃO entra na transição: durante a animação do corpo, o
+     hover do cabeçalho interpolava a cor do zero ao cheio e o fundo parecia
+     "encolher" por alguns frames (flick). Cor de hover é estado binário —
+     não tem meio-termo. */
 }
 .task-acc-head:hover { background: var(--accent-soft); }
 .task-acc-head:active { transform: scale(var(--press-scale, .96)); }
@@ -734,13 +742,29 @@
 .task-new {
   display: flex; align-items: center; gap: 8px;
   margin: 0 14px 10px; padding: 4px 4px 4px 14px;
-  background: var(--bg); border: 1.5px dashed var(--border);
+  background: var(--bg);
+  /* Só a borda TRACEJADA externa do campo. A caixa do input não leva
+     `border`/`outline` próprio — o `outline: none` é explícito porque o
+     `:focus` global do app desenhava uma borda quadrada por cima da
+     pílula arredondada (medido: quadrado interno visível ao focar). */
+  border: 1.5px dashed var(--border);
   border-radius: 999px;
   transition: border-color .15s, background .15s;
 }
 .task-new:focus-within { border-style: solid; border-color: var(--accent); background: var(--bg-elev); }
 .task-new input {
-  flex: 1; min-width: 0; border: none; background: none; outline: none;
+  flex: 1; min-width: 0;
+  /* `border/box-shadow: none !important` + `outline: none !important` é o
+     MESMO contrato do campo de busca (`03a-sidebar-explorer.css:210`,
+     `.search-box input`) e do composer: sem o `!important` uma regra global
+     de `:focus` desenha outline sólido quadrado por cima da pílula
+     arredondada — medido `outlineStyle: solid` mesmo com `outline: none`
+     sem `!important`. A pílula já comunica o foco pelo `:focus-within`
+     (borda que fica sólida e muda de cor), então o outline do input é
+     redundante aqui. */
+  border: none !important; box-shadow: none !important; outline: none !important;
+  -webkit-appearance: none; appearance: none;
+  background: none;
   font: inherit; font-size: 13.5px; color: var(--text);
   padding: 8px 0;
 }
@@ -775,10 +799,23 @@
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
 }
 .task-meta {
+  display: flex; align-items: center; gap: 5px;
   font-size: 12px; line-height: 1.4; color: var(--text-dim);
-  overflow-wrap: anywhere; white-space: normal;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-width: 0;
 }
+/* marcador da conversa de origem: quadrado de borda arredondada na cor da
+   conversa. `flex-shrink: 0` para nomes longos não o esmagarem. */
+.task-src {
+  flex-shrink: 0; width: 9px; height: 9px; border-radius: 3px;
+  background: var(--border);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+}
+.task-src-name {
+  font-weight: 700; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 140px;
+}
+.task-meta-sep { opacity: .55; flex-shrink: 0; }
 .task-go { color: var(--text-dim); flex-shrink: 0; align-self: center; transition: transform .15s, color .15s; }
 
 /* ações de editar/excluir (só nas próprias) */
