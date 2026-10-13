@@ -1,7 +1,7 @@
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 760px) {
   .mobile-only { display: grid; place-items: center; }
-  .app { grid-template-columns: 1fr; margin: 0; border-radius: 0; height: 100vh; }
+  .app { grid-template-columns: 1fr; margin: 0; border-radius: 0; height: 100vh; height: 100dvh; }
   .nav-bar { display: none; }
   .sidebar {
     position: fixed; inset: 0; z-index: 20; width: 100%;
@@ -11,6 +11,10 @@
   .chat { width: 100%; }
   .cozy-banner { margin: 8px 12px 0; padding: 10px 14px; font-size: 16px; }
   .cozy-input-row { padding: 6px; }
+  /* Notch / barra de gestos do iPhone: o cabeçalho já tratava o topo, mas o
+     composer — justamente onde o polegar alcança — ficava sob a área de
+     gestos. Reserva a faixa inferior para o campo não ser cortado. */
+  .cozy-composer { padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
   /* Backdrop para contexto */
   .app::before {
     content: ""; position: fixed; inset: 0; background: rgba(20,16,40,.32);
@@ -69,6 +73,7 @@
   background: rgba(255,255,255,.2); color: #fff; border: none; border-radius: 8px;
   padding: 5px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer;
   transition: background .15s;
+  min-height: 32px;
 }
 .sync-error-banner button:hover { background: rgba(255,255,255,.32); }
 

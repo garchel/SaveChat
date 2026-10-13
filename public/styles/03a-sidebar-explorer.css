@@ -54,6 +54,10 @@
   width: 100%; padding: 11px 16px; border-radius: 14px; font-size: 13px; font-weight: 800; letter-spacing: .3px;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: filter .15s, transform .1s ease, box-shadow .2s;
   position: relative; overflow: hidden;
+  /* piso de altura de toque: 11px+11px de padding + linha de 13px fechava
+     38px, abaixo do mínimo de 44 (WCAG 2.5.5). O padding sobe para 14px
+     apenas onde aperta — no desktop o botão já era maior que isso. */
+  min-height: 44px;
 }
 /* glifo do botão: bloco (mata o gap de baseline de inline) e sem encolher */
 .btn-explorer svg { display: block; flex-shrink: 0; }

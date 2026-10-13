@@ -403,7 +403,9 @@ body::before {
 /* App container cozy — agora 2 colunas (explorer + canvas) */
 .app {
   display: grid; grid-template-columns: var(--sidebar-w) 1fr;
-  height: calc(100vh - 32px); margin: 16px;
+  /* 100dvh com 100vh de fallback: no mobile o 100vh inclui a área sob a
+     barra do navegador, o que empurra o composer para fora do alcance. */
+  height: calc(100vh - 32px); height: calc(100dvh - 32px); margin: 16px;
   background: var(--bg-explorer);
   border-radius: var(--radius-lg);
   overflow: hidden;
