@@ -682,11 +682,83 @@
 .search-page-results, .reminders-page-list, .tasks-page-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .search-page .search-result, .reminders-page .rem-item { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
 
-/* ---- Visão Pendências (v1.8.2) ---- */
+/* ---- Página de Tarefas (v1.20.0): acordeões + CRUD próprio ---- */
 .tasks-page-list { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 8px; }
+
+/* Accordion. O corpo anima com grid-template-rows 0fr↔1fr (a mesma técnica
+   das pastas da árvore): não mede max-height, então não tem jank com
+   conteúdo de altura variável. */
+.task-acc {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+.task-acc + .task-acc { margin-top: 12px; }
+.task-acc-head {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; background: none; border: none; cursor: pointer;
+  color: var(--text); text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .13s;
+}
+.task-acc-head:hover { background: var(--accent-soft); }
+.task-acc-head:active { transform: scale(var(--press-scale, .96)); }
+.task-acc-chevron {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 22px; height: 22px; color: var(--text-dim);
+  transition: transform .2s var(--ease-soft, ease);
+}
+.task-acc.open .task-acc-chevron { transform: rotate(90deg); }
+.task-acc-title { flex: 1; font-size: 14px; font-weight: 800; letter-spacing: -.1px; }
+.task-acc-count {
+  flex-shrink: 0; min-width: 22px; height: 22px; padding: 0 7px;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  border-radius: 999px; font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.task-acc-count:empty { display: none; }
+/* corpo: 0fr quando fechado, 1fr quando aberto.
+   O truque do `grid-template-rows: 0fr/1fr` exige UM wrapper com
+   `min-height: 0; overflow: hidden` — com filhos soltos o 0fr não colapsa
+   de verdade (o conteúdo estoura a linha). Por isso o HTML embrulha o
+   conteúdo em `.task-acc-inner`; o CSS abaixo só posiciona. */
+.task-acc-body {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows .22s var(--ease-soft, ease);
+}
+.task-acc.open > .task-acc-body { grid-template-rows: 1fr; }
+.task-acc-inner { min-height: 0; overflow: hidden; }
+
+/* criador inline de tarefa própria */
+.task-new {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 14px 10px; padding: 4px 4px 4px 14px;
+  background: var(--bg); border: 1.5px dashed var(--border);
+  border-radius: 999px;
+  transition: border-color .15s, background .15s;
+}
+.task-new:focus-within { border-style: solid; border-color: var(--accent); background: var(--bg-elev); }
+.task-new input {
+  flex: 1; min-width: 0; border: none; background: none; outline: none;
+  font: inherit; font-size: 13.5px; color: var(--text);
+  padding: 8px 0;
+}
+.task-new input::placeholder { color: var(--text-dim); }
+.task-new-btn {
+  flex-shrink: 0; width: 34px; height: 34px;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent);
+  border: none; border-radius: 50%; cursor: pointer;
+  transition: transform .1s, filter .15s;
+}
+.task-new-btn:hover { filter: brightness(1.06); }
+.task-new-btn:active { transform: scale(var(--press-scale, .96)); }
+
+.task-list { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 14px; }
 .task-row {
   display: flex; align-items: flex-start; gap: 12px;
-  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
   padding: 12px 14px; cursor: pointer;
   transition: background .13s, border-color .13s, box-shadow .15s, transform .1s;
   min-height: 56px;
@@ -708,13 +780,32 @@
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .task-go { color: var(--text-dim); flex-shrink: 0; align-self: center; transition: transform .15s, color .15s; }
-.tasks-empty {
-  text-align: center; color: var(--text-dim); font-size: 14px; font-weight: 600;
-  padding: 40px 16px; line-height: 1.7;
-  background: var(--bg-elev); border: 1.5px dashed var(--border); border-radius: 16px;
+
+/* ações de editar/excluir (só nas próprias) */
+.task-own-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; align-self: center; }
+.task-ico {
+  width: 44px; height: 44px;              /* alvo de toque (piso WCAG 2.5.5) */
+  display: grid; place-items: center;
+  background: none; border: none; border-radius: 10px;
+  color: var(--text-dim); cursor: pointer;
+  transition: background .13s, color .13s;
 }
-.tasks-empty code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
-/* saída animada ao concluir */
+.task-ico:hover { background: var(--bg-elev); color: var(--text); }
+.task-ico-danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.task-edit-input {
+  width: 100%; border: none; background: none; outline: none;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text);
+  padding: 2px 0;
+}
+.task-acc-empty {
+  padding: 4px 16px 16px; margin: 0;
+  text-align: left; color: var(--text-dim);
+  font-size: 13px; font-weight: 600; line-height: 1.6;
+}
+.task-acc-empty.hidden { display: none; }
+.task-acc-empty-sub { font-weight: 500; opacity: .85; }
+.task-acc-empty code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+/* saída animada ao concluir/excluir */
 .task-row { transition: background .13s, border-color .13s, opacity .35s ease, transform .35s ease, max-height .35s ease; overflow: hidden; }
 .task-row.chk-out { opacity: 0; transform: translateX(18px); }
 .pull-spinner {
