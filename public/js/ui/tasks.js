@@ -19,6 +19,28 @@ import { esc, fmtTime, haptic, uid, now } from '../utils.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
+import { COLOR_PALETTE, colorById } from '../icons.js';
+
+// Cor do marcador de origem de uma tarefa de conversa. É a MESMA cor que a
+// árvore usa no ícone do caderno (tree.js `_cadernoColor`), replicada aqui
+// em vez de reaproveitada: `tasks.js` é um mixin plano e importar TreeMethods
+// criaria acoplamento para uma função de 8 linhas. A regra do repo é
+// replicar constantes/lógica pequena no módulo que usa (ver
+// tests/orphans.test.js) — mas aqui é uma FUNÇÃO, então fica local.
+//
+// Ordem: cor escolhida pelo usuário (`t.color`) tem prioridade; senão, hash
+// determinístico do id — a mesma conversa tem sempre a mesma cor, em
+// qualquer tela.
+function threadSrcColor(t) {
+  if (!t) return null;
+  const chosen = t.color && colorById(t.color);
+  if (chosen) return typeof chosen === 'object' ? chosen.bg : chosen;
+  let hash = 0;
+  const str = String(t.id) + String(t.emoji || t.name || '');
+  for (let i = 0; i < str.length; i++) hash = (hash * 31 + str.charCodeAt(i)) >>> 0;
+  const c = COLOR_PALETTE[hash % COLOR_PALETTE.length];
+  return c ? c.bg : null;
+}
 
 // onde as tarefas próprias moram (fora do bucket da conta, de propósito —
 // ver o cabeçalho). `tasksOwn` não está em SCOPE_KEYS, então `save()` a
@@ -158,7 +180,7 @@ export const TasksMethods = {
           if (m[1].toLowerCase() === 'x') continue; // só as abertas
           const txt = m[2].trim();
           if (!txt) continue;
-          out.push({ threadId: tid, clientId: n.clientId, index: i, text: txt, ts: n.ts, threadName: th.name, threadEmoji: th.emoji, threadAt: th.updatedAt || 0 });
+          out.push({ threadId: tid, clientId: n.clientId, index: i, text: txt, ts: n.ts, threadName: th.name, threadEmoji: th.emoji, threadColor: threadSrcColor(th), threadAt: th.updatedAt || 0 });
         }
       });
     });
@@ -211,7 +233,17 @@ export const TasksMethods = {
           <input type="checkbox" class="task-chk" aria-label="Concluir ${esc(t.text)}" />
           <span class="task-body">
             <span class="task-text">${esc(t.text)}</span>
-            <span class="task-meta">${esc(t.threadEmoji || '')} ${esc(t.threadName || 'Conversa')} · ${fmtTime(t.ts)}</span>
+            <span class="task-meta">
+              <!-- marcador da conversa de origem: círculo/quadrado
+                   arredondado na COR da conversa (a mesma cor que a árvore
+                   usa, via _cadernoColor) + o nome. Substitui o emoji cru
+                   (🚩) que aparecia quando a conversa não tinha emoji
+                   escolhido — gerava um "flag" solto sem sentido de marca. -->
+              <span class="task-src" style="background:${esc(t.threadColor || 'var(--border)')}" aria-hidden="true"></span>
+              <span class="task-src-name">${esc(t.threadName || 'Conversa')}</span>
+              <span class="task-meta-sep" aria-hidden="true">·</span>
+              ${fmtTime(t.ts)}
+            </span>
           </span>
           <svg class="task-go" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>`).join('');
