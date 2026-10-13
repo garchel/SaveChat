@@ -40,12 +40,26 @@
   </script>
 </head>
 <body>
-  <!-- ===== BOOT SPLASH (primeira carga / PWA) ===== -->
+  <!-- ===== BOOT SPLASH (primeira carga / PWA) =====
+       Aparece ANTES de qualquer JS rodar: é o HTML+CSS crus que o usuário
+       vê nos primeiros milissegundos no mobile. Por isso tudo aqui é
+       declarativo — sem JS, sem fonte carregada por cima, sem layout shift. -->
   <div id="boot-splash" aria-hidden="true">
-    <div class="boot-mark"><img src="icons/icon-512.png" alt="" width="96" height="96" /></div>
-    <div class="boot-name">SaveChat</div>
-    <div class="boot-bar"><span></span></div>
-    <div class="boot-tag">Preparando suas conversas…</div>
+    <div class="boot-orb" aria-hidden="true"></div>
+    <div class="boot-inner">
+      <div class="boot-mark">
+        <img src="assets/themes/logo-terracota.svg" alt="" width="88" height="88" />
+        <span class="boot-mark-glow" aria-hidden="true"></span>
+      </div>
+      <div class="boot-name">SaveChat</div>
+      <div class="boot-tag">Suas ideias em conversas que nunca acabam</div>
+      <div class="boot-bar"><span></span></div>
+      <div class="boot-meta">
+        <span class="boot-step" data-step="conversas">Conversas</span>
+        <span class="boot-step" data-step="sinais">Sinais</span>
+        <span class="boot-step" data-step="pronto">Pronto</span>
+      </div>
+    </div>
   </div>
 
   <!--#include file=partials/login.txt-->
@@ -92,6 +106,18 @@
       <!-- Seletor removido da conversa aberta (v1.12.0): a navegação de páginas
            vive só na sidebar do explorador. -->
       <div id="workspace-swipe-hint" class="hidden" aria-hidden="true"></div>
+      <!-- Tabbar inferior (só no mobile, ver 04-responsive.css). As três
+           páginas do workspace vivem no `.page-switcher` da sidebar, que no
+           mobile fica fora da tela (translateX(-100%)) — medido em x:-378
+           com uma conversa aberta, o que custava 2 toques para trocar de
+           página. Esta barra é o atalho de 1 toque; ela NÃO é uma segunda
+           fonte de verdade: o clique é delegado a showWorkspaceTab(), e o
+           estado ativo vem do mesmo `.page-switch` da sidebar. -->
+      <nav id="tabbar" class="tabbar hidden" aria-label="Páginas do app">
+        <button type="button" class="tabbar-btn" data-page="notes" aria-label="Cadernos" title="Cadernos e conversas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v17.5H7.5A2.5 2.5 0 0 0 5 22V4.5Z"/><path d="M9 7h6M9 10.5h6"/></svg><span>Cadernos</span></button>
+        <button type="button" class="tabbar-btn" data-page="ai" aria-label="IA" title="IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg><span>IA</span></button>
+        <button type="button" class="tabbar-btn" data-page="daily" aria-label="Diária" title="Diária"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg><span>Diária</span></button>
+      </nav>
         <!-- Menu popover da nota (backlinks, convidar, renomear, excluir) -->
         <div id="chat-title-menu" class="popover chat-title-menu hidden" role="menu">
           <button type="button" id="menu-backlinks" class="ctm-item hidden" data-act="backlinks"><span class="ctm-icon">@</span> Mencionado em <span id="menu-backlinks-count" class="ctm-badge"></span></button>
