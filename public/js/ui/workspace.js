@@ -27,6 +27,22 @@ export const WorkspaceMethods = {
         }
       });
     });
+    // Tabbar inferior (mobile): MESMA ação dos `.page-switch`, sem lógica
+    // duplicada. Ela só é um atalho de 1 toque — o estado ativo é
+    // sincronizado a partir do `.page-switch` da sidebar (que é a fonte
+    // única), então não há como as duas divergirem.
+    document.querySelectorAll('.tabbar-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const page = button.dataset.page;
+        if (page === 'notes') {
+          this.showWorkspaceTab('conversations');
+          const app = document.getElementById('app');
+          if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+        } else {
+          this.showWorkspaceTab(page);
+        }
+      });
+    });
     // teclado no seletor (role=tab): setas movem, Home/End atalhos
     const tablist = document.querySelector('.page-switcher');
     if (tablist) tablist.addEventListener('keydown', (e) => {
@@ -122,6 +138,8 @@ export const WorkspaceMethods = {
       button.setAttribute('aria-selected', String(active));
       button.tabIndex = active ? 0 : -1;
     });
+    // o estado ativo da tabbar (mobile) é sincronizado em _syncTabbar(),
+    // chamado por syncExplorerChrome() abaixo — não duplicar aqui.
     if (tab !== 'conversations') document.getElementById(pageIds[tab])?.classList.remove('hidden');
     // cabeçalho e tooltip informativa na página da IA
     const aiInfoBtn = document.getElementById('ai-info-btn');
