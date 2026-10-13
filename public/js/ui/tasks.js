@@ -1,13 +1,31 @@
-import { esc, fmtTime, haptic } from '../utils.js';
+// ---------- Página de Tarefas (v1.20.0) ----------
+// Dois acordeões, duas origens:
+//
+// 1) "Minhas tarefas" — criadas DENTO desta página (CRUD próprio). Não
+//    pertencem a nenhuma conversa. Moram em `ui.tasksOwn`, uma lista de
+//    { id, text, done, createdAt }. Sincronizam pelo Supabase como
+//    preferência da conta? NÃO: ficam em `ui`, que é o escopo do
+//    DISPOSITIVO (ver SCOPE_KEYS em store.js) — a página não as declara,
+//    então elas NÃO vão para o bucket da conta e ficam só no aparelho.
+//    Isso é deliberado: uma lista de afazeres pessoal não deve atravessar
+//    contas nem exigir schema novo no servidor. O histórico de conversa
+//    (`ui.aiChat`) tem o mesmo tratamento.
+//
+// 2) "Tarefas das conversas" — itens de checklist `[ ]` escritos em notas
+//    das conversas ( comportamento anterior, a "visão Pendências"). Estas
+//    são SOMENTE LEITURA aqui: marcar edita a nota de ORIGEM e sincroniza
+//    pelo evento note:edit — a fonte da verdade é a nota, não esta lista.
+import { esc, fmtTime, haptic, uid, now } from '../utils.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
 
-// ---------- Visão "Pendências" (v1.8.2) ----------
-// Todos os itens de checklist não concluídos de TODAS as conversas numa tela
-// única. O índice do checkbox é GLOBAL no texto (mesma regra do
-// toggleNoteCheckbox em messages.js: toda linha `[ ]`/`[x]` conta, aninhada ou
-// não) — marcar aqui edits a nota de origem e sincroniza pelo evento note:edit.
+// onde as tarefas próprias moram (fora do bucket da conta, de propósito —
+// ver o cabeçalho). `tasksOwn` não está em SCOPE_KEYS, então `save()` a
+// grava na RAIZ do localStorage, junto do tema e das preferências de
+// dispositivo.
+const OWN_KEY = 'tasksOwn';
+
 export const TasksMethods = {
   showTasksPage() {
     const page = document.getElementById('tasks-page');
@@ -24,11 +42,10 @@ export const TasksMethods = {
     page.classList.remove('hidden');
     this.setChatActiveUi(true);
     // A aba "Tarefas" da barra é a entrada desta página, então ela precisa
-    // acender aqui — senão abrir pelas Pendências (botão da marca) deixa a
-    // barra sem nenhum item ativo. `syncExplorerChrome` só cuida do botão
-    // #explorer-tasks, não do seletor de páginas.
-    // Marcada ANTES do syncExplorerChrome/_syncTabbar, porque o tabbar lê o
-    // estado do `.page-switch` — se marcasse depois, leria o estado velho.
+    // acender aqui — senão abrir por outro caminho deixa a barra sem item
+    // ativo. `syncExplorerChrome` só cuida dos botões da marca, não do
+    // seletor de páginas. Marcada ANTES do syncExplorerChrome/_syncTabbar,
+    // porque o tabbar lê o estado do `.page-switch`.
     document.querySelectorAll('.page-switch').forEach((button) => {
       const active = button.dataset.page === 'tasks';
       button.classList.toggle('active', active);
@@ -46,23 +63,90 @@ export const TasksMethods = {
     // Volta para a aba ativa do workspace (não força messages se estava na IA/Diária)
     const tab = this._workspaceTab || 'conversations';
     if (tab === 'conversations') {
-      document.getElementById('messages').classList.remove('hidden');
+      document.getElementById('messages')?.classList.remove('hidden');
       document.getElementById('backlinks')?.classList.remove('hidden');
     } else if (typeof this.showWorkspaceTab === 'function') {
       this.showWorkspaceTab(tab, { updateUrl: false });
     } else {
-      document.getElementById('messages').classList.remove('hidden');
+      document.getElementById('messages')?.classList.remove('hidden');
       document.getElementById('backlinks')?.classList.remove('hidden');
     }
     this.syncExplorerChrome();
   },
 
-  // todas as pendências abertas, da conversa mexida mais recentemente para a mais antiga
+  // ---------- "Minhas tarefas": lista própria, CRUD completo ----------
+
+  _ownTasks() {
+    const ui = Store.data.ui || (Store.data.ui = {});
+    if (!Array.isArray(ui[OWN_KEY])) ui[OWN_KEY] = [];
+    return ui[OWN_KEY];
+  },
+
+  // cria uma tarefa própria. `silent` é usado no restore/seed para não
+  // tocar som nem vibração.
+  addOwnTask(text, { silent = false } = {}) {
+    const t = String(text || '').trim();
+    if (!t) return null;
+    const list = this._ownTasks();
+    const item = { id: uid(), text: t, done: false, createdAt: now() };
+    list.unshift(item);
+    Store.save();
+    if (!silent) { Sound.playName('toggle'); haptic('light'); }
+    this.renderTasksPage();
+    this.updateTasksBadge();
+    return item;
+  },
+
+  // marca/desmarca. A tarefa própria não tem nota de origem: some da
+  // lista quando concluída (mesmo comportamento das de conversa), mas
+  // fica registrada em `done` no Store para poder ser restaurada depois.
+  toggleOwnTask(id, done) {
+    const list = this._ownTasks();
+    const item = list.find((x) => x.id === id);
+    if (!item) return;
+    item.done = done;
+    item.doneAt = done ? now() : null;
+    Store.save();
+    Sound.playName('toggle');
+    haptic('light');
+    this.renderTasksPage();
+    this.updateTasksBadge();
+  },
+
+  editOwnTask(id, newText) {
+    const t = String(newText || '').trim();
+    const list = this._ownTasks();
+    const item = list.find((x) => x.id === id);
+    if (!item || !t) return;
+    item.text = t;
+    Store.save();
+    this.renderTasksPage();
+  },
+
+  deleteOwnTask(id) {
+    const list = this._ownTasks();
+    const i = list.findIndex((x) => x.id === id);
+    if (i < 0) return;
+    list.splice(i, 1);
+    Store.save();
+    haptic('medium');
+    this.renderTasksPage();
+    this.updateTasksBadge();
+  },
+
+  // ---------- "Tarefas das conversas": somente leitura daqui ----------
+  // todos os itens `[ ]` abertos de TODAS as conversas, da conversa mexida
+  // mais recentemente para a mais antiga. O índice do checkbox é GLOBAL no
+  // texto (mesma regra do toggleNoteCheckbox em messages.js) — marcar aqui
+  // edita a nota de origem e sincroniza pelo evento note:edit.
   _allOpenTasks() {
     const out = [];
     Object.entries(Store.data.notes).forEach(([tid, arr]) => {
       const th = Store.getThread(tid);
       if (!th || !arr || !arr.length) return;
+      // a thread da IA é local-only e estrutural: seus itens de checklist
+      // não são tarefas do usuário, então ficam fora desta lista
+      if (th.localOnly) return;
       (arr || []).forEach((n) => {
         if (!n.text) return;
         let i = -1;
@@ -83,46 +167,126 @@ export const TasksMethods = {
   },
 
   renderTasksPage() {
-    const list = document.getElementById('tasks-page-list');
-    if (!list) return;
-    const items = this._allOpenTasks();
-    const count = document.getElementById('tasks-count');
-    if (count) count.textContent = items.length ? `${items.length} aberta${items.length !== 1 ? 's' : ''}` : '';
-    if (!items.length) {
-      list.innerHTML = '<div class="tasks-empty">Nada pendente por aqui 🎉<br/><span style="font-size:12px">Itens de checklist (<code>[ ]</code>) de todas as conversas aparecem nesta lista.</span></div>';
-      return;
-    }
-    list.innerHTML = items.map((t) => `
-      <div class="task-row" data-tid="${t.threadId}" data-cid="${t.clientId}" data-chk="${t.index}" role="button" tabindex="0" aria-label="Abrir nota com o item ${esc(t.text)}">
-        <input type="checkbox" class="task-chk" aria-label="Concluir ${esc(t.text)}" />
-        <span class="task-body">
-          <span class="task-text">${esc(t.text)}</span>
-          <span class="task-meta">${esc(t.threadEmoji || '')} ${esc(t.threadName || 'Conversa')} · ${fmtTime(t.ts)}</span>
-        </span>
-        <svg class="task-go" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>`).join('');
-    // marcar concluída (não propaga para o clique de navegação)
-    list.querySelectorAll('.task-row').forEach((row) => {
-      const cb = row.querySelector('.task-chk');
-      cb.addEventListener('click', (e) => e.stopPropagation());
-      cb.addEventListener('change', () => {
-        this.toggleTaskRemote({
-          threadId: row.dataset.tid,
-          clientId: row.dataset.cid,
-          index: +row.dataset.chk,
-          checked: cb.checked,
-          row,
+    // --- accordion 1: minhas tarefas ---
+    const ownList = document.getElementById('tasks-own-list');
+    if (ownList) {
+      const own = this._ownTasks().filter((t) => !t.done);
+      const ownCount = document.getElementById('tasks-own-count');
+      if (ownCount) ownCount.textContent = own.length;
+      const ownEmpty = document.getElementById('tasks-own-empty');
+      if (ownEmpty) ownEmpty.classList.toggle('hidden', own.length > 0);
+      ownList.innerHTML = own.map((t) => `
+        <div class="task-row task-own" data-id="${t.id}" data-own="1">
+          <input type="checkbox" class="task-chk" aria-label="Concluir ${esc(t.text)}" />
+          <span class="task-body">
+            <span class="task-text" data-role="text">${esc(t.text)}</span>
+          </span>
+          <span class="task-own-actions">
+            <button type="button" class="task-ico" data-act="edit" aria-label="Editar tarefa" title="Editar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+            <button type="button" class="task-ico task-ico-danger" data-act="del" aria-label="Excluir tarefa" title="Excluir"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+          </span>
+        </div>`).join('');
+      ownList.querySelectorAll('.task-row').forEach((row) => {
+        const id = row.dataset.id;
+        const cb = row.querySelector('.task-chk');
+        cb?.addEventListener('change', () => this.toggleOwnTask(id, cb.checked));
+        row.querySelector('[data-act="edit"]')?.addEventListener('click', (e) => { e.stopPropagation(); this._editOwnTaskInline(row, id); });
+        row.querySelector('[data-act="del"]')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this._saiComCarinho(row, () => this.deleteOwnTask(id));
         });
       });
-      // clique/Enter na linha → abre a conversa na nota
-      const open = () => {
-        this.hideTasksPage();
-        this.openThread(row.dataset.tid);
-        setTimeout(() => this.scrollToNote(row.dataset.cid), 250);
-      };
-      row.addEventListener('click', (e) => { if (e.target !== cb) open(); });
-      row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    }
+
+    // --- accordion 2: tarefas das conversas ---
+    const thList = document.getElementById('tasks-threads-list');
+    if (thList) {
+      const items = this._allOpenTasks();
+      const thCount = document.getElementById('tasks-threads-count');
+      if (thCount) thCount.textContent = items.length;
+      const thEmpty = document.getElementById('tasks-threads-empty');
+      if (thEmpty) thEmpty.classList.toggle('hidden', items.length > 0);
+      thList.innerHTML = items.map((t) => `
+        <div class="task-row" data-tid="${t.threadId}" data-cid="${t.clientId}" data-chk="${t.index}">
+          <input type="checkbox" class="task-chk" aria-label="Concluir ${esc(t.text)}" />
+          <span class="task-body">
+            <span class="task-text">${esc(t.text)}</span>
+            <span class="task-meta">${esc(t.threadEmoji || '')} ${esc(t.threadName || 'Conversa')} · ${fmtTime(t.ts)}</span>
+          </span>
+          <svg class="task-go" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>`).join('');
+      thList.querySelectorAll('.task-row').forEach((row) => {
+        const cb = row.querySelector('.task-chk');
+        cb?.addEventListener('click', (e) => e.stopPropagation());
+        cb?.addEventListener('change', () => {
+          this.toggleTaskRemote({
+            threadId: row.dataset.tid,
+            clientId: row.dataset.cid,
+            index: +row.dataset.chk,
+            checked: cb.checked,
+            row,
+          });
+        });
+        const open = () => {
+          this.hideTasksPage();
+          this.openThread(row.dataset.tid);
+          setTimeout(() => this.scrollToNote(row.dataset.cid), 250);
+        };
+        row.addEventListener('click', (e) => { if (e.target !== cb) open(); });
+        row.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (e.target === cb) return;
+            open();
+          }
+        });
+      });
+    }
+
+    // cabeçalho: total aberto (próprias + conversas)
+    const count = document.getElementById('tasks-count');
+    if (count) {
+      const total = this._ownTasks().filter((t) => !t.done).length + this._allOpenTasks().length;
+      count.textContent = total ? `${total} aberta${total !== 1 ? 's' : ''}` : '';
+    }
+  },
+
+  // edição inline de tarefa própria: o vira um <input> no lugar
+  _editOwnTaskInline(row, id) {
+    const body = row.querySelector('.task-body');
+    const item = this._ownTasks().find((x) => x.id === id);
+    if (!body || !item) return;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'task-edit-input';
+    input.value = item.text;
+    input.maxLength = 300;
+    input.setAttribute('aria-label', 'Editar tarefa');
+    body.innerHTML = '';
+    body.appendChild(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    const commit = () => {
+      const v = input.value.trim();
+      if (v) this.editOwnTask(id, v); else this.renderTasksPage();
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') { e.preventDefault(); this.renderTasksPage(); }
     });
+    input.addEventListener('blur', commit);
+  },
+
+  // animação de saída e depois executa a ação (usado por concluir/excluir
+  // das próprias, que não têm nota de origem para re-render)
+  _saiComCarinho(row, action) {
+    row.classList.add('task-done');
+    setTimeout(() => {
+      row.style.maxHeight = row.scrollHeight + 'px';
+      void row.offsetHeight;
+      row.classList.add('chk-out');
+    }, 200);
+    setTimeout(action, 600);
   },
 
   // marca/desmarca o item na nota de ORIGEM (mesmo contrato do
@@ -155,25 +319,45 @@ export const TasksMethods = {
       if (bubble) this._replaceBubble(clientId, n);
     }
     this.updateTasksBadge();
-    // sai da lista com carinho: fade + colapso, depois re-render
     if (checked && row) {
-      row.classList.add('task-done');
-      setTimeout(() => {
-        row.style.maxHeight = row.scrollHeight + 'px';
-        void row.offsetHeight;
-        row.classList.add('chk-out');
-      }, 380);
-      setTimeout(() => this.renderTasksPage(), 780);
+      this._saiComCarinho(row, () => this.renderTasksPage());
     } else {
       this.renderTasksPage();
     }
   },
 
-  updateTasksBadge() {
-    const badge = document.getElementById('tasks-badge');
-    if (!badge) return;
-    const count = this._allOpenTasks().length;
-    if (count > 0) { badge.textContent = count > 9 ? '9+' : String(count); badge.classList.remove('hidden'); }
-    else badge.classList.add('hidden');
+  // o badge do cabeçalho da marca foi REMOVIDO (a página de tarefas agora
+  // tem aba própria na barra). Mantido como no-op para não quebrar
+  // chamadas antigas; a contagem visível está no cabeçalho da página
+  // (#tasks-count) e nos acordeões.
+  updateTasksBadge() {},
+
+  // ---------- bindings (chamado uma vez no boot) ----------
+  bindTasksPage() {
+    if (this._tasksBound) return;
+    this._tasksBound = true;
+
+    const form = document.getElementById('task-new-form');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('task-new-input');
+      if (!input) return;
+      const v = input.value.trim();
+      if (!v) return;
+      this.addOwnTask(v);
+      input.value = '';
+      input.focus();
+    });
+
+    // acordeões: abrem/fecham. `aria-expanded` e a classe `.open` são a
+    // fonte da verdade (o CSS usa grid-template-rows para animar sem jank).
+    document.querySelectorAll('.task-acc-head').forEach((head) => {
+      head.addEventListener('click', () => {
+        const acc = head.closest('.task-acc');
+        if (!acc) return;
+        const open = acc.classList.toggle('open');
+        head.setAttribute('aria-expanded', String(open));
+      });
+    });
   },
 };

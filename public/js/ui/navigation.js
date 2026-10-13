@@ -20,7 +20,6 @@ export const NavigationMethods = {
         b.classList.toggle('active', !!on);
         b.setAttribute('aria-pressed', String(!!on));
       };
-      set('explorer-tasks', isOpen('tasks-page'));
       set('explorer-reminders', isOpen('reminders-page'));
       set('btn-notifications', isOpen('notif-popover'));
       this._syncTabbar();
