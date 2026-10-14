@@ -705,9 +705,12 @@
    DOIS comprimiam — foi isso que "comeu o espaçamento" entre os cartões
    (medido nas capturas: lacuna ausente e o de cima comprimido). */
 .task-acc { flex-shrink: 0; }
+/* `padding-bottom` maior que o de cima: cria um respiro entre a faixa
+   colorida do hover e o conteúdo do accordion (o input de nova tarefa, ou
+   as tarefas da conversa), que hoje fica colado na borda inferior da cor. */
 .task-acc-head {
   width: 100%; display: flex; align-items: center; gap: 10px;
-  padding: 14px 16px; background: none; border: none; cursor: pointer;
+  padding: 14px 16px 20px; background: none; border: none; cursor: pointer;
   color: var(--text); text-align: left;
   -webkit-tap-highlight-color: transparent;
   /* `background` NÃO entra na transição: durante a animação do corpo, o
@@ -715,12 +718,21 @@
      "encolher" por alguns frames (flick). Cor de hover é estado binário —
      não tem meio-termo. */
 }
-.task-acc-head:hover { background: var(--accent-soft); }
+/* Gradiente top-down no hover: a cor sai cheia no topo e some até a base,
+   onde encosta no conteúdo. Evita a "faixa chapada" e integra o respiro. */
+.task-acc-head:hover {
+  background: linear-gradient(to bottom, var(--accent-soft) 0%, var(--accent-soft) 62%, transparent 100%);
+}
 /* Feedback de toque SEM `transform: scale()`: escalar 0.96 encolhe a faixa
    de fundo junto com o botão, e o cartão branco aparecia por baixo nas
    laterais — o "flick" que a captura mostrou (~10px de cada lado, medido).
    Aqui o fundo escurece no lugar: o retângulo não muda de tamanho. */
-.task-acc-head:active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.task-acc-head:active {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 18%, transparent) 0%, color-mix(in srgb, var(--accent) 18%, transparent) 62%, transparent 100%);
+}
+/* `flex-shrink: 0` no cabeçalho também: ele é item do grid que anima
+   (`.task-acc-inner`), e encolher achataria o respiro do padding-bottom. */
+.task-acc-head { flex-shrink: 0; }
 .task-acc-chevron {
   display: grid; place-items: center; flex-shrink: 0;
   width: 22px; height: 22px; color: var(--text-dim);
@@ -751,7 +763,10 @@
 /* criador inline de tarefa própria */
 .task-new {
   display: flex; align-items: center; gap: 8px;
-  margin: 0 14px 10px; padding: 4px 4px 4px 14px;
+  /* `margin-top` em vez de 0: o padding-bottom do cabeçalho empurra o FUNDO
+     do hover, não o conteúdo — sem este margin o input encostava na faixa
+     colorida (medido: gapReal 0px). 8px é o mesmo gap dos itens da lista. */
+  margin: 8px 14px 10px; padding: 4px 4px 4px 14px;
   background: var(--bg);
   /* Só a borda TRACEJADA externa do campo. A caixa do input não leva
      `border`/`outline` próprio — o `outline: none` é explícito porque o
@@ -789,7 +804,10 @@
 .task-new-btn:hover { filter: brightness(1.06); }
 .task-new-btn:active { transform: scale(var(--press-scale, .96)); }
 
-.task-list { display: flex; flex-direction: column; gap: 8px; padding: 0 14px 14px; }
+/* `padding-top` de 8px dá o mesmo respiro entre a faixa do hover e a
+   primeira tarefa da conversa — antes a lista encostava na cor (o
+   padding-bottom do cabeçalho empurra o fundo, não o conteúdo). */
+.task-list { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px 14px; }
 .task-row {
   display: flex; align-items: flex-start; gap: 12px;
   background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
