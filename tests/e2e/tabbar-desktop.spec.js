@@ -8,7 +8,7 @@ const seed = {
   folders: {},
   threads: { t1: { id: 't1', name: 'Conversa', folderId: null, created: T0 - 80000 } },
   notes: { t1: [{ clientId: 'n1', threadId: 't1', user: 'me', text: 'mensagem', ts: T0 - 5000, images: [], reactions: {} }] },
-  ui: { expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} } },
+  ui: { mascot: { nameSet: true }, expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} } },
 };
 
 test.use({ viewport: { width: 1280, height: 800 } });

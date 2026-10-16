@@ -32,7 +32,7 @@ function seedComAudio(nPicos) {
         },
       }],
     },
-    ui: { expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
+    ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
   };
 }
 

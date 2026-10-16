@@ -19,6 +19,9 @@ const seed = {
   folders: {},
   notes: { t1: [{ id: 'n1', threadId: 't1', text: 'nota antiga', ts: Date.now() - 50000, clientId: 'c1' }] },
   ui: {
+    // nome de mascote já definido: sem isto o modal de primeiro login
+    // abre sobre o app e bloqueia os testes
+    mascot: { nameSet: true },
     expanded: {},
     sounds: { enabled: false },
     theme: 'ocean',

@@ -76,6 +76,12 @@ export const TasksMethods = {
     });
     this.renderTasksPage();
     this.updateTasksBadge();
+    // No celular o canvas precisa ficar à frente da sidebar. Sem isto a página
+    // de Tarefas abria "por baixo" e a tabbar ficava com o estado antigo —
+    // era a única das três abas que não revelava o canvas (as outras passam
+    // por showWorkspaceTab, que já faz isso). Também RE-SINCRONIZA a tabbar
+    // depois do show-chat, senão `_syncTabbar` mediu o momento errado.
+    this._mobileRevealCanvas();
     this.syncExplorerChrome();
   },
 

@@ -9,7 +9,7 @@ const seed = {
   threads: { t1: { id: 't1', name: 'Compras', folderId: null, created: Date.now() - 1000 } },
   folders: {},
   notes: { t1: [{ id: 'n1', threadId: 't1', user: 'me', text: 'leite', ts: Date.now() - 50000, clientId: 'c1' }] },
-  ui: { expanded: {}, sounds: { enabled: false } },
+  ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
 };
 
 test.beforeEach(async ({ context }) => {

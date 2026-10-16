@@ -18,7 +18,7 @@ const seed = {
     t1: [{ clientId: 'n1', threadId: 't1', user: 'me', text: 'l\n[ ] A\n[ ] B\n[ ] C\n[ ] D\n[ ] E', ts: Date.now() - 50000, images: [], reactions: {} }],
     t2: [{ clientId: 'n2', threadId: 't2', user: 'me', text: 'j\n[ ] email\n[ ] relatorio', ts: Date.now() - 40000, images: [], reactions: {} }],
   },
-  ui: { expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} }, tasksOwn: [
+  ui: { mascot: { nameSet: true }, expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} }, tasksOwn: [
     { id: 'o1', text: 't1', done: false, createdAt: Date.now() },
     { id: 'o2', text: 't2', done: false, createdAt: Date.now() },
     { id: 'o3', text: 't3', done: false, createdAt: Date.now() },

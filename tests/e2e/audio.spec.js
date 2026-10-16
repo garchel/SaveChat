@@ -69,7 +69,7 @@ test.describe('mensagem de voz', () => {
           clientId: 'a1', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000,
           images: [], audio: a,
         }] },
-        ui: { expanded: {}, sounds: { enabled: false } },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
       };
       localStorage.setItem('notethread.v2', JSON.stringify(seed));
     }, AUDIO);
@@ -126,7 +126,7 @@ test.describe('mensagem de voz', () => {
         threads: { t1: { id: 't1', name: 'Old', folderId: null, created: Date.now() - 1000 } },
         folders: {},
         notes: { t1: [{ clientId: 'a2', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000, images: [], audio: a }] },
-        ui: { expanded: {}, sounds: { enabled: false } },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
       }));
     }, { url: 'https://exemplo.test/audio/fala-velha.webm', mime: 'audio/wav', dur: 1, peaks: [], sender: { name: 'Ana', photo: '' } });
 

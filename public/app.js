@@ -21,6 +21,7 @@ import { WorkspaceMethods } from './js/ui/workspace.js';
 import { WorkspaceAiMethods } from './js/ui/workspace-ai.js';
 import { WorkspaceDailyMethods } from './js/ui/workspace-daily.js';
 import { SettingsMethods } from './js/ui/settings.js';
+import { MascotPanelMethods } from './js/ui/mascot-panel.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { TreeMethods } from './js/ui/tree.js';
 import { ComposerMethods } from './js/ui/composer.js';
@@ -71,19 +72,21 @@ async init() {
         if (backRem) backRem.addEventListener('click', () => this.showWorkspaceTab('conversations'));
         this.updateRemBadge();
       }
-      const expTasks = document.getElementById('explorer-tasks');
-      if (expTasks) {
-        // alterna como a lupa: clicar com a página já aberta fecha (volta às conversas)
-        expTasks.addEventListener('click', () => {
-          const open = document.getElementById('tasks-page') && !document.getElementById('tasks-page').classList.contains('hidden');
-          if (open) { this.hideTasksPage(); this._mobileBackToExplorer(); return; }
-          this.showTasksPage();
-          this._mobileRevealCanvas();
-        });
-        const backTasks = document.getElementById('tasks-back');
-        if (backTasks) backTasks.addEventListener('click', () => { this.hideTasksPage(); this._mobileBackToExplorer(); });
-        this.updateTasksBadge();
-      }
+      // Voltar de Tarefas.
+      // Este botão ficava DENTRO de `if (expTasks)` — mas `#explorer-tasks` não
+      // existe mais no DOM (foi substituído pela aba `.page-switch[data-page=
+      // "tasks"]`). A guarda é sempre falsa, então a seta nunca recebeu
+      // listener: era um botão inerte, não só sem estilo.
+      // Antes era `mobile-only`; agora aparece nos dois — no celular volta para
+      // o explorador, no desktop volta para a aba Cadernos e desmarca "Tarefas",
+      // que ficava aceso com a página já fechada.
+      const backTasks = document.getElementById('tasks-back');
+      if (backTasks) backTasks.addEventListener('click', () => {
+        this.hideTasksPage();
+        this._mobileBackToExplorer();
+        document.querySelectorAll('.page-switch').forEach((b) => b.classList.toggle('active', b.dataset.page === 'notes'));
+      });
+      this.updateTasksBadge();
       const notifBtn = document.getElementById('btn-notifications');
       if (notifBtn) {
         notifBtn.addEventListener('click', (e) => { e.stopPropagation(); this.toggleNotifPopover(); });
@@ -146,6 +149,14 @@ async init() {
           e.stopPropagation();
           profilePop.classList.add('hidden');
           window.open('help.html', '_blank', 'noopener');
+        });
+        // Mascote: fecha o menu do perfil e abre o painel de customização. O
+        // delay é o mesmo do Configurações — sem ele, o handler global de
+        // "clique fora" do painel mata o popover recém-aberto.
+        document.getElementById('profile-mascot')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          profilePop.classList.add('hidden');
+          setTimeout(() => this.openMascotPanel(), 10);
         });
         // Atualizar app: clique = instalar a versão nova (SW waiting assume + reload)
         document.getElementById('profile-update')?.addEventListener('click', (e) => {
@@ -212,6 +223,7 @@ async init() {
       this.bindPinPopover();
       this.bindPinButton();
       this.bindSettings();
+    this.bindMascotPanel();
       this.bindFooter();
       this.bindSearch();
       this.bindShortcuts();
@@ -389,7 +401,7 @@ showModal(title, bodyHtml, onOk) {
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
     MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods,
-    WorkspaceAiMethods, WorkspaceDailyMethods);
+    WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods);
 
   // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do
   // markup. Em producao o build ja os inlineou e isto sai em seguida sem

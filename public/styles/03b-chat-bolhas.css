@@ -301,6 +301,40 @@
   width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 
+/* Botão Voltar (‹) dos banners de Busca/Lembretes/Tarefas.
+   Mesmas regras do #btn-back acima — estas páginas escondem o cabeçalho global
+   e trazem o seu próprio botão. A classe NÃO existia no CSS: os três caíam no
+   <button> cru do navegador (medido 8×21px, sem área de toque, glifo de texto
+   "‹"). */
+.btn-icon {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  position: relative;              /* contexto do ::after de toque */
+  padding: 0; margin: 0;
+  border: none; border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--dur-fast, 120ms) var(--ease-soft, ease),
+              color var(--dur-fast, 120ms) var(--ease-soft, ease),
+              transform var(--dur-fast, 120ms) var(--ease-soft, ease);
+}
+.btn-icon:hover { background: var(--accent-soft); color: var(--accent); }
+.btn-icon:active { transform: scale(var(--press-scale, .96)); }
+.btn-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-icon svg {
+  width: 22px; height: 22px; display: block;
+  fill: none; stroke: currentColor; stroke-width: 2.1;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--dur-base, 200ms) var(--ease-spring, cubic-bezier(.34,1.3,.64,1));
+}
+.btn-icon:active svg { transform: translateX(2px); }
+.btn-icon::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+}
+
 /* Ícone da página atual à esquerda do título no cabeçalho (Diária/IA/Lembretes) */
 .page-icon {
   display: grid; place-items: center; flex: 0 0 auto;
@@ -678,12 +712,27 @@
 }
 .search-page.hidden, .reminders-page.hidden, .tasks-page.hidden { display: none; }
 .search-page .cozy-banner, .reminders-page .cozy-banner, .tasks-page .cozy-banner { display: flex; align-items: center; gap: 12px; }
-.search-query-label { font-size: 13px; font-weight: 600; color: var(--text-dim); background: rgba(255,255,255,.6); padding: 4px 10px; border-radius: 999px; }
+/* Contador ao lado do título ("40 abertas", "12 resultados"). O fundo era
+   rgba(255,255,255,.6) fixo: no tema escuro virava um chip claro com texto
+   cinza por cima, quase ilegível.
+   O texto usa --text (não --text-dim): medido --text-dim sobre --bg-elev dá
+   2.38 no tema claro e 3.89 no escuro, abaixo de 4.5. A hierarquia continua
+   vindo do peso menor e do chip, não de um contraste insuficiente. */
+.search-query-label {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  background: var(--bg-elev); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 999px;
+}
 .search-page-results, .reminders-page-list, .tasks-page-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .search-page .search-result, .reminders-page .rem-item { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
 
 /* ---- Página de Tarefas (v1.20.0): acordeões + CRUD próprio ---- */
 .tasks-page-list { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 8px; }
+/* Barra de rolagem oculta, rolagem por wheel/toque continua — mesmo truque da
+   árvore do explorador. A coluna já tem respiro e o indicador visual competia
+   com o cabeçalho. */
+.tasks-page-list { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: contain; }
+.tasks-page-list::-webkit-scrollbar { display: none; }
 
 /* Accordion. O corpo anima com grid-template-rows 0fr↔1fr (a mesma técnica
    das pastas da árvore): não mede max-height, então não tem jank com

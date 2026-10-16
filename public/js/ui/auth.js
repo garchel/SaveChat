@@ -2,6 +2,7 @@ import { $ } from '../utils.js';
 import { Store } from '../store.js';
 import { USE_SUPABASE, getSupa, Sync } from '../sync-supabase.js';
 import { setPetals } from '../petals.js';
+import { mascotNameUnset } from '../mascot.js';
 
 export const AuthMethods = {
 _getSupa() {
@@ -406,8 +407,11 @@ renderAuthOrApp() {
         $('#auth-screen').classList.add('hidden');
         $('#app').classList.remove('hidden');
         setPetals(!!(Store.data.ui && Store.data.ui.petals)); // ambiente cozy
-        this.renderMe();
-        this.renderTree();
+this.renderMe();
+              this.renderTree();
+              // primeira entrada (ou retorno de login) sem nome de mascote:
+              // pergunta uma vez. `setTimeout` deixa o app pintar antes.
+              if (mascotNameUnset()) setTimeout(() => this.askMascotName(), 420);
         // conecta apenas 1× — evita channel duplicado a cada onAuthStateChange
         if (!Sync.connected && !Sync._connecting) Sync.connect();
         this.setChatActiveUi(false);
