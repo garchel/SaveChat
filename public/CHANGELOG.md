@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.20.0] — 2026-10-16
 ### Adicionado
 - Mascote da IA configurável, no botão **Mascote** do menu do perfil: nome, cor do corpo, cor da sombra, cor dos olhos, cor dos acessórios, silhueta (6 formas), olhos (7), boca (4), bochechas e acessórios (12, de orelhas a coroa). Um preview fixo no topo do painel mostra o resultado na hora, e a escolha vale ao mesmo tempo no item da barra lateral, no estado vazio da página da IA e no indicador "Pensando…". Cor vazia = herda a cor do tema.
 - **Modal de primeiro login**: quem entra no app sem ter escolhido um nome de mascote é perguntado "Como ele se chama?". Aparece no primeiro login e em qualquer login posterior enquanto o nome não tiver sido definido; cancelando, o nome padrão é mantido e a pergunta volta no próximo acesso. A distinção entre "nome escolhido" e "nome padrão" é o novo `nameSet`.
