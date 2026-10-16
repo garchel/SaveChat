@@ -32,6 +32,10 @@ test.describe('botão físico de voltar do celular', () => {
       const { Store } = await import('/js/store.js');
       Store.load();
       Store.setUser({ name: 'Ana', mail: 'ana@note.app' });
+      // nome de mascote já definido: sem isto o modal de primeiro login abre
+      // sobre o app e bloqueia os cliques dos testes
+      Store.data.ui = Store.data.ui || {};
+      Store.data.ui.mascot = { nameSet: true };
       if (!Store.threadList().some(t => t.id === 'seed-back')) {
         Store.upsertThread({ id: 'seed-back', name: 'Conversa', updatedAt: Date.now() });
         Store.upsertNote({ clientId: 'nb-1', threadId: 'seed-back', text: 'ola', ts: Date.now() });

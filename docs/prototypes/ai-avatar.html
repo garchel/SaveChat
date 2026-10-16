@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Protótipo — Avatar da IA (CSS vs Canvas)</title>
+<style>
+  :root {
+    --bg: #FFFBF5; --bg-elev: #fff; --border: #F0E6D3;
+    --text: #3A2E2A; --text-dim: #786E67;
+    --accent: #E28D42; --accent-soft: #FFF0E0; --accent-teal: #589B99;
+    --radius: 20px;
+    --shadow-sm: 0 4px 16px rgba(139,111,78,.08);
+    --shadow-md: 0 8px 24px rgba(139,111,78,.10);
+    --font: "Quicksand", "Plus Jakarta Sans", system-ui, sans-serif;
+    /* customização do avatar */
+    --av-body-a: #6d4fe0; --av-body-b: #7e64e6; --av-eye: #1b1430;
+    --av-acc: #1b1430;            /* cor dos acessórios */
+    --av-squash: 1;
+    --av-morph: blobEllipse;      /* preset de forma */
+    --av-morph-dur: 7s;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); padding: 24px 22px 56px; min-height: 100vh; }
+  body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background: radial-gradient(ellipse 820px 620px at 18% 82%, #FFF0E0 0%, transparent 60%),
+                radial-gradient(ellipse 640px 420px at 88% 18%, #E6F2F2 0%, transparent 52%); }
+  header { max-width: 1180px; margin: 0 auto 20px; }
+  h1 { font-size: 21px; font-weight: 800; letter-spacing: -.4px; }
+  .sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; line-height: 1.55; max-width: 82ch; }
+  .panel { max-width: 1180px; margin: 0 auto 18px; background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 16px; padding: 15px 18px; box-shadow: var(--shadow-sm); }
+  .panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-dim); font-weight: 800; margin-bottom: 9px; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field > label { font-size: 11px; font-weight: 700; color: var(--text-dim); }
+  .field input[type=color] { width: 42px; height: 32px; border: 1.5px solid var(--border); border-radius: 10px; background: none; cursor: pointer; padding: 2px; }
+  .field input[type=range] { width: 116px; accent-color: var(--accent); }
+  select { background: var(--bg); border: 1.5px solid var(--border); color: var(--text); border-radius: 10px; padding: 7px 9px; font: inherit; font-size: 12.5px; }
+  .swatches { display: flex; gap: 5px; }
+  .sw { width: 28px; height: 28px; border-radius: 9px; border: 2px solid transparent; cursor: pointer; }
+  .sw.sel { border-color: var(--text); }
+  .btn { font: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 13px; border-radius: 11px; border: none;
+    background: var(--accent-soft); color: var(--accent); cursor: pointer; }
+  .btn.primary { background: var(--accent); color: #3A2E2A; }
+  .btn:active { transform: scale(.96); }
+  .note { font-size: 11px; color: var(--text-dim); margin-top: 11px; line-height: 1.5; }
+
+  .grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow-sm); text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .card h3 { font-size: 11px; font-weight: 800; color: var(--text-dim); letter-spacing: .3px; text-transform: uppercase; }
+  .stage { display: flex; align-items: center; justify-content: center; min-height: 168px; width: 100%; }
+  .card .meta { font-size: 10.5px; color: var(--text-dim); }
+  .tag { font-size: 9.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .tag.canvas { background: #E6F2F2; color: var(--accent-teal); }
+  .state-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .foot { max-width: 1180px; margin: 24px auto 0; font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+  .foot code { background: var(--bg-elev); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; }
+
+  /* ============================================================
+     AVATAR — VERSÃO CSS
+     .body  = blob (pode haver 1..3, cada um com fase própria)
+     .acc   = acessórios posicionados em % do avatar
+     .inner = rosto (olhos + boca + bochechas), sempre de pé
+     ============================================================ */
+  .av-css {
+    --size: 120px;
+    position: relative; width: var(--size); height: var(--size);
+    display: grid; place-items: center;
+    animation: avBreath 3.8s ease-in-out infinite;
+  }
+  /* sombra de contato: gruda o blob no "chão" */
+  .av-css .shadow {
+    position: absolute; z-index: 0;
+    width: 62%; height: 12%; bottom: 1%; left: 19%;
+    background: radial-gradient(ellipse at center, rgba(80,60,45,.22), transparent 70%);
+    border-radius: 50%;
+    animation: avShadow 3.8s ease-in-out infinite;
+  }
+  /* PEÇA 1 — a casca: é ela que se estica/deforma para fazer a silhueta.
+     inset 5% => ocupa 90% da caixa (R = 0.45 * lado). */
+  .av-css .body {
+    position: absolute; inset: 5%; z-index: 1;
+    border-radius: var(--av-blob);
+    background:
+      radial-gradient(ellipse 62% 46% at 33% 27%, rgba(255,255,255,.42), rgba(255,255,255,0) 72%),
+      linear-gradient(150deg, var(--av-body-a), var(--av-body-b));
+    animation: var(--av-morph) var(--av-morph-dur) ease-in-out infinite;
+    transform: scaleY(var(--av-squash));
+    box-shadow: 0 6px 18px rgba(0,0,0,.14), inset 0 -3px 10px rgba(0,0,0,.12);
+  }
+/* PEÇA 2 — o núcleo: círculo central FIXO. É nele que a face e os
+     acessórios se ancoram, então a silhueta pode se deformar à vontade
+     sem arrastar a cara junto. inset 18% => raio = 0.32 * lado.
+     Truque anti-emenda: ele reaproveita as MESMAS camadas de fundo da casca,
+     reescaladas e reposicionadas para cair exatamente na mesma área absoluta
+     (5%..95%). Como as cores batem pixel a pixel, a borda do círculo some. */
+  .av-css .core {
+    position: absolute; inset: 18%; z-index: 2;
+    border-radius: 50%;
+    background:
+      radial-gradient(ellipse 62% 46% at 33% 27%, rgba(255,255,255,.42), rgba(255,255,255,0) 72%),
+      linear-gradient(150deg, var(--av-body-a), var(--av-body-b));
+    background-repeat: no-repeat;
+    background-size: calc(var(--size) * .90) calc(var(--size) * .90);
+    background-position: calc(var(--size) * -.13) calc(var(--size) * -.13);
+  }
+  .av-css .inner { position: relative; z-index: 2; width: 100%; height: 100%; display: grid; place-items: center; }
+  /* olhos: o desenho vem em SVG (mesmo path que o Canvas usa via Path2D) */
+  .av-css .eyes { display: flex; gap: calc(var(--size) * var(--eye-frac, .20) * .55);
+    transform: translate(var(--eye-x, 0px), var(--eye-y, 0px)); transition: transform .28s cubic-bezier(.2,.9,.3,1.1); }
+  .av-css .eye { width: calc(var(--size) * var(--eye-frac, .20));
+    height: calc(var(--size) * var(--eye-frac, .20) * 1.32);
+    transform: scaleY(var(--blink, 1)); transition: transform .09s ease-in; }
+  .av-css .eye svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  /* visor: barra contínua com dois pontos */
+  .av-css[data-eyes="visor"] .eyes { gap: 0; width: calc(var(--size) * .62); height: calc(var(--size) * .17);
+    background: var(--av-eye); border-radius: 999px; justify-content: space-evenly; padding: 0 calc(var(--size) * .06); }
+  .av-css[data-eyes="visor"] .eye { width: calc(var(--size) * .115); height: 100%; }
+  .av-css[data-eyes="visor"] .eye svg { display: none; }
+  .av-css[data-eyes="visor"] .eye::after {
+    content: ""; display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--av-body-a);
+  }
+
+  /* boca + bochechas */
+  .av-css .mouth { position: absolute; z-index: 3; }
+  .av-css .mouth.m-smile { width: calc(var(--size)*.26); height: calc(var(--size)*.13); border-bottom: calc(var(--size)*.045) solid var(--av-eye); border-radius: 0 0 999px 999px; bottom: 20%; }
+  .av-css .mouth.m-o { width: calc(var(--size)*.13); height: calc(var(--size)*.15); border: calc(var(--size)*.035) solid var(--av-eye); border-radius: 50%; bottom: 19%; }
+  .av-css .mouth.m-flat { width: calc(var(--size)*.2); height: calc(var(--size)*.035); background: var(--av-eye); border-radius: 999px; bottom: 21%; }
+  .av-css .mouth.m-grin { width: calc(var(--size)*.34); height: calc(var(--size)*.2); background: var(--av-eye); border-radius: 0 0 999px 999px; bottom: 17%; overflow: hidden; }
+  .av-css .mouth.m-grin::after { content:""; position:absolute; left:0; right:0; bottom:0; height:38%; background: var(--av-body-a); }
+  .blush { position: absolute; z-index: 2; width: calc(var(--size)*.19); height: calc(var(--size)*.11);
+    background: color-mix(in srgb, var(--av-eye) 26%, transparent); border-radius: 50%; filter: blur(1px); }
+  .blush.bl { left: 13%; top: 54%; } .blush.br { right: 13%; top: 54%; }
+
+  /* camadas: sombra/rabos/faixa-atrás (0) · bolha (1) · rosto (2) · frente (3) */
+  /* pilha: sombra/rabos(0) < casca(1) < núcleo(2) < rosto(3) < frente(4).
+     Sem folga entre os valores, o rabo empatava com a casca e o DOM decidia — pintando por cima. */
+  .av-css .acc { position: absolute; z-index: 4; pointer-events: none; }
+  .av-css .acc[data-part="back"] { z-index: 0; }
+  .av-css .acc svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  @keyframes blobEllipse {
+    0%   { border-radius: 58% 42% 34% 66% / 62% 38% 62% 38%; }
+    25%  { border-radius: 42% 58% 56% 44% / 46% 58% 42% 54%; }
+    50%  { border-radius: 46% 54% 62% 38% / 58% 46% 54% 42%; }
+    75%  { border-radius: 38% 62% 46% 54% / 44% 62% 38% 56%; }
+    100% { border-radius: 58% 42% 34% 66% / 62% 38% 62% 38%; }
+  }
+  @keyframes blobFlat {
+    0%   { border-radius: 50% 50% 44% 56% / 70% 72% 62% 66%; }
+    50%  { border-radius: 56% 44% 50% 50% / 66% 70% 74% 64%; }
+    100% { border-radius: 50% 50% 44% 56% / 70% 72% 62% 66%; }
+  }
+  @keyframes blobTall {
+    0%   { border-radius: 44% 56% 52% 48% / 40% 36% 48% 52%; }
+    50%  { border-radius: 52% 48% 46% 54% / 48% 42% 44% 46%; }
+    100% { border-radius: 44% 56% 52% 48% / 40% 36% 48% 52%; }
+  }
+  @keyframes blobDrop {
+    0%   { border-radius: 50% 50% 50% 50% / 34% 34% 66% 66%; }
+    30%  { border-radius: 58% 42% 54% 46% / 30% 38% 62% 70%; }
+    70%  { border-radius: 42% 58% 46% 54% / 38% 28% 72% 62%; }
+    100% { border-radius: 50% 50% 50% 50% / 34% 34% 66% 66%; }
+  }
+  @keyframes blobGrain {
+    0%   { border-radius: 62% 38% 44% 56% / 52% 64% 36% 48%; }
+    25%  { border-radius: 38% 62% 56% 44% / 64% 40% 60% 36%; }
+    50%  { border-radius: 56% 44% 38% 62% / 36% 60% 40% 64%; }
+    75%  { border-radius: 44% 56% 62% 38% / 60% 44% 56% 40%; }
+    100% { border-radius: 62% 38% 44% 56% / 52% 64% 36% 48%; }
+  }
+  @keyframes blobBean {
+    0%   { border-radius: 70% 30% 60% 40% / 44% 56% 44% 56%; }
+    50%  { border-radius: 34% 66% 44% 56% / 58% 42% 58% 42%; }
+    100% { border-radius: 70% 30% 60% 40% / 44% 56% 44% 56%; }
+  }
+  @keyframes avPulse { 0% { transform: scale(1); } 35% { transform: scale(1.1); } 100% { transform: scale(1); } }
+  /* respiração: o avatar inteiro incha e encolhe de leve */
+  @keyframes avBreath  { 0%,100% { transform: scale(1,1); } 50% { transform: scale(1.035,.968); } }
+  @keyframes avShadow  { 0%,100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.08); opacity: .78; } }
+  .av-css[data-state="thinking"] .eye { transform: scaleY(.62) scaleX(.86) !important; }
+  .av-css[data-state="speaking"] .body { animation-duration: 1.6s; }
+  .av-css.pulse { animation: avPulse .6s ease-out; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Avatar da IA — CSS vs Canvas</h1>
+  <p class="sub">
+    Mesma ideia (blob + rosto), duas técnicas. <strong>Mova o mouse</strong>: os olhos acompanham.
+    Botões <strong>parado / pensando / falando</strong> forçam os estados. Tamanhos reais do app:
+    <strong>52px</strong> (item da árvore) e <strong>120px</strong> (tela da IA).
+  </p>
+</header>
+
+<div class="panel">
+  <h2>Forma</h2>
+  <div class="row">
+    <div class="field"><label>Cor A</label><input type="color" id="cA" value="#6d4fe0" /></div>
+    <div class="field"><label>Cor B</label><input type="color" id="cB" value="#7e64e6" /></div>
+    <div class="field"><label>Cor dos olhos</label><input type="color" id="cEye" value="#1b1430" /></div>
+    <div class="field"><label>Cor dos acessórios</label><input type="color" id="cAcc" value="#1b1430" /></div>
+    <div class="field"><label>Paletas</label><div class="swatches" id="palettes"></div></div>
+    <div class="field"><label>Silhueta</label><select id="shape">
+      <option value="blobEllipse">Elipse (padrão)</option>
+      <option value="blobFlat">Achatada</option>
+      <option value="blobTall">Alta</option>
+      <option value="blobDrop">Gota</option>
+      <option value="blobGrain">Grão</option>
+      <option value="blobBean">Feijão</option>
+    </select></div>
+    <div class="field"><label>Achatamento</label><input type="range" id="squash" min="0.6" max="1.2" step="0.01" value="1" /></div>
+  </div>
+
+  <h2 style="margin-top:16px">Rosto e apetrechos</h2>
+  <div class="row">
+    <div class="field"><label>Olhos</label><select id="eyes">
+      <option value="round">Redondos</option>
+      <option value="oval">Oval</option>
+      <option value="puppy">Filhote (furry)</option>
+      <option value="slit">Fenda vertical (furry)</option>
+      <option value="feral">Selvagem (furry)</option>
+      <option value="half">Meio fechados</option>
+      <option value="sleepy">Sonecos</option>
+      <option value="wink">Piscando um</option>
+      <option value="visor">Visor</option>
+      <option value="heart">Coração</option>
+      <option value="star">Estrela</option>
+      <option value="spiral">Tontura</option>
+      <option value="glow">Brilhando</option>
+    </select></div>
+    <div class="field"><label>Tamanho do olho</label><input type="range" id="eyeSize" min="14" max="30" step="1" value="20" /></div>
+    <div class="field"><label>Acessório</label><select id="acc">
+<option value="none">Nenhum</option>
+      <option value="earDog">Orelhas de cão (furry)</option>
+      <option value="earCat">Orelhas de gato (furry)</option>
+      <option value="earBunny">Orelhas de coelho (furry)</option>
+      <option value="tailDog">Rabo de cão (furry)</option>
+      <option value="tailCat">Rabo de gato (furry)</option>
+      <option value="tailBunny">Rabo de coelho (furry)</option>
+      <option value="muzzle">Focinho (furry)</option>
+      <option value="whiskers">Bigodes (furry)</option>
+      <option value="teethRabbit">Dentes de coelho</option>
+      <option value="teethVampire">Dentes de vampiro</option>
+      <option value="collar">Coleira com sino</option>
+      <option value="tufts">Mechas de pelo</option>
+      <option value="bandana">Bandana</option>
+      <option value="glasses">Óculos de grau</option>
+      <option value="sun">Óculos escuros</option>
+      <option value="cap">Boné</option>
+      <option value="crown">Coroa</option>
+      <option value="halo">Auréola</option>
+      <option value="antenna">Antena</option>
+      <option value="headphones">Fone</option>
+      <option value="flower">Flor</option>
+      <option value="tie">Gravata</option>
+      <option value="brows">Sobrancelhas</option>
+    </select></div>
+    <div class="field"><label>Boca</label><select id="mouth">
+      <option value="none">Nenhuma</option><option value="m-smile">Sorriso</option><option value="m-o">Boca "o"</option>
+      <option value="m-flat">Reta</option><option value="m-grin">Sorriso grande</option>
+    </select></div>
+    <div class="field"><label>Bochechas</label><select id="blush"><option value="1">Sim</option><option value="0">Não</option></select></div>
+    <div class="field"><label>Movimento</label><div style="display:flex;gap:7px">
+      <button class="btn" id="toggleAnim">Animar</button><button class="btn primary" id="testePensando">Testar pulsos</button>
+    </div></div>
+  </div>
+  <p class="note" id="reducedNote"></p>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<p class="foot">
+  <strong>CSS</strong>: o blob é a própria <code>div</code> com <code>border-radius</code> animado (6 silhuetas);
+  a respiração é <code>@keyframes</code> no avatar inteiro. <strong>Canvas</strong>: o blob é uma spline fechada
+  (Catmull‑Rom) de 9 pontos deslocados por ruído senoidal — a forma nunca repete igual.
+  <strong>Rosto e acessórios usam exatamente o mesmo desenho nos dois motores</strong>: cada asset é um path SVG
+  único, pintado como <code>&lt;path d&gt;</code> no CSS e como <code>new Path2D(d)</code> no Canvas.
+  A bolha tem <strong>duas peças</strong>: um <strong>núcleo</strong> circular fixo (onde a face e todos os
+  acessórios se ancoram) e uma <strong>casca</strong> externa que se estica e se remodela para fazer a silhueta —
+  assim a forma pode ficaragressiva sem arrastar a cara junto. <strong>Rosto e acessórios usam exatamente o mesmo
+  desenho nos dois motores</strong>: cada asset é um path SVG único, pintado como <code>&lt;path d&gt;</code> no CSS e
+  como <code>new Path2D(d)</code> no Canvas. Rabos e a faixa de coleira/bandana são desenhados <strong>atrás</strong>
+  da bolha. Um único <code>requestAnimationFrame</code> desenha todas as amostras.
+</p>
+
+<script>
+/* ================= configuração ================= */
+const S = {
+  a:'#6d4fe0', b:'#7e64e6', eye:'#1b1430', accColor:'#1b1430',
+  shape:'blobEllipse', squash:1, eyes:'round', eyeSize:20,
+  accKey:'none', mouth:'none', blush:'1', anim:true,
+};
+const PALETTES = [
+  {n:'Roxo',a:'#6d4fe0',b:'#7e64e6'},{n:'Verde',a:'#0f8f6f',b:'#16a186'},
+  {n:'Laranja',a:'#E28D42',b:'#EFA05B'},{n:'Rosa',a:'#e86a8a',b:'#f0b95c'},
+  {n:'Azul',a:'#1f7fc2',b:'#2b93d8'},{n:'Noite',a:'#1b2742',b:'#3a6fe0'},
+  {n:'Mel',a:'#e8a33d',b:'#f0c95c'},
+];
+
+/* presets de silhueta (parâmetros usados pelo canvas; no CSS são @keyframes) */
+const SHAPE_P = {
+  blobEllipse:{ squash:1.00, amp:0.11, h:[1.00,0.63,1.71] },
+  blobFlat:   { squash:0.74, amp:0.07, h:[0.80,0.50,1.30] },
+  blobTall:   { squash:1.18, amp:0.10, h:[1.10,0.70,1.60] },
+  blobDrop:   { squash:0.94, amp:0.09, h:[0.90,0.55,1.45], biasY:0.16 },
+  blobGrain:  { squash:1.00, amp:0.17, h:[1.30,0.85,2.10] },
+  blobBean:   { squash:0.92, amp:0.13, h:[0.70,1.40,1.10], skew:0.18 },
+};
+
+const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reduced) {
+  S.anim = false;
+  document.getElementById('toggleAnim').textContent = 'Animar (bloqueado pelo sistema)';
+  document.getElementById('reducedNote').textContent =
+    '⚠ O sistema pede movimento reduzido: animação desligada por padrão (os estados manuais continuam).';
+}
+
+const look = {x:0,y:0};
+window.addEventListener('pointermove', (e)=>{
+  const cx = innerWidth/2, cy = innerHeight/2;
+  look.x = Math.max(-1,Math.min(1,(e.clientX-cx)/(innerWidth/2)));
+  look.y = Math.max(-1,Math.min(1,(e.clientY-cy)/(innerHeight/2)));
+});
+
+/* ============================================================
+   ACESSÓRIOS — uma especificação, dois renderizadores
+   box  : [minX,maxX,minY,maxY] do desenho dentro do viewBox 0 0 100 100
+   w    : largura desejada como fração do DIÂMETRO do blob
+   anchor: 'top' apoia a base no topo do blob · 'face' na altura dos olhos
+           'bottom' encosta embaixo · 'corner' na diagonal
+   ============================================================ */
+/* Helpers que geram path SVG — usados tanto no <path d> do CSS quanto no Path2D
+   do Canvas. Uma única definição de desenho para as duas técnicas. */
+const P_ell = (cx,cy,rx,ry)=>`M${cx-rx},${cy}a${rx},${ry} 0 1,0 ${2*rx},0a${rx},${ry} 0 1,0 ${-2*rx},0z`;
+const P_cir = (cx,cy,r)=>P_ell(cx,cy,r,r);
+const P_rr  = (x,y,w,h,r)=>`M${x+r},${y}h${w-2*r}a${r},${r} 0 0,1 ${r},${r}v${h-2*r}a${r},${r} 0 0,1 ${-r},${r}h${-(w-2*r)}a${r},${r} 0 0,1 ${-r},${-r}v${-(h-2*r)}a${r},${r} 0 0,1 ${r},${-r}z`;
+const GOLD = '#f5b942';
+
+/* ============================================================
+   OLHOS — path SVG único por estilo, usado como <path d> no CSS
+   e como new Path2D(d) no Canvas.
+   f: 'eye' | 'body' | 'w'  ·  s: traço  ·  lw: espessura
+   ============================================================ */
+const EYES = {
+  round: { paths:[{d:P_ell(50,50,34,44), f:'eye'}], glint:[{d:P_cir(38,34,11), f:'w'}] },
+  oval:  { paths:[{d:P_ell(50,50,27,44), f:'eye'}], glint:[{d:P_cir(41,34,10), f:'w'}] },
+  puppy: { paths:[{d:P_ell(50,50,40,46), f:'eye'}],
+           glint:[{d:P_cir(36,32,13), f:'w'},{d:P_cir(62,66,6), f:'w'}] },
+  slit:  { paths:[{d:P_ell(50,50,36,43), f:'eye'},{d:P_ell(50,50,10,38), f:'body'}] },
+  feral: { paths:[{d:'M8,50 C22,16 78,16 92,50 C78,84 22,84 8,50 Z', f:'eye'},
+                  {d:P_ell(50,50,9,36), f:'body'}] },
+  half:  { paths:[{d:'M12,50 C30,26 70,26 88,50 Z', f:'eye'},
+                  {d:'M12,50 C30,26 70,26 88,50 L88,60 L12,60 Z', f:'w'}] },
+  sleepy:{ paths:[{d:'M20,58 C34,42 66,42 80,58', s:'eye', lw:9}] },
+  happy: { paths:[{d:'M18,66 C32,30 68,30 82,66', s:'eye', lw:10}] },
+  wink:  { paths:[{d:P_ell(50,50,34,44), f:'eye'}], vary:{1:{d:'M20,58 C34,42 66,42 80,58', s:'eye', lw:9}},
+           glint:[{d:P_cir(38,34,11), f:'w'}] },
+  visor: { paths:[{d:P_rr(6,32,88,36,18), f:'eye'}], glint:[{d:P_cir(30,50,9), f:'body'},{d:P_cir(70,50,9), f:'body'}] },
+  heart: { paths:[{d:'M50,88 C6,58 14,22 34,22 C44,22 50,30 50,36 C50,30 56,22 66,22 C86,22 94,58 50,88 Z', f:'eye'}] },
+  star:  { paths:[{d:'M50,6 L61,38 L95,38 L67,58 L79,92 L50,70 L21,92 L33,58 L5,38 L39,38 Z', f:'eye'}] },
+  spiral:{ paths:[{d:'M50,8 C78,8 92,34 74,54 C58,72 26,66 24,42 C22,20 52,12 64,32 C72,46 54,56 44,46', s:'eye', lw:8}] },
+  glow:  { paths:[{d:P_cir(50,50,26), f:'eye'}], glint:[{d:P_cir(50,50,42), f:'glow'},{d:P_cir(50,50,14), f:'eye'}] },
+  tear:  { paths:[{d:P_ell(50,50,36,43), f:'eye'}],
+           glint:[{d:P_cir(38,34,11), f:'w'}],
+           tear:{d:'M50,70 C38,82 40,94 50,94 C60,94 62,82 50,70 Z', f:'w'} },
+};
+const EYE_COLOR = { eye:'var(--av-eye)', body:'var(--av-body-a)', w:'#fff', glow:'var(--av-eye)' };
+
+const eyeMarkup = (key, idx) => {
+  const e = EYES[key]; if (!e) return '';
+  const list = (idx===1 && e.vary && e.vary[1]) ? [e.vary[1]] : e.paths;
+  let s = '';
+  for (const p of list){
+    if (p.f) s += `<path d="${p.d}" fill="${EYE_COLOR[p.f]}"/>`;
+    else    s += `<path d="${p.d}" fill="none" stroke="${EYE_COLOR[p.s]}" stroke-width="${p.lw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  }
+  if (e.tear) s += `<path d="${e.tear.d}" fill="${EYE_COLOR[e.tear.f]}"/>`;
+  if (e.glint) for (const p of e.glint)
+    s += p.f ? `<path d="${p.d}" fill="${p.f==='glow'?'var(--av-eye)':EYE_COLOR[p.f]}" opacity="${p.f==='glow'?'.28':'1'}"/>`
+             : `<path d="${p.d}" fill="none" stroke="#fff" stroke-width="${p.lw}" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 100 100">${s}</svg>`;
+};
+
+/* Borda peluda. A normal precisa apontar para FORA (dy,-dx para polígono
+   horário) — com o sinal invertido as bolhas ficam escondidas atrás da forma. */
+const scallop = (pts, r=7) => {
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i=1;i<=pts.length;i++){
+    const a = pts[i-1], b = pts[i%pts.length];
+    const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2;
+    const nx = (b[1]-a[1]), ny = -(b[0]-a[0]);      // <- para fora
+    const len = Math.hypot(nx,ny) || 1;
+    d += ` Q${(mx+nx/len*r).toFixed(2)},${(my+ny/len*r).toFixed(2)} ${b[0]},${b[1]}`;
+  }
+  return d + 'Z';
+};
+/* subdivide os lados antes de aplicar o scallop => muitos tufinhos pequenos */
+const fluffy = (pts, r=6, per=3) => {
+  const dense = [];
+  for (let i=0;i<pts.length;i++){
+    const a = pts[i], b = pts[(i+1)%pts.length];
+    for (let k=0;k<per;k++) dense.push([a[0]+(b[0]-a[0])*k/per, a[1]+(b[1]-a[1])*k/per]);
+  }
+  return scallop(dense, r);
+};
+
+const ACC = {
+  /* --- orelhas: base larga, ponta arredondada e borda peluda --- */
+  earCat:{ anchor:'top', w:0.54, layer:'front', box:[0,100,8,100], paths:[
+    {d:fluffy([[2,96],[13,22],[27,19],[43,86]],7,4), f:'acc'},
+    {d:fluffy([[98,96],[87,22],[73,19],[57,86]],7,4), f:'acc'},
+    {d:'M2,96 C1,70 5,40 13,22 Q17,9 27,19 C35,36 41,62 43,86 Q45,97 31,98 Q11,99 2,96 Z', f:'acc'},
+    {d:'M98,96 C99,70 95,40 87,22 Q83,9 73,19 C65,36 59,62 57,86 Q55,97 69,98 Q89,99 98,96 Z', f:'acc'},
+    {d:'M19,88 C18,70 20,50 24,38 Q26,32 30,38 C35,50 38,70 39,86 Q40,92 33,93 Q24,94 19,88 Z', f:'body'},
+    {d:'M81,88 C82,70 80,50 76,38 Q74,32 70,38 C65,50 62,70 61,86 Q60,92 67,93 Q76,94 81,88 Z', f:'body'} ] },
+
+  earDog:{ anchor:'top', w:0.72, layer:'front', box:[0,100,34,100], paths:[
+    {d:fluffy([[42,100],[4,60],[4,44],[22,40]],9.5,3), f:'acc'},
+    {d:fluffy([[58,100],[96,60],[96,44],[78,40]],9.5,3), f:'acc'},
+    {d:'M42,100 C24,98 8,82 4,60 C1,46 10,36 22,40 C34,48 40,72 42,100 Z', f:'acc'},
+    {d:'M58,100 C76,98 92,82 96,60 C99,46 90,36 78,40 C66,48 60,72 58,100 Z', f:'acc'},
+    {d:'M35,92 C23,88 13,76 10,64 C8,56 13,51 19,54 C27,59 32,76 35,92 Z', f:'body'},
+    {d:'M65,92 C77,88 87,76 90,64 C92,56 87,51 81,54 C73,59 68,76 65,92 Z', f:'body'} ] },
+
+  earBunny:{ anchor:'top', w:0.50, layer:'front', box:[8,92,2,100], paths:[
+    {d:fluffy([[20,100],[16,14],[36,10],[28,100]],8,3), f:'acc'},
+    {d:fluffy([[80,100],[84,14],[64,10],[72,100]],8,3), f:'acc'},
+    {d:'M20,100 C10,76 8,32 18,12 C23,1 33,7 35,18 C41,42 33,78 28,100 Z', f:'acc'},
+    {d:'M80,100 C90,76 92,32 82,12 C77,1 67,7 65,18 C59,42 67,78 72,100 Z', f:'acc'},
+    {d:'M23,95 C17,73 16,35 22,19 C25,12 30,16 31,25 C35,45 29,75 26,95 Z', f:'body'},
+    {d:'M77,95 C83,73 84,35 78,19 C75,12 70,16 69,25 C65,45 71,75 74,95 Z', f:'body'} ] },
+
+  /* --- rabos --- */
+  tailCat:{ anchor:'tail', w:0.46, layer:'back', box:[0,70,0,92], paths:[
+    {d:'M16,86 C4,70 8,42 24,30 C38,20 56,16 64,6', s:'acc', lw:11} ] },
+  tailDog:{ anchor:'tail', w:0.60, layer:'back', box:[-8,98,0,92], paths:[
+    {d:'M16,84 C6,54 24,20 54,16 C78,13 90,28 84,44 C78,60 60,64 50,54', s:'acc', lw:22} ] },
+  tailBunny:{ anchor:'tail', w:0.30, layer:'back', box:[22,78,22,78], paths:[
+    {d:P_cir(50,50,26), f:'acc'}, {d:P_cir(40,40,9), f:'body'} ] },
+
+  /* --- focinho e bigodes --- */
+  muzzle:{ rel:'eye', anchor:'eyes', dy:1.20, w:2.6, box:[10,90,16,80], paths:[
+    {d:fluffy([[28,24],[72,24],[84,46],[50,74],[16,46]],8,3), f:'body'},
+    {d:'M18,40 C18,20 82,20 82,40 C82,68 18,68 18,40 Z', f:'body'},
+    {d:'M50,27 C39,27 31,34 31,42 C31,51 42,59 50,59 C58,59 69,51 69,42 C69,34 61,27 50,27 Z', f:'acc'},
+    {d:'M50,59 L50,66 M50,66 C44,74 35,70 32,62 M50,66 C56,74 65,70 68,62', s:'acc', lw:5},
+    {d:'M36,33 q6,-4 12,-1', s:'rgba(255,255,255,.45)', lw:4} ] },
+  whiskers:{ rel:'eye', anchor:'eyes', dy:0.95, w:4.4, box:[0,100,34,70], paths:[
+    {d:'M32,44 C22,38 12,34 2,32', s:'acc', lw:3},
+    {d:'M32,52 C20,52 10,52 2,52', s:'acc', lw:3},
+    {d:'M32,60 C22,64 12,68 2,70', s:'acc', lw:3},
+    {d:'M32,68 C24,74 14,78 4,80', s:'acc', lw:2.5},
+    {d:'M68,44 C78,38 88,34 98,32', s:'acc', lw:3},
+    {d:'M68,52 C80,52 90,52 98,52', s:'acc', lw:3},
+    {d:'M68,60 C78,64 88,68 98,70', s:'acc', lw:3},
+    {d:'M68,68 C76,74 86,78 96,80', s:'acc', lw:2.5},
+    {d:P_cir(33,56,4.5), f:'acc'}, {d:P_cir(67,56,4.5), f:'acc'} ] },
+
+  /* dentes */
+  teethRabbit:{ rel:'eye', anchor:'eyes', dy:1.42, w:1.2, box:[42,58,50,67], paths:[
+    {d:P_rr(42,50,8,17,3.5), f:'acc'}, {d:P_rr(50,50,8,17,3.5), f:'acc'} ] },
+  teethVampire:{ rel:'eye', anchor:'eyes', dy:1.90, w:1.3, box:[30,70,48,98], paths:[
+    {d:'M32,48 C28,66 32,86 37,97 C43,86 47,66 44,48 Z', f:'acc'},
+    {d:'M68,48 C72,66 68,86 63,97 C57,86 53,66 56,48 Z', f:'acc'},
+    {d:'M36,60 q4,8 2,16', s:'rgba(255,255,255,.4)', lw:3} ] },
+
+  brows:{ rel:'eye', anchor:'eyes', dy:-1.05, w:2.3, box:[2,98,22,34], paths:[
+    {d:P_rr(2,22,40,12,6), f:'acc'}, {d:P_rr(58,22,40,12,6), f:'acc'} ] },
+  glasses:{ rel:'eye', anchor:'eyes', dy:0, w:3.05, box:[0,100,29,71], paths:[
+    {d:P_cir(26,50,21), s:'acc', lw:7}, {d:P_cir(74,50,21), s:'acc', lw:7},
+    {d:'M47,50 h6', s:'acc', lw:7}, {d:'M5,45 L0,40 M95,45 L100,40', s:'acc', lw:7} ] },
+  sun:{ rel:'eye', anchor:'eyes', dy:0, w:2.95, box:[4,96,26,56], paths:[
+    {d:P_rr(4,26,38,30,12), f:'acc'}, {d:P_rr(58,26,38,30,12), f:'acc'},
+    {d:'M42,40 h16', s:'acc', lw:8} ] },
+  headphones:{ rel:'eye', anchor:'eyes', dy:0, w:1.12, box:[0,100,8,88], paths:[
+    {d:'M6,52 a44,44 0 0,1 88,0', s:'acc', lw:11},
+    {d:P_rr(0,48,20,40,9), f:'acc'}, {d:P_rr(80,48,20,40,9), f:'acc'} ] },
+
+  /* --- vestindo a bolha: faixa atrás, peça na frente --- */
+  collar:{ anchor:'neck', w:0.96, layer:'split', box:[0,100,24,80],
+    back:[{d:'M0,40 C0,26 100,26 100,40 L100,62 C100,76 0,76 0,62 Z', f:'acc'}],
+    paths:[{d:'M0,60 C0,74 100,74 100,60 L100,70 C100,84 0,84 0,70 Z', f:'acc'},
+           {d:P_cir(50,70,14), f:'gold'},
+           {d:'M40,70 h20', s:'acc', lw:4},
+           {d:P_cir(45,65,4), f:'rgba(255,255,255,.55)'}] },
+  bandana:{ anchor:'neck', w:0.88, layer:'split', box:[0,100,14,94],
+    back:[{d:'M0,44 C0,28 100,28 100,44 L100,64 C100,78 0,78 0,64 Z', f:'acc'}],
+    paths:[{d:'M26,60 C34,54 66,54 74,60 L62,92 Q50,98 38,92 Z', f:'acc'},
+           {d:P_cir(50,60,9), f:'gold'},
+           {d:P_cir(46,56,3), f:'rgba(255,255,255,.6)'}] },
+
+  tie:{ anchor:'bottom', w:0.25, box:[14,86,8,92], paths:[
+    {d:'M50,8 L86,34 L50,62 L14,34 Z', f:'acc'}, {d:'M36,58 h28 l8,34 h-44 Z', f:'acc'} ] },
+  tufts:{ anchor:'top', w:0.56, layer:'front', box:[8,98,0,60], paths:[
+    {d:fluffy([[14,58],[42,8],[48,56]],8,3), f:'acc'},
+    {d:fluffy([[44,56],[78,6],[78,58]],8,3), f:'acc'},
+    {d:fluffy([[74,58],[98,20],[78,58]],8,3), f:'acc'},
+    {d:'M14,58 C8,26 28,4 44,12 C40,34 32,52 14,58 Z', f:'acc'},
+    {d:'M44,56 C42,20 62,2 78,10 C72,34 62,50 44,56 Z', f:'acc'},
+    {d:'M74,58 C76,28 94,12 100,24 C94,44 86,54 74,58 Z', f:'acc'} ] },
+
+  /* --- cabeça --- */
+  cap:{ anchor:'top', w:0.47, box:[8,98,19,84], paths:[
+    {d:'M8,66 a42,42 0 0,1 84,0 z', f:'acc'},
+    {d:'M62,62 Q84,64 98,74 Q78,84 60,74 Z', f:'acc'},
+    {d:P_cir(50,24,5), f:'gold'} ] },
+  crown:{ anchor:'top', w:0.40, box:[4,96,0,92], paths:[
+    {d:'M4,92 L12,16 L38,46 L50,6 L62,46 L88,16 L96,92 Z', f:'acc'},
+    {d:P_cir(12,12,7), f:'gold'}, {d:P_cir(50,3,7), f:'gold'}, {d:P_cir(88,12,7), f:'gold'} ] },
+  halo:{ anchor:'halo', w:0.28, box:[4,96,27,73], paths:[
+    {d:P_ell(50,50,46,17), s:'gold', lw:12},
+    {d:P_ell(42,44,22,7), s:'rgba(255,255,255,.6)', lw:4} ] },
+  antenna:{ anchor:'top', w:0.15, box:[31,69,5,100], paths:[
+    {d:'M50,100 V34', s:'acc', lw:9}, {d:P_cir(50,24,19), f:'acc'},
+    {d:P_cir(44,18,5), f:'gold'} ] },
+  flower:{ anchor:'corner', w:0.34, box:[0,100,0,100], paths:[
+    {d:P_ell(50,20,15,22), f:'acc'}, {d:P_ell(50,80,15,22), f:'acc'},
+    {d:P_ell(20,50,22,15), f:'acc'}, {d:P_ell(80,50,22,15), f:'acc'},
+    {d:P_cir(50,50,14), f:'gold'} ] },
+};
+/* Métricas do avatar numa dada unidade (px do CSS ou device px do canvas).
+   Rc = raio do NÚCLEO (fixo, âncora de tudo que é de rosto e de cabeça)
+   R  = raio da CASCA (só a silhueta; serve de referência visual, não de âncora) */
+const metrics = (size, cfg) => {
+  const eyeW = size*(cfg.eyeSize/100);
+  return { cx:size/2, cy:size/2, Rc:size*0.32, R:size*0.45, D:size*0.90, eyeW, sep:eyeW*1.55 };
+};
+
+function accGeom(key, m){
+  const a = ACC[key]; if (!a) return null;
+  const [minX,maxX,minY,maxY] = a.box;
+  const bw = maxX-minX, bh = maxY-minY;
+  const W = (a.rel === 'eye') ? a.w*m.eyeW : a.w*m.D;
+  const u = W/bw;
+  const c0x = (minX+maxX)/2, c0y = (minY+maxY)/2;
+  let X = m.cx, Y = m.cy;
+  switch(a.anchor){
+    /* tudo se ancora no NÚCLEO (m.Rc), não na casca — assim a silhueta pode
+       se deformar à vontade sem desalinhar a cara */
+    case 'top':    Y = m.cy - m.Rc*0.86 - bh*u/2; break;
+    case 'bottom': Y = m.cy + m.Rc*0.80 + bh*u/2; break;
+    case 'neck':   Y = m.cy + m.Rc*0.96; break;
+    case 'halo':   Y = m.cy - m.Rc*1.55; break;
+    case 'corner': X = m.cx + m.Rc*0.80; Y = m.cy - m.Rc*0.80; break;
+    /* Rabos ficam ATRÁS da bolha e no CANTO SUPERIOR DIREITO dela: ancorados pela
+       borda da casca (R), não pelo núcleo (Rc) — senão nascem escondidos
+       dentro dela. Todo o resto se ancora no núcleo. */
+    case 'tail':   X = m.cx + m.R*0.88; Y = m.cy - m.R*0.70; break;
+    case 'eyes':   Y = m.cy + (a.dy||0)*m.eyeW; break;
+  }
+  return { u, L: X - c0x*u, T: Y - c0y*u, size:100*u, cx: X - c0x*u, cy: Y - c0y*u };
+}
+
+const ACC_COLOR = { acc:'var(--av-acc)', body:'var(--av-body-a)', gold:GOLD };
+
+/* Quais camadas este acessório ocupa. 'back' = só atrás da bolha (rabos);
+   'split' = uma parte atrás e outra na frente (coleira, bandana). */
+const accParts = (key) => {
+  const a = ACC[key];
+  if (!a) return [];
+  if (a.layer === 'back')  return ['back'];
+  if (a.layer === 'split') return ['back','front'];
+  return ['front'];
+};
+const partPaths = (key, part) => {
+  const a = ACC[key];
+  if (!a) return [];
+  return part === 'back' ? (a.back || a.paths) : a.paths;
+};
+
+const accPaths = (list, color) => list.map(p => p.f
+  ? `<path d="${p.d}" fill="${ACC_COLOR[p.f] || p.f}"/>`
+  : `<path d="${p.d}" fill="none" stroke="${ACC_COLOR[p.s] || p.s}" stroke-width="${p.lw}" stroke-linecap="round" stroke-linejoin="round"/>`
+).join('');
+
+const accSvg = (key, m, part) => {
+  const g = accGeom(key, m); if (!g) return '';
+  const list = partPaths(key, part);
+  if (!list.length) return '';
+  const style = `left:${g.L.toFixed(2)}px;top:${g.T.toFixed(2)}px;width:${g.size.toFixed(2)}px;height:${g.size.toFixed(2)}px`;
+  return `<span class="acc" data-part="${part}" style="${style}"><svg viewBox="0 0 100 100">${accPaths(list)}</svg></span>`;
+};
+
+/* ================= montagem ================= */
+const grid = document.getElementById('grid');
+const built = [];
+const CARDS = [
+  {t:'css',s:52,l:'CSS · 52px'},{t:'css',s:120,l:'CSS · 120px'},
+  {t:'canvas',s:52,l:'Canvas · 52px'},{t:'canvas',s:120,l:'Canvas · 120px'},
+];
+CARDS.forEach((c)=>{
+  const card=document.createElement('div'); card.className='card';
+  card.innerHTML=`<h3>${c.l}</h3><span class="tag ${c.t==='canvas'?'canvas':''}">${c.t==='css'?'CSS puro':'Canvas 2D'}</span>
+    <div class="stage"></div><div class="meta">—</div>
+    <div class="state-btns"><button class="btn" data-s="idle">parado</button><button class="btn" data-s="thinking">pensando</button><button class="btn" data-s="speaking">falando</button></div>`;
+  grid.appendChild(card);
+  const stage=card.querySelector('.stage');
+  if (c.t==='css'){
+    const av=document.createElement('div'); av.className='av-css';
+    av.style.setProperty('--size',c.s+'px'); av.dataset.eyes=S.eyes; av.dataset.state='idle'; av.dataset.face='normal';
+    const sh=document.createElement('div'); sh.className='shadow'; av.appendChild(sh);
+    for (let b=0;b<1;b++){ const bd=document.createElement('div'); bd.className='body'; av.appendChild(bd); }
+    const core=document.createElement('div'); core.className='core'; av.appendChild(core);
+    stage.appendChild(av);
+    built.push({kind:'css',el:av,size:c.s,meta:card.querySelector('.meta')});
+  } else {
+    const cv=document.createElement('canvas'); const dpr=devicePixelRatio||1; const M=1.85;
+    cv.width=c.s*dpr*M; cv.height=c.s*dpr*M; cv.style.width=(c.s*M)+'px'; cv.style.height=(c.s*M)+'px';
+    stage.appendChild(cv);
+    built.push({kind:'canvas',el:cv,ctx:cv.getContext('2d'),dpr,size:c.s,meta:card.querySelector('.meta'),cfg:{...S},pstate:'idle'});
+  }
+  card.querySelectorAll('[data-s]').forEach((b)=>b.addEventListener('click',()=>{
+    built.forEach((x)=>setState(x,b.dataset.s));
+    if (b.dataset.s==='thinking') built.forEach((x)=>{
+      if (x.kind==='css'){x.el.style.setProperty('--pulse-dur','700ms'); x.el.classList.remove('pulse'); void x.el.offsetWidth; x.el.classList.add('pulse');}
+      else x.pulseUntil=performance.now()+900;
+    });
+  }));
+});
+function setState(x,s){
+  if (s==='speaking') x.eyeKey = 'happy'; else x.eyeKey = S.eyes;   // falando = olhos felizes
+  if(x.kind==='css'){ x.el.dataset.state=s; x.el.dataset.eyes = x.eyeKey; }
+  else x.pstate=s;
+}
+
+/* ================= aplicar customização ================= */
+function renderFace(x){
+  if (x.kind !== 'css') return;
+  const el = x.el;
+  el.dataset.eyes = x.eyeKey || S.eyes;
+  el.style.setProperty('--eye-frac', (S.eyeSize/100).toFixed(3));
+  const old = el.querySelector('.face'); if (old) old.remove();
+  const face = document.createElement('div');
+  face.className = 'face';
+  face.style.cssText = 'position:absolute;inset:0;z-index:3;pointer-events:none;display:grid;place-items:center';
+  face.innerHTML =
+    `<div class="eyes"><span class="eye">${eyeMarkup(el.dataset.eyes,0)}</span>` +
+    `<span class="eye">${eyeMarkup(el.dataset.eyes,1)}</span></div>` +
+    (S.mouth !== 'none' ? `<span class="mouth ${S.mouth}"></span>` : '') +
+    (S.blush === '1' ? `<span class="blush bl"></span><span class="blush br"></span>` : '');
+  el.appendChild(face);
+  el.querySelectorAll('.acc').forEach((n)=>n.remove());
+  if (S.accKey === 'none') return;
+  const m = metrics(x.size, S);
+  const mk = (part) => { const w=document.createElement('div');
+    w.innerHTML = accSvg(S.accKey, m, part); const n=w.firstElementChild;
+    if (n) el.appendChild(n); };
+  accParts(S.accKey).forEach(mk);
+}
+function apply(){
+  const root = document.documentElement.style;
+  root.setProperty('--av-body-a',S.a); root.setProperty('--av-body-b',S.b);
+  root.setProperty('--av-eye',S.eye); root.setProperty('--av-acc',S.accColor);
+  root.setProperty('--av-squash',S.squash);
+  root.setProperty('--av-morph',S.shape);
+  built.forEach((x)=>{
+    if (x.kind==='css'){
+      renderFace(x);
+    } else x.cfg = {...S};
+  });
+}
+
+/* ================= controles ================= */
+const $ = (id)=>document.getElementById(id);
+const bind = (id,key,cast=(v)=>v)=>{ const e=$(id); if(e) e.addEventListener('input',ev=>{S[key]=cast(ev.target.value);apply();}); };
+bind('cA','a'); bind('cB','b'); bind('cEye','eye'); bind('cAcc','accColor');
+bind('squash','squash',Number); bind('eyeSize','eyeSize',Number);
+$('shape').addEventListener('change',e=>{ S.shape=e.target.value; const p=SHAPE_P[S.shape]; if(p) $('squash').value=p.squash; S.squash=p?p.squash:S.squash; apply(); });
+$('eyes').addEventListener('change',e=>{S.eyes=e.target.value;built.forEach(x=>{x.eyeKey=S.eyes;});apply();});
+$('acc').addEventListener('change',e=>{S.accKey=e.target.value;apply();});
+$('mouth').addEventListener('change',e=>{S.mouth=e.target.value;apply();});
+$('blush').addEventListener('change',e=>{S.blush=e.target.value;apply();});
+$('toggleAnim').addEventListener('click',()=>{ if(reduced)return; S.anim=!S.anim; $('toggleAnim').textContent=S.anim?'Animar':'Parado'; apply(); });
+$('testePensando').addEventListener('click',()=>built.forEach((x)=>{
+  if(x.kind==='css'){x.el.style.setProperty('--pulse-dur','700ms');x.el.classList.remove('pulse');void x.el.offsetWidth;x.el.classList.add('pulse');}
+  else x.pulseUntil=performance.now()+900;
+}));
+const pal=$('palettes');
+PALETTES.forEach((p,i)=>{ const b=document.createElement('button'); b.className='sw'+(i===0?' sel':''); b.title=p.n;
+  b.style.background=`linear-gradient(140deg,${p.a},${p.b})`;
+  b.addEventListener('click',()=>{ S.a=p.a;S.b=p.b; $('cA').value=p.a;$('cB').value=p.b;
+    pal.querySelectorAll('.sw').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); apply(); });
+  pal.appendChild(b); });
+apply();
+
+/* piscada (CSS) — a cada ~3,4s */
+let blinkT=0;
+setInterval(()=>{
+  blinkT=(blinkT+1)%34; const closed=blinkT<2;
+  const st=document.createElement('style');
+  st.textContent=`.av-css .face .eye{transform:scaleY(${closed?0.08:1})!important}`+
+    `.av-css[data-state="thinking"] .face .eye{transform:scaleY(${closed?0.08:0.62}) scaleX(.86)!important}`;
+  document.head.appendChild(st); setTimeout(()=>st.remove(),120);
+},100);
+
+/* ================= CANVAS ================= */
+const TAU=Math.PI*2;
+function blobPath(ctx,pts){ const n=pts.length; ctx.beginPath();
+  const p0=pts[n-1]; ctx.moveTo((p0.x+pts[0].x)/2,(p0.y+pts[0].y)/2);
+  for(let i=0;i<n;i++){ const a=pts[i],b=pts[(i+1)%n]; ctx.quadraticCurveTo(a.x,a.y,(a.x+b.x)/2,(a.y+b.y)/2); }
+  ctx.closePath(); }
+
+/* Desenha o MESMO desenho do SVG, nas mesmas unidades do viewBox (0 0 100 100).
+   px()/py() levam a origem (0,0) do viewBox para o centro da caixa => o Canvas
+   fica idêntico ao CSS, sem calibração manual. */
+function drawAcc(ctx,key,cfg,m,part){
+  const g = accGeom(key, m); if (!g) return;
+  const list = partPaths(key, part);
+  if (!list.length) return;
+  ctx.save();
+  ctx.translate(g.cx, g.cy);
+  ctx.scale(g.u, g.u);                       // agora é só desenhar no viewBox 0..100
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const col = { acc:cfg.accColor, body:cfg.a, gold:GOLD };
+  for (const p of list){
+    const path = new Path2D(p.d);
+    if (p.f){ ctx.fillStyle = col[p.f]; ctx.fill(path); }
+    else    { ctx.strokeStyle = col[p.s]; ctx.lineWidth = p.lw; ctx.stroke(path); }
+  }
+  ctx.restore();
+}
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawCanvas(x,t){
+  const {ctx,size,dpr,cfg}=x;
+  const BOX = size*dpr;              // lado da caixa do avatar (mede o desenho)
+  const C   = BOX*1.85;              // área do canvas: folga p/ acessórios não cortarem
+  const M = metrics(BOX, cfg);              // mesmas métricas do lado CSS
+  M.cx = C/2; M.cy = C/2;                 // ...mas desenhado no centro da área do canvas
+  const cx=M.cx, cy=M.cy, R=M.R, Rc=M.Rc;
+  ctx.clearRect(0,0,C,C);
+  const P = SHAPE_P[cfg.shape] || SHAPE_P.blobEllipse;
+
+  // camada de trás: rabos e a parte de trás da faixa/bandana
+  const parts = accParts(cfg.accKey);
+  parts.forEach(pt => { if (pt === 'back') drawAcc(ctx, cfg.accKey, cfg, M, 'back'); });
+
+  // PEÇA 1 — casca: blob deformável que faz a silhueta
+  const breath = 1 + Math.sin(t*TAU/3.8)*0.035;         // mesma respiração do CSS
+  const BR = R*breath, RC = Rc*breath;
+  // Gradientes criados UMA vez e usados nas duas peças: é isso que faz as
+  // cores baterem exatamente e o núcleo não deixar emenda.
+  const g = ctx.createLinearGradient(0,cy-BR,0,cy+BR);
+  g.addColorStop(0,cfg.a); g.addColorStop(1,cfg.b);
+  const hl = ctx.createRadialGradient(cx-BR*0.34,cy-BR*0.38,BR*0.02,cx-BR*0.34,cy-BR*0.38,BR*0.8);
+  hl.addColorStop(0,'rgba(255,255,255,.42)'); hl.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.save();                                              // sombra de contato
+  ctx.fillStyle = 'rgba(80,60,45,.20)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy+R*1.02, R*0.44*(1+Math.sin(t*TAU/3.8)*0.06), R*0.10, 0, 0, TAU);
+  ctx.filter = 'blur('+(BOX*0.02).toFixed(1)+'px)'; ctx.fill(); ctx.filter='none';
+  ctx.restore();
+  {
+    const sq = P.squash * cfg.squash;
+    const pts=[]; const N=9;
+    for(let i=0;i<N;i++){
+      const ang=(i/N)*TAU - Math.PI/2 + (P.skew?P.skew*Math.sin(t*0.8):0);
+      const w = Math.sin(t*P.h[0]+i*1.7)*0.5 + Math.sin(t*P.h[1]+i*2.9)*0.3 + Math.sin(t*P.h[2]+i*0.8)*0.2;
+      const rr = BR*(1 + w*P.amp) * (1 + (P.biasY?P.biasY*Math.sin(ang+1.2):0));
+      pts.push({x:cx+Math.cos(ang)*rr, y:cy+Math.sin(ang)*rr*sq});
+    }
+    blobPath(ctx,pts); ctx.fillStyle=g; ctx.fill();
+    {                                                    // brilho interno
+      ctx.save(); blobPath(ctx,pts); ctx.clip();
+      ctx.fillStyle=hl; ctx.fillRect(cx-BR,cy-BR,BR*2,BR*2); ctx.restore();
+    }
+    if (x.pulseUntil && performance.now() < x.pulseUntil){
+      ctx.save(); ctx.strokeStyle='rgba(255,255,255,.4)'; ctx.lineWidth=2*dpr; ctx.shadowBlur=10*dpr; ctx.stroke(); ctx.restore();
+    }
+  }
+  // PEÇA 2 — núcleo: círculo fixo. Reaproveita os MESMOS gradientes da casca,
+  // então a cor bate exatamente e a borda do círculo fica invisível.
+  {
+    ctx.beginPath(); ctx.arc(cx,cy,RC,0,TAU); ctx.fillStyle=g; ctx.fill();
+    ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,RC,0,TAU); ctx.clip();
+    ctx.fillStyle=hl; ctx.fillRect(cx-BR,cy-BR,BR*2,BR*2); ctx.restore();
+  }
+
+  // rosto
+  const thinking = x.pstate==='thinking';
+  const blink = ((t % 3.6) < 0.16) ? 0.12 : 1;              // piscada curta
+  const eyeW  = BOX*(cfg.eyeSize/100);
+  const sep   = eyeW*1.55;                                   // centro a centro
+  const lx = look.x*eyeW*0.16, ly = look.y*eyeW*0.14;
+  const openF = thinking ? 0.62 : 1;
+  const eyeKey = x.pstate==='speaking' ? 'happy' : cfg.eyes;  // falando = olhos felizes
+
+  if (cfg.accKey === 'brows') drawAcc(ctx,'brows',cfg,M,'front');   // sobrancelhas atrás dos olhos
+
+  /* olhos: o MESMO path do CSS, via Path2D */
+  const eDef = EYES[eyeKey] || EYES.round;
+  const col = { eye:cfg.eye, body:cfg.a, w:'#fff' };
+  // piscada achata no eixo Y; estilos só com traço (sleepy/happy) não piscam
+  const flat = ((t % 3.6) < 0.16 && eDef.paths.some(p=>p.f)) ? 0.12 : 1;
+  const sx = eyeW/100, sy = (eyeW*1.32/100)*flat;
+  const stroke = (paths, ex) => {
+    for (const p of paths){
+      const path = new Path2D(p.d);
+      if (p.f){ ctx.fillStyle = col[p.f]||p.f; ctx.fill(path); }
+      else    { ctx.strokeStyle = col[p.s]||p.s; ctx.lineWidth = p.lw; ctx.stroke(path); }
+    }
+  };
+  [-sep/2, sep/2].forEach((dx, i) => {
+    ctx.save();
+    ctx.translate(cx+dx+lx, cy+ly); ctx.scale(sx, sy); ctx.translate(-50,-50);
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    stroke((i===1 && eDef.vary && eDef.vary[1]) ? [eDef.vary[1]] : eDef.paths);
+    if (eDef.tear) stroke([eDef.tear]);
+    if (eDef.glint) for (const p of eDef.glint) stroke([p]);
+    ctx.restore();
+  });
+  // bochechas
+  if (cfg.blush==='1'){ ctx.save(); ctx.globalAlpha=0.22; ctx.fillStyle=cfg.eye;
+    [-R*0.58,R*0.58].forEach(dx=>{ctx.beginPath();ctx.ellipse(cx+dx,cy+R*0.22,R*0.16,R*0.09,0,0,TAU);ctx.fill();});
+    ctx.restore(); }
+  // boca
+  ctx.save(); ctx.strokeStyle=cfg.eye; ctx.fillStyle=cfg.eye; ctx.lineCap='round';
+  const my=cy+BOX*0.235;
+  // bocas medidas em fração da caixa, igual às classes .mouth do CSS
+  if(cfg.mouth==='m-smile'){ ctx.lineWidth=BOX*0.042; ctx.beginPath();
+    ctx.arc(cx,my-BOX*0.055,BOX*0.13,0.22*Math.PI,0.78*Math.PI); ctx.stroke(); }
+  if(cfg.mouth==='m-o'){ ctx.lineWidth=BOX*0.034; ctx.beginPath();
+    ctx.ellipse(cx,my,BOX*0.065,BOX*0.075,0,0,TAU); ctx.stroke(); }
+  if(cfg.mouth==='m-flat'){ ctx.lineWidth=BOX*0.035; ctx.beginPath();
+    ctx.moveTo(cx-BOX*0.10,my); ctx.lineTo(cx+BOX*0.10,my); ctx.stroke(); }
+  if(cfg.mouth==='m-grin'){ roundRect(ctx,cx-BOX*0.17,my-BOX*0.10,BOX*0.34,BOX*0.20,BOX*0.09); ctx.fill();
+    ctx.fillStyle=cfg.a; ctx.beginPath(); ctx.ellipse(cx,my+BOX*0.085,BOX*0.11,BOX*0.07,0,0,TAU); ctx.fill(); }
+  ctx.restore();
+  // acessório (brows já foi desenhado antes dos olhos)
+  if (cfg.accKey && cfg.accKey!=='none') parts.forEach(pt => { if (pt !== 'back') drawAcc(ctx,cfg.accKey,cfg,M,pt); });
+}
+
+const canvases=built.filter(x=>x.kind==='canvas'), cssAv=built.filter(x=>x.kind==='css');
+const t0=performance.now();
+function loop(){
+  const t=(performance.now()-t0)/1000;
+  if(S.anim){
+    canvases.forEach(x=>drawCanvas(x,t));
+    cssAv.forEach(x=>{ const amp=x.size*0.07;
+      x.el.style.setProperty('--eye-x',(look.x*amp).toFixed(2)+'px');
+      x.el.style.setProperty('--eye-y',(look.y*amp*0.7).toFixed(2)+'px'); });
+  } else if(canvases[0]&&!canvases[0].drawn){
+    canvases.forEach(x=>{drawCanvas(x,0.35);x.drawn=true;});
+    cssAv.forEach(x=>{x.el.style.setProperty('--eye-x','0px');x.el.style.setProperty('--eye-y','0px');});
+  }
+  canvases.forEach(x=>{ x.meta.textContent = S.anim?'animando · 1 rAF p/ 4 amostras':'parado (frame único)'; });
+  cssAv.forEach(x=>{ x.meta.textContent = S.anim?'CSS puro · 0 JS no desenho':'CSS puro · pausado'; });
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

@@ -5,6 +5,7 @@
 import { Store } from '../store.js';
 import { ICON, wrapSvg } from '../icons.js';
 import { esc, haptic, now } from '../utils.js';
+import { mascotFromStore } from '../mascot.js';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 // TABS: as páginas do workspace. 'reminders' não tem mais aba própria
 // (v1.12.0) — a lista é a mesma das Pendências e o header troca entre
@@ -161,8 +162,8 @@ export const WorkspaceMethods = {
     const threadMenuBtn = document.getElementById('btn-thread-menu');
     const pageIcon = document.getElementById('page-icon');
     const PAGE_ICON = { ai: ICON.sparkle, daily: ICON.calendar, reminders: ICON.clock };
-    // título do cabeçalho por página (a IA tem rótulo próprio, mais descritivo)
-    const PAGE_TITLE = { ai: 'Conversa com a IA', daily: 'Diária', reminders: 'Lembretes' };
+    // título do cabeçalho por página (a IA usa o nome do mascote escolhido)
+    const PAGE_TITLE = { ai: mascotFromStore().name, daily: 'Diária', reminders: 'Lembretes' };
     if (chatName) chatName.textContent = PAGE_TITLE[tab] || 'Selecione uma conversa';
     if (threadMenuBtn) threadMenuBtn.classList.toggle('hidden', tab === 'conversations' ? !this.activeThread : true);
     if (pageIcon) {

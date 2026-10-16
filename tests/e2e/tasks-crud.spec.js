@@ -30,7 +30,7 @@ const seed = {
       ts: Date.now() - 50000, images: [], reactions: {},
     }],
   },
-  ui: { expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} } },
+  ui: { mascot: { nameSet: true }, expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} } },
 };
 
 // viewport de desktop: em 390px a sidebar cobre o canvas e o clique na aba

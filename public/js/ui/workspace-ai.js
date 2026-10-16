@@ -6,6 +6,7 @@ import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { renderMarkdown } from '../markdown.js';
 import { esc, haptic, uid, now } from '../utils.js';
+import { mascotAvatarHtml, mascotFromStore } from '../mascot.js';
 // normName: comparação sem acento/maiúscula (a IA manda o nome da
 // conversa e o nome real pode ter acento)
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -30,13 +31,17 @@ export const WorkspaceAiMethods = {
     if (!list) return;
     const history = (Store.data.ui && Store.data.ui.aiChat) || [];
     if (!history.length) {
-      list.innerHTML = '<div class="workspace-empty"><span aria-hidden="true">✦</span><strong>Peça à IA — ela conhece suas notas</strong><span>Resuma uma conversa, planeje seu dia ou peça: <em>“crie uma nota na conversa Compras com a lista do churrasco”</em>.</span></div>';
+      list.innerHTML = `<div class="workspace-empty">${mascotAvatarHtml('idle')}<span class="ai-mascot-name">${esc(mascotFromStore().name)}</span><strong>Peça à IA — ela conhece suas notas</strong><span>Resuma uma conversa, planeje seu dia ou peça: <em>“crie uma nota na conversa Compras com a lista do churrasco”</em>.</span></div>`;
       return;
     }
+    // Enquanto a resposta não chega, o avatar mostra "pensando" no fim da lista.
+    const thinking = this._aiBusy
+      ? `<div class="ai-typing">${mascotAvatarHtml('thinking')}<span>Pensando…</span></div>`
+      : '';
     list.innerHTML = history.map((item) => {
       const chips = (item.actions || []).map((a) => `<div class="ai-action-chip">${esc(a)}</div>`).join('');
       return `<article class="ai-message ${item.role === 'user' ? 'user' : 'model'}"><div class="ai-message-label">${item.role === 'user' ? 'Você' : 'IA'}</div>${chips}<div class="ai-message-body">${renderMarkdown(item.text || '')}</div></article>`;
-    }).join('');
+    }).join('') + thinking;
     list.scrollTop = list.scrollHeight;
   },
 
@@ -90,6 +95,7 @@ export const WorkspaceAiMethods = {
     input.value = '';
     this._growAiPrompt(input);
     input.disabled = true; button.disabled = true;
+    this._aiBusy = true;
     this.renderAiMessages();
     const prior = history.slice(-21, -1).map(({ role, text }) => ({
       role: role === 'model' ? 'model' : 'user',
@@ -148,11 +154,13 @@ export const WorkspaceAiMethods = {
       // antes da chamada; em falha, o catch desfaz só o ui.aiChat — ver
       // o comentário de _aiPersistTurn)
       this._aiPersistTurn('model', answer || '');
+      this._aiBusy = false;
       this.renderAiMessages();
       haptic('success');
     } catch (error) {
       history.pop();
       Store.save();
+      this._aiBusy = false;
       this.renderAiMessages();
       const message = error.message || 'Falha ao falar com a API Gemini';
       this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: 'error', duration: 5000 });

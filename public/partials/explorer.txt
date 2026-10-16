@@ -38,12 +38,21 @@
         </div>
       </div>
 
-      <div id="fav-section" class="fav-section hidden">
-        <div class="fav-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17 5.5 21 7 14 2 9.3 9 9"/></svg> Favoritos</div>
-        <div id="fav-list" class="fav-list"></div>
-      </div>
+      <!-- O mascote fica ACIMA dos favoritos. Vem antes de #fav-section no DOM
+           porque os favoritos são renderizados num bloco próprio (não em #tree),
+           então a posição no HTML é o que decide a ordem. -->
+      <div id="ai-slot" data-friendly-name="Mascote da IA"></div>
 
       <div class="explorer-label" data-friendly-name="Seção MEUS CADERNOS">MEUS CADERNOS</div>
+
+      <!-- Favoritos é SUBCONTEÚDO de "Meus cadernos": entra depois do rótulo,
+           antes da lista. Sem rótulo próprio — a estrela e o texto dourado de
+           cada item já dizem quais são, e um segundo título em maiúscula logo
+           abaixo de "MEUS CADERNOS" competia com ele. A separação dos grupos
+           é feita por um único traço, no fim do bloco. -->
+      <div id="fav-section" class="fav-section hidden">
+        <div id="fav-list" class="fav-list"></div>
+      </div>
 
       <div id="tree" class="tree" data-friendly-name="Lista de Cadernos"></div>
 

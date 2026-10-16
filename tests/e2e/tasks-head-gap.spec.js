@@ -17,7 +17,7 @@ const seed = {
   folders: {},
   threads: { t1: { id: 't1', name: 'Compras', folderId: null, created: Date.now() - 90000 } },
   notes: { t1: [{ clientId: 'n1', threadId: 't1', user: 'me', text: 'l\n[ ] A\n[ ] B', ts: Date.now() - 50000, images: [], reactions: {} }] },
-  ui: { expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} }, tasksOwn: [
+  ui: { mascot: { nameSet: true }, expanded: {}, theme: 'peach', sounds: { enabled: false, volume: 0.5, map: {} }, tasksOwn: [
     { id: 'o1', text: 't1', done: false, createdAt: Date.now() },
   ] },
 };

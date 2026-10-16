@@ -1,5 +1,6 @@
 import { uid, now, esc, haptic, $ } from '../utils.js';
 import { ICON, wrapSvg, COLOR_PALETTE, colorById, glyphSvg, GLYPH_ICONS } from '../icons.js';
+import { mascotAvatarHtml, mascotFromStore } from '../mascot.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
@@ -265,6 +266,7 @@ renderTree() {
       // realtime (thread:upsert da própria criação), snapshots de reconexão e
       // outros eventos chamam renderTree sem mudar nada — reconstruir a lista e
       // re-animar todos os nós era o flick ao criar conversa/caderno.
+      const mascotNameSig = mascotFromStore().name;
       const threadSig = (t) => [t.id, t.name, t.emoji || '', t.color || '', t.favorite ? 1 : 0, (Store.notesFor(t.id) || []).length, (Store.notesFor(t.id) || []).some((x) => x.remindAt && !x.remindFired) ? 1 : 0].join('~');
       // A thread da IA é desenhada à parte (aiThreadNode), então entra aqui
       // como thread comum — sem este filtro ela apareceria DUAS vezes.
@@ -272,6 +274,7 @@ renderTree() {
       const fpFolders = Store.folderList();
       const fpRoots = this.sortThreads(userThreads().filter((t) => !t.favorite && !t.folderId));
       const fp = [
+        'M:' + mascotNameSig,
         'F:' + this.sortThreads(userThreads().filter((t) => t.favorite)).map((t) => t.id).join(','),
         'D:' + fpFolders.map((f) => [f.id, f.name, f.emoji || '', f.color || '', Store.isExpanded(f.id) ? 1 : 0].join('~')).join(','),
         'R:' + fpRoots.map(threadSig).join(','),
@@ -293,12 +296,25 @@ renderTree() {
       this.renderFavorites();
       const tree = this.dom.tree;
       tree.innerHTML = '';
-      // A thread da IA entra ACIMA dos favoritos: é conversa permanente,
-      // não uma conversa do usuário (ver ai-thread.js). Fica fora do Store
-      // visível para não poder ser renomeada/excluída/arquivada — o clique
-      // abre a página da IA, como qualquer outro item da árvore.
+      // A thread da IA é conversa permanente, não uma conversa do usuário (ver
+      // ai-thread.js). Fica fora do Store visível para não poder ser
+      // renomeada/excluída/arquivada — o clique abre a página da IA. Vai para
+      // #ai-slot, que fica ACIMA de #fav-section no DOM.
       const aiNode = this.aiThreadNode();
-      if (aiNode) tree.appendChild(aiNode);
+      const aiSlot = document.getElementById('ai-slot');
+      if (aiSlot) {
+        aiSlot.innerHTML = '';
+        if (aiNode) {
+          // kicker "Assistente" acima do item: é o rótulo do que aquele
+          // recurso é, e o texto moraria no explorador, não no cabeçalho
+          // da conversa (lá fica só o ícone de estrelinhas).
+          const k = document.createElement('div');
+          k.className = 'ai-kicker';
+          k.innerHTML = wrapSvg(ICON.sparkle, 11) + '<span>Assistente</span>';
+          aiSlot.appendChild(k);
+          aiSlot.appendChild(aiNode);
+        }
+      }
       const folders = Store.folderList();
       const threads = userThreads().filter((t) => !t.favorite && !t.folderId);
 
@@ -460,16 +476,19 @@ folderNode(f) {
       el.className = 'tnode cozy-caderno ai-thread-node' + (this._aiTabOpen ? ' active' : '');
       el.dataset.tid = ai.AI_THREAD_ID;
       el.style.paddingLeft = '8px';
-      const icoBase = 'width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:var(--accent-soft);color:var(--accent);font-size:0;box-shadow:var(--shadow-sm)';
-      const glyph = glyphSvg('sparkle');
-      const ic = glyph
-        ? `<span class="caderno-ico" style="${icoBase}">${glyph.replace('<svg ', '<svg style="width:26px;height:26px" ')}</span>`
-        : `<span class="caderno-ico" style="${icoBase}">✦</span>`;
+      // O tile não leva fundo: o próprio avatar é o ícone. Mantém o mesmo
+      // quadrado de 52px do resto da árvore para o alinhamento não mudar.
+      const icoBase = 'width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:transparent';
+      const ic = `<span class="caderno-ico" style="${icoBase}">${mascotAvatarHtml('idle')}</span>`;
+      // o rótulo é o NOME DO MASCOTE escolhido pelo usuário, não "Conversa com
+      // a IA". Vem da config (e não de t.name) porque t.name é congelado no
+      // boot, em ensureAiThread — não acompanharia uma renomeação.
+      const mascotName = mascotFromStore().name;
       const noteCount = (Store.notesFor(ai.AI_THREAD_ID) || []).length;
       const countEl = noteCount ? `<span class="note-count" title="${noteCount} mensagem${noteCount !== 1 ? 's' : ''}">${noteCount}</span>` : '';
       el.innerHTML = `<span class="twist" style="visibility:hidden">${wrapSvg(ICON.chevron, 10)}</span>
                       <span class="ico">${ic}</span>
-                      <span class="label">${esc(t.name)}</span>
+                      <span class="label">${esc(mascotName)}</span>
                       ${countEl}`;
       el.addEventListener('click', () => this.openAiThread());
       return el;

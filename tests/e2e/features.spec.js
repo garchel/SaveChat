@@ -13,7 +13,7 @@ const seed = {
       { id: 'n1', threadId: 't1', user: 'me', text: '- [x] leite\n- [ ] pão', ts: Date.now() - 50000, clientId: 'c1', tags: ['mercado'] },
     ],
   },
-  ui: { expanded: {}, sounds: { enabled: false } },
+  ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
 };
 
 test.beforeEach(async ({ context }) => {
