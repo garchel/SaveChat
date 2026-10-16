@@ -253,6 +253,12 @@ import { OfflineQueue } from './offline-queue.js';
     },
     async send(type, payload) {
       if (!this.supa) return;
+      // Threads local-only (a da IA, ver ai-thread.js) NUNCA vão para o
+      // servidor: o conteúdo da conversa com a IA é privado por escolha do
+      // usuário, e a chave da API vive em `ui.aiKey` — fora de `notes` — de
+      // propósito, para não ter como vazar por aqui.
+      if (payload && payload.id && Store.data.threads[payload.id] && Store.data.threads[payload.id].localOnly) return;
+      if (payload && payload.threadId && Store.data.threads[payload.threadId] && Store.data.threads[payload.threadId].localOnly) return;
       this.lastSync = Date.now();
       try {
         await this._doSend(type, payload);

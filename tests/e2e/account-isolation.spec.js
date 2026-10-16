@@ -19,6 +19,9 @@ const seed = {
   folders: {},
   notes: { t1: [{ id: 'n1', threadId: 't1', text: 'nota antiga', ts: Date.now() - 50000, clientId: 'c1' }] },
   ui: {
+    // nome de mascote já definido: sem isto o modal de primeiro login
+    // abre sobre o app e bloqueia os testes
+    mascot: { nameSet: true },
     expanded: {},
     sounds: { enabled: false },
     theme: 'ocean',
@@ -92,7 +95,19 @@ test('conta nova não enxerga as conversas, a chave da IA nem a rotina da conta 
   // e a troca persiste: após reload a conta nova segue vazia
   await page.reload();
   await page.waitForTimeout(1500);
-  const afterReload = await page.evaluate(() => window.NoteThread.Store.threadList().map((t) => t.name));
+  // A thread da IA é estrutural do DISPOSITIVO, não da conta: ela existe
+  // em qualquer conta e por isso `ensureAiThread` a recoloca no boot —
+  // `Store.threadList()` é a lista EM MEMÓRIA, que inclui essa thread. O
+  // que o contrato de isolamento verifica é o CONTEÚDO DA CONTA, então
+  // medimos o bucket: `data.threads` filtrado é exatamente o que `save()`
+  // grava no bucket (ver o filtro em save()).
+  //
+  // `threadList()` cru daria 1 (a thread da IA) em qualquer conta — medido
+  // assim antes deste ajuste.
+  const afterReload = await page.evaluate(() => {
+    const th = window.NoteThread.Store.data.threads;
+    return Object.keys(th).filter((id) => id !== 'ai-assistant').map((id) => th[id].name);
+  });
   expect(afterReload).toEqual([]);
 });
 

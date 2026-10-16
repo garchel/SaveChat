@@ -29,7 +29,7 @@ const seed = {
       { clientId: 'b2', threadId: 't2', user: 'me', text: 'BRAVO-2', ts: T0 - 30000 },
     ],
   },
-  ui: { expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
+  ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
 };
 
 const bolhas = (page) => page.locator('#messages .bubble[data-client-id]');

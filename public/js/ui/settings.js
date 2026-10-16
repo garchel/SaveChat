@@ -1,4 +1,4 @@
-import { $, hideWithExit } from '../utils.js';
+import { $, hideWithExit, placeProfilePopover } from '../utils.js';
 import { CUELUME_SOUNDS, Sound } from '../sound.js';
 import { Store } from '../store.js';
 import { Sync, USE_SUPABASE } from '../sync-supabase.js';
@@ -413,46 +413,8 @@ handleSetting(act, val) {
     toggleSettingsPopover() {
       const p = this.dom.settingsPopover;
       if (!p.classList.contains('hidden')) { hideWithExit(p); return; }
-      // ancora no perfil (novo) ou nos botões legados
-      const anchor = document.getElementById('profile-btn') || this.dom.navSettings || this.dom.btnSettings;
-      if (!anchor) return;
-      // reset completo do estado do ciclo anterior (maxHeight/overflow "travados")
-      p.style.maxHeight = '';
-      p.style.overflowY = '';
-      // M7: nasce a partir da âncora que abriu
-      const ar = anchor.getBoundingClientRect();
-      const pr = p.getBoundingClientRect();
-      p.style.transformOrigin = Math.max(0, Math.min(ar.left - pr.left + ar.width / 2, pr.width)) + 'px ' +
-                                (ar.top < pr.top ? '0' : Math.max(0, Math.min(ar.top - pr.top, pr.height))) + 'px';
-      p.classList.remove('hidden');
-      p.style.visibility = 'hidden'; // mede sem piscar na posição errada
-      const r = anchor.getBoundingClientRect();
-      const pw = Math.min(340, window.innerWidth - 16);
-      // altura real do conteúdo (o popover cresce conforme o tema/seções)
-      p.style.left = '0px'; p.style.top = '0px';
-      const ph = p.offsetHeight || 460;
-      const margin = 8;
-      const maxH = window.innerHeight - margin * 2;
-      // horizontal: prefere ao lado direito da nav; se não couber, à esquerda; nunca sai da tela
-      let left = r.right + 12;
-      if (left + pw > window.innerWidth - margin) left = Math.max(margin, r.left - pw - 12);
-      if (left + pw > window.innerWidth - margin) left = window.innerWidth - pw - margin;
-      // vertical: SEMPRE cabe dentro da tela com rolagem interna quando preciso
-      let top = Math.min(r.bottom + 8, window.innerHeight - margin);
-      if (ph > maxH) {
-        // popover maior que a tela → ocupa a tela toda com scroll interno
-        top = margin;
-        p.style.maxHeight = maxH + 'px';
-        p.style.overflowY = 'auto';
-      } else {
-        // popover cabe: se estourar embaixo, sobe; clamp nas duas bordas
-        if (top + ph > window.innerHeight - margin) top = window.innerHeight - ph - margin;
-        if (top < margin) top = margin;
-        p.style.maxHeight = '';
-        p.style.overflowY = '';
-      }
-      p.style.left = left + 'px';
-      p.style.top = top + 'px';
-      p.style.visibility = '';
+      // âncora no perfil; a matemática (abrir para cima, altura limitada ao
+      // espaço acima do botão e scroll interno) é compartilhada com o mascote
+      placeProfilePopover(p, { fallbackIds: ['nav-settings', 'btn-settings'] });
     },
 };

@@ -1,0 +1,353 @@
+/* Avatar da IA — duas peças: um NÚCLEO fixo (onde o rosto se ancora) e uma
+   CASCA que se remodela para fazer a silhueta. CSS puro: nenhuma animação
+   depende de JS, então a regra global de prefers-reduced-motion
+   (15-delight-motion.css) já desliga tudo sozinha.
+
+   O achatamento é FIXO em 60%, sem controle. Ele é aplicado ao conjunto
+   casca+núcleo+rosto, senão o núcleo furaria a casca achatada.
+
+   O que o JS controla (mascot.js): data-shape, data-eyes, data-blush e as
+   custom properties --ai-av-c1/c2. */
+
+.ai-av {
+  --ai-av: 44px;           /* lado da caixa */
+  --ai-av-squash: .6;      /* achatamento fixo */
+  /* --mascot-* são as cores escolhidas pelo usuário; vazio = herda do tema.
+     A indireção existe para os chips-ícone do painel reaproveitarem as mesmas
+     regras: eles ficam FORA do .ai-av, então leriam o vazio. */
+  --ai-av-c1: var(--mascot-c1, color-mix(in srgb, var(--accent) 92%, var(--bg)));
+  --ai-av-c2: var(--mascot-c2, color-mix(in srgb, var(--accent) 66%, var(--text)));
+  --ai-av-eye: var(--mascot-eye, color-mix(in srgb, var(--text) 88%, var(--accent)));
+  --ai-av-acc: var(--mascot-acc, color-mix(in srgb, var(--text) 88%, var(--accent)));
+  position: relative;
+  display: block;
+  flex: none;
+  width: var(--ai-av);
+  height: var(--ai-av);
+  font-size: 0;
+  line-height: 0;
+}
+
+.ai-av__shadow {
+  position: absolute;
+  left: 26%; right: 26%; top: 79%;
+  height: 9%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(90,70,55,.24), rgba(90,70,55,0) 70%);
+  animation: aiAvShadow 3.8s ease-in-out infinite;
+}
+
+/* Wrapper achatado: casca, núcleo e rosto comprimem juntos. */
+.ai-av__sq {
+  position: absolute;
+  inset: 0;
+  transform: scaleY(var(--ai-av-squash));
+  animation: aiAvBreath 3.8s ease-in-out infinite;
+}
+
+.ai-av__shell,
+.ai-av__core {
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(ellipse 62% 46% at 33% 27%, rgba(255,255,255,.42), rgba(255,255,255,0) 72%),
+    linear-gradient(150deg, var(--ai-av-c1), var(--ai-av-c2));
+}
+
+/* CASCA — a peça que se remodela. A silhueta vem do data-shape. */
+.ai-av__shell {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* border-radius fixo = o frame 0% do keyframe. Sem isto, quem tem
+     prefers-reduced-motion (ou animação desligada) vê um RETÂNGULO. */
+  border-radius: 58% 42% 34% 66% / 62% 38% 62% 38%;
+  animation: aiAvMorph 7s ease-in-out infinite;
+  box-shadow: 0 3px 10px rgba(0,0,0,.16), inset 0 -4px 12px rgba(0,0,0,.12);
+}
+.ai-av[data-shape="blobEllipse"] .ai-av__shell { animation-name: aiAvMorph; }
+.ai-av[data-shape="blobFlat"]   .ai-av__shell { animation-name: aiAvMorphFlat; border-radius: 50% 50% 46% 54% / 70% 72% 64% 66%; }
+.ai-av[data-shape="blobTall"]   .ai-av__shell { animation-name: aiAvMorphTall; border-radius: 44% 56% 52% 48% / 40% 36% 48% 52%; }
+.ai-av[data-shape="blobDrop"]   .ai-av__shell { animation-name: aiAvMorphDrop; border-radius: 50% 50% 50% 50% / 34% 34% 66% 66%; }
+.ai-av[data-shape="blobGrain"]  .ai-av__shell { animation-name: aiAvMorphGrain; border-radius: 62% 38% 44% 56% / 52% 64% 36% 48%; }
+.ai-av[data-shape="blobBean"]   .ai-av__shell { animation-name: aiAvMorphBean; border-radius: 70% 30% 60% 40% / 44% 56% 44% 56%; }
+
+/* NÚCLEO — fixo. Reaproveita as MESMAS camadas de fundo da casca, escaladas
+   e deslocadas para a mesma área absoluta, então a borda do círculo some. */
+.ai-av__core {
+  position: absolute;
+  inset: 18%;
+  z-index: 2;
+  border-radius: 50%;
+  background-size: var(--ai-av) var(--ai-av);
+  background-position: calc(var(--ai-av) * -.18) calc(var(--ai-av) * -.18);
+}
+
+/* rosto */
+.ai-av__face { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; }
+.ai-av__eyes { display: flex; gap: calc(var(--ai-av) * .12); }
+.ai-av__eyes i {
+  position: relative; display: block;
+  width: calc(var(--ai-av) * .24);
+  height: calc(var(--ai-av) * .24);
+  animation: aiAvBlink 3.6s ease-in-out infinite;
+}
+.ai-av__eyes i svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+.ai-av__mouth {
+  position: absolute;
+  left: 50%; top: 62%;
+  width: calc(var(--ai-av) * .2);
+  height: calc(var(--ai-av) * .13);
+  transform: translateX(-50%);
+}
+.ai-av__mouth svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+.ai-av__blush {
+  position: absolute;
+  top: 54%;
+  width: 17%; height: 10%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ai-av-eye) 26%, transparent);
+  filter: blur(1.5px);
+}
+.ai-av__blush--l { left: 16%; }
+.ai-av__blush--r { right: 16%; }
+.ai-av[data-blush="0"] .ai-av__blush { display: none; }
+
+/* acessório (SVG posicionado em % da caixa, fora do squash) */
+/* z-index: 0 = atrás do corpo (orelhas, auréola, antena: o contorno some
+   atrás da casca, como no protótipo). --front = acima do rosto (coroa, boné). */
+.ai-av__acc { position: absolute; z-index: 0; display: block; }
+.ai-av__acc--front { z-index: 4; }
+.ai-av__acc svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+/* estados ------------------------------------------------------------- */
+.ai-av[data-state="thinking"] .ai-av__eyes i { animation: none; transform: scaleY(.5) scaleX(.92); }
+.ai-av[data-state="speaking"] .ai-av__eyes i {
+  animation: none; transform: none;
+  height: calc(var(--ai-av) * .1);
+}
+.ai-av[data-state="speaking"] .ai-av__eyes i svg { display: none; }
+.ai-av[data-state="speaking"] .ai-av__eyes i {
+  border-top: calc(var(--ai-av) * .032) solid var(--ai-av-eye);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+/* silhuetas ------------------------------------------------------------ */
+@keyframes aiAvMorph {
+  0%   { border-radius: 58% 42% 34% 66% / 62% 38% 62% 38%; }
+  25%  { border-radius: 42% 58% 56% 44% / 46% 58% 42% 54%; }
+  50%  { border-radius: 46% 54% 62% 38% / 58% 46% 54% 42%; }
+  75%  { border-radius: 38% 62% 46% 54% / 44% 62% 38% 56%; }
+  100% { border-radius: 58% 42% 34% 66% / 62% 38% 62% 38%; }
+}
+@keyframes aiAvMorphFlat {
+  0%   { border-radius: 50% 50% 46% 54% / 70% 72% 64% 66%; }
+  50%  { border-radius: 56% 44% 50% 50% / 66% 70% 74% 64%; }
+  100% { border-radius: 50% 50% 46% 54% / 70% 72% 64% 66%; }
+}
+@keyframes aiAvMorphTall {
+  0%   { border-radius: 44% 56% 52% 48% / 40% 36% 48% 52%; }
+  50%  { border-radius: 52% 48% 46% 54% / 48% 42% 44% 46%; }
+  100% { border-radius: 44% 56% 52% 48% / 40% 36% 48% 52%; }
+}
+@keyframes aiAvMorphDrop {
+  0%   { border-radius: 50% 50% 50% 50% / 34% 34% 66% 66%; }
+  35%  { border-radius: 58% 42% 54% 46% / 30% 38% 62% 70%; }
+  70%  { border-radius: 42% 58% 46% 54% / 38% 28% 72% 62%; }
+  100% { border-radius: 50% 50% 50% 50% / 34% 34% 66% 66%; }
+}
+@keyframes aiAvMorphGrain {
+  0%   { border-radius: 62% 38% 44% 56% / 52% 64% 36% 48%; }
+  25%  { border-radius: 38% 62% 56% 44% / 64% 40% 60% 36%; }
+  50%  { border-radius: 56% 44% 38% 62% / 36% 60% 40% 64%; }
+  75%  { border-radius: 44% 56% 62% 38% / 60% 44% 56% 40%; }
+  100% { border-radius: 62% 38% 44% 56% / 52% 64% 36% 48%; }
+}
+@keyframes aiAvMorphBean {
+  0%   { border-radius: 70% 30% 60% 40% / 44% 56% 44% 56%; }
+  50%  { border-radius: 34% 66% 44% 56% / 58% 42% 58% 42%; }
+  100% { border-radius: 70% 30% 60% 40% / 44% 56% 44% 56%; }
+}
+
+@keyframes aiAvBreath {
+  0%, 100% { transform: scaleY(var(--ai-av-squash)) scaleX(1); }
+  50%      { transform: scaleY(var(--ai-av-squash)) scaleX(1.04); }
+}
+@keyframes aiAvShadow {
+  0%, 100% { transform: scale(1); opacity: .6; }
+  50%      { transform: scale(1.1); opacity: .85; }
+}
+@keyframes aiAvBlink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(.08); }
+}
+
+/* contextos de uso ----------------------------------------------------- */
+.caderno-ico .ai-av { --ai-av: 38px; }
+.workspace-empty .ai-av { --ai-av: 118px; align-self: center; margin: 2px 0 6px; }
+
+/* nome do mascote (aparece só na página da IA, onde há espaço) */
+.ai-mascot-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* indicador "pensando…" enquanto a resposta não chega */
+.ai-typing { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 13px; }
+.ai-typing .ai-av { --ai-av: 32px; }
+
+/* ---- kicker do explorador, acima do item do mascote ----
+   O texto "Assistente" fica no explorador; no cabeçalho da conversa fica só
+   o ícone de estrelinhas. */
+.ai-kicker {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 8px 5px;
+  font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--accent);
+}
+.ai-kicker .svg-ic { flex: 0 0 auto; }
+
+/* ---- modal de primeiro login ---- */
+.modal-lead { margin: 0 0 12px; color: var(--text-dim); line-height: 1.55; }
+.modal-lead strong { color: var(--text); }
+.modal-points { margin: 0 0 16px; padding-left: 18px; color: var(--text-dim); line-height: 1.7; font-size: 13px; }
+.mascot-modal-preview {
+  display: grid; place-items: center;
+  padding: 14px; margin-bottom: 14px;
+  background: var(--accent-soft); border-radius: 16px;
+}
+.mascot-modal-preview .ai-av { --ai-av: 88px; }
+#mascot-modal-name {
+  width: 100%; font: inherit; font-size: 15px; text-align: center; color: var(--text);
+  background: var(--bg-elev); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 11px 14px;
+}
+#mascot-modal-name:focus { outline: none; border-color: var(--accent); }
+
+/* ---- painel de customização (menu do perfil) ----
+   Layout em GRUPOS com o rótulo ACIMA do controle. Antes era rótulo à
+   esquerda / controle à direita: os chips ficavam presos numa caixa de 196px
+   ao lado de ~120px vazios, com as bordas esquerda e direita serrilhadas e o
+   rótulo flutuando no meio de blocos de 4 linhas. Agora o controle usa toda a
+   largura do painel e o alinhamento é reto. */
+.mascot-popover {
+  width: min(340px, calc(100vw - 16px));
+  padding: 14px 18px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Cabeçalho FIXO: o preview gruda no topo enquanto só as seções rolam.
+   top:0 funciona porque o próprio painel (.mascot-popover) é o container de
+   scroll. As margens negativas cancelam o padding do painel para a faixa
+   atravessar de ponta a ponta — sem isso o conteúdo apareceria nas laterais. */
+.mascot-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: -12px -18px 0;
+  padding: 12px 18px 11px;
+  background: var(--bg-elev);
+  border-bottom: 1.5px solid var(--border);
+}
+
+.mascot-preview {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 14px 9px;
+  background: var(--accent-soft);
+  border-radius: 18px;
+}
+.mascot-preview .ai-av { --ai-av: 60px; }
+/* nome e Sortear na MESMA linha: empilhados custavam ~34px e traziam a
+   barra de rolagem de volta (o painel inteiro cabe em 789px de janela) */
+.mascot-preview-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 2px; }
+
+/* pulso do preview ao sortear (a classe é re-adicionada via reflow) */
+@keyframes aiAvPop { 0% { transform: scale(1); } 40% { transform: scale(.82); } 100% { transform: scale(1); } }
+.ai-av-pop { animation: aiAvPop .34s ease; }
+
+/* botão Sortear: fica no cabeçalho fixo, logo abaixo do nome */
+.mascot-randomize {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px;
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--accent);
+  background: transparent; border: 1.5px solid var(--border);
+  border-radius: 999px; cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.mascot-randomize:hover { background: var(--accent-soft); border-color: var(--accent); }
+.mascot-randomize:active { transform: scale(.97); }
+.mascot-randomize svg { flex: 0 0 auto; }
+
+/* grupo = bloco com divisória e respiro em cima e embaixo da linha */
+.mascot-group { padding-top: 10px; margin-top: 11px; border-top: 1.5px solid var(--border); }
+.mascot-head + .mascot-group { border-top: none; margin-top: 0; padding-top: 12px; }
+
+.mascot-group__title {
+  font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 8px;
+}
+.mascot-label { font-size: 12px; color: var(--text-dim); font-weight: 600; margin-bottom: 4px; }
+
+/* par de células lado a lado (as duas cores) */
+/* as 4 cores numa linha só — em 2x2 custava ~70px e empurrava o painel
+   para fora da janela */
+.mascot-pair { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mascot-cell .mascot-label { text-align: center; }
+
+/* controles de largura total */
+.mascot-input, .mascot-popover select, .mascot-popover input[type="text"] {
+  display: block; width: 100%;
+  font: inherit; font-size: 13px; color: var(--text);
+  background: var(--bg-elev); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 9px 12px;
+}
+.mascot-popover select { font-size: 13px; }
+.mascot-popover input[type="text"] { text-align: left; }
+
+.mascot-popover input[type="color"] {
+  display: block; width: 100%; height: 38px; padding: 3px; cursor: pointer;
+  border: 1.5px solid var(--border); border-radius: 10px; background: none;
+}
+
+/* chips ocupam toda a largura, alinhados à esquerda — sem caixa estreita */
+.mascot-chips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; justify-content: flex-start; }
+
+/* Especificidade: `.popover button` (03b-chat-bolhas.css) é (0,1,1) e ganha
+   de `.mascot-chip` (0,1,0) por ordem. Todo filho do painel precisa do prefixo
+   `.mascot-popover` (0,2,x) para vencer. */
+.mascot-popover .mascot-chip {
+  width: auto; display: inline-flex; gap: 0; align-items: center; justify-content: center;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-dim);
+  background: var(--bg-elev); border: 1.5px solid var(--border);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer;
+}
+.mascot-popover .mascot-chip:hover { background: var(--accent-soft); }
+.mascot-popover .mascot-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* chip-ícone: mostra o desenho da peça em vez do nome. Cabe 12 acessórios
+   em 2 linhas — era o que forçava a barra de rolagem. */
+.mascot-popover .mascot-chip--icon {
+  /* mesmas indireções do .ai-av para o SVG ter cor mesmo fora do avatar */
+  --ai-av-c1: var(--mascot-c1, color-mix(in srgb, var(--accent) 92%, var(--bg)));
+  --ai-av-c2: var(--mascot-c2, color-mix(in srgb, var(--accent) 66%, var(--text)));
+  --ai-av-eye: var(--mascot-eye, color-mix(in srgb, var(--text) 88%, var(--accent)));
+  --ai-av-acc: var(--mascot-acc, color-mix(in srgb, var(--text) 88%, var(--accent)));
+  padding: 5px; border-radius: 11px;
+}
+.mascot-popover .mascot-chip--icon svg { width: 100%; height: 26px; display: block; overflow: visible; }
+/* par de olhos: dois SVGs lado a lado dentro do mesmo chip */
+.mascot-popover .mascot-chip--icon:has(svg + svg) svg { width: 13px; height: 20px; }
+.mascot-popover .mascot-chip--icon:has(svg + svg) { gap: 3px; }
+
+.mascot-chips--icons { display: grid; gap: 5px; }
+#mascot-eyes { grid-template-columns: repeat(7, 1fr); }
+#mascot-acc { grid-template-columns: repeat(6, 1fr); }
+#mascot-mouth { grid-template-columns: repeat(4, 1fr); }
+.mascot-chips--blush { margin-top: 6px; }
+

@@ -129,19 +129,38 @@ if (menus.includes(`>${atual}<`)) {
 }
 
 // 5. CHANGELOG — entrada nova no topo
+//
+// Branch de trabalho e STAGING não tocam a versão: as entradas novas ficam
+// sob um cabeçalho SEM versão (`## Não publicado`), senão o staging já
+// exibiria uma versão que não existe em produção. Aqui o título é promovido
+// para a versão nova e o corpo escrito no staging é preservado.
+// Sem essa seção, mantém o comportamento antigo (entrada nova, texto de --nota).
 let ch = read(CHANGELOG);
 const titulo = `## [${proxima}] — ${hoje}`;
 if (ch.includes(titulo)) fail(`${titulo} já existe no CHANGELOG`);
 const corpo = EXTRA.length
   ? EXTRA.map((e) => `### ${e.tipo}\n- ${e.texto}`).join('\n')
   : `### Alterado\n- (descreva a mudança com --nota=...)`;
-const iCabecalho = ch.indexOf('\n## [');
-const entrada = `\n${titulo}\n${corpo}\n`;
-ch = iCabecalho === -1
-  ? ch + entrada
-  : ch.slice(0, iCabecalho) + entrada + ch.slice(iCabecalho);
-write(CHANGELOG, ch);
-ok(`CHANGELOG → ${titulo}`);
+// \r?$ no fim: o arquivo usa CRLF e o $ multiline do .NET casa antes do \n,
+// não antes do \r — sem o \r? o padrão nunca casa.
+const SECAO = /^## Não publicado[ \t]*\r?$/m;
+if (SECAO.test(ch)) {
+  ch = ch.replace(SECAO, titulo);
+  if (EXTRA.length) {
+    const i = ch.indexOf(titulo) + titulo.length;
+    ch = ch.slice(0, i) + '\n' + corpo + ch.slice(i);
+  }
+  write(CHANGELOG, ch);
+  ok(`CHANGELOG → ${titulo} (seção "Não publicado" promovida)`);
+} else {
+  const iCabecalho = ch.indexOf('\n## [');
+  const entrada = `\n${titulo}\n${corpo}\n`;
+  ch = iCabecalho === -1
+    ? ch + entrada
+    : ch.slice(0, iCabecalho) + entrada + ch.slice(iCabecalho);
+  write(CHANGELOG, ch);
+  ok(`CHANGELOG → ${titulo}`);
+}
 
 // 6. tests/sync.test.js — o valor esperado do cache
 let tst = read(TEST);

@@ -20,9 +20,34 @@ export const NavigationMethods = {
         b.classList.toggle('active', !!on);
         b.setAttribute('aria-pressed', String(!!on));
       };
-      set('explorer-tasks', isOpen('tasks-page'));
       set('explorer-reminders', isOpen('reminders-page'));
       set('btn-notifications', isOpen('notif-popover'));
+      this._syncTabbar();
+    },
+
+    // Tabbar inferior (mobile). Fica AQUI, e não em showWorkspaceTab(),
+    // porque `.show-chat` é ligado por três caminhos diferentes
+    // (messages.js:22 ao abrir conversa, navigation.js:335 no swipe,
+    // app.js:263 no boot) e só um deles passa pelo workspace. Sincronizar
+    // no lugar que todos já chamam é o que garante que a barra apareça
+    // junto com o canvas, sem duplicar a regra em cada caminho.
+    //
+    // Regra: só no mobile E com o canvas à frente (`.show-chat`). Na lista
+    // de conversas a sidebar já está visível e a barra seria ruído.
+    // O item ativo espelha o `.page-switch` da sidebar — fonte única.
+    _syncTabbar() {
+      const tabbar = document.getElementById('tabbar');
+      if (!tabbar) return;
+      const noMobile = !window.matchMedia('(max-width: 760px)').matches;
+      const app = document.getElementById('app');
+      const noCanvas = !app?.classList.contains('show-chat');
+      tabbar.classList.toggle('hidden', noMobile || noCanvas);
+      tabbar.querySelectorAll('.tabbar-btn').forEach((btn) => {
+        // a sidebar marca 'notes' quando a aba real é 'conversations'
+        const ativo = document.querySelector(`.page-switch[data-page="${btn.dataset.page}"]`)?.classList.contains('active');
+        btn.classList.toggle('active', !!ativo);
+        btn.setAttribute('aria-current', ativo ? 'page' : 'false');
+      });
     },
 
     showSearchPage(q) {
@@ -121,6 +146,8 @@ export const NavigationMethods = {
       const hits = [];
       Object.entries(Store.data.notes).forEach(([tid, arr]) => {
         const th = Store.getThread(tid); if (!th) return;
+        // thread da IA é local-only: o conteúdo não entra na busca global
+        if (th.localOnly) return;
         // in: filtro por nome da thread
         if (p.inFilter && !th.name.toLowerCase().includes(p.inFilter)) return;
         arr.forEach((n) => {
@@ -140,6 +167,9 @@ export const NavigationMethods = {
         });
       });
       Store.threadList().forEach((th) => {
+        // a thread da IA é local-only: o conteúdo da conversa com a IA não
+        // deve aparecer na busca global (é privado por escolha do usuário)
+        if (th.localOnly) return;
         if (p.tagFilter || p.depois || p.antes) return; // filtros de nota não aplicam a thread vazia
         if (p.inFilter && !th.name.toLowerCase().includes(p.inFilter)) return;
         if (p.text && !th.name.toLowerCase().includes(p.textLower)) return;

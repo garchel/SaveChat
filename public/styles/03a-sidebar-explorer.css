@@ -54,6 +54,10 @@
   width: 100%; padding: 11px 16px; border-radius: 14px; font-size: 13px; font-weight: 800; letter-spacing: .3px;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: filter .15s, transform .1s ease, box-shadow .2s;
   position: relative; overflow: hidden;
+  /* piso de altura de toque: 11px+11px de padding + linha de 13px fechava
+     38px, abaixo do mínimo de 44 (WCAG 2.5.5). O padding sobe para 14px
+     apenas onde aperta — no desktop o botão já era maior que isso. */
+  min-height: 44px;
 }
 /* glifo do botão: bloco (mata o gap de baseline de inline) e sem encolher */
 .btn-explorer svg { display: block; flex-shrink: 0; }
@@ -68,7 +72,12 @@
 .btn-explorer.outline { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
 .btn-explorer.outline:hover { background: var(--bg); border-color: var(--text-dim); transform: translateY(-1px); }
 .btn-explorer.outline:active { transform: translateY(0) scale(var(--press-scale, .96)); }
-.explorer-label { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-light); font-weight: 700; padding: 16px 14px 8px; }
+/* Hierarquia do explorador: "MEUS CADERNOS" é o título da SEÇÃO (peso 800,
+   cor de texto, respiro maior) e "Favoritos" é um SUBCONTEÚDO dentro dela
+   (peso 700, dourado, recuado e sem o respiro de topo do título). Antes os
+   dois tinham papel trocado: Favoritos era dourado e mais encorpado que o
+   próprio título da seção que o continha. */
+.explorer-label { font-size: 12px; text-transform: uppercase; letter-spacing: .9px; color: var(--text); font-weight: 800; padding: 18px 14px 7px; }
 .cozy-caderno { gap: 12px; padding: 10px 12px; border-radius: 12px; }
 /* ícone dos cadernos/pastas: estilizado via inline no tree.js (cache-proof) */
 .cozy-caderno.active { background: var(--accent-soft); box-shadow: none; font-weight: 700; }
@@ -256,8 +265,24 @@
 .btn-send:hover:not(:disabled) { transform: translateY(-1px) scale(1.04); filter: brightness(1.05); }
 
 /* ---- Seção Favoritos ---- */
-.fav-section { padding: 4px 8px 2px; margin-top: 2px; }
-.fav-label { font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--gold); padding: 6px 10px; font-weight: 800; display: flex; align-items: center; gap: 5px; }
+/* Favoritos: sem rótulo — a estrela e o texto dourado já identificam o grupo.
+   A separação é um TRILHO vertical dourado à esquerda do bloco, como os itens
+   fixados de IDE. Uma linha atravessada lia como "fim de seção" e dividia a
+   coluna em dois. O trilho agrupa sem cortar e some junto com o bloco quando
+   não há favorito nenhum (o `hidden` vem de renderFavorites). */
+.fav-section {
+  padding: 2px 6px 2px 2px;
+  margin: 0 0 4px 6px;
+  border-left: 2.5px solid var(--gold);
+  border-radius: 0 5px 5px 0;
+}
+
+/* Slot do mascote: acima dos favoritos. Usa o mesmo recuo de #tree para o
+   item alinhar com o resto da lista, mas NÃO é .tree (que tem flex:1 e é o
+   container de rolagem — dois deles quebrariam o layout da sidebar). */
+#ai-slot { padding: 4px 6px 0; }
+#ai-slot:empty { display: none; }
+#ai-slot .tnode { padding-left: 8px; }
 
 /* ---- Árvore (estilo IDE, porém macio) ---- */
 .tree {
@@ -322,7 +347,7 @@
 .folder-empty .fe-text small { font-size: 12px; opacity: .75; }
 
 /* Favoritos lista */
-.fav-list .tnode { padding-left: 16px; }
+.fav-list .tnode { padding-left: 15px; }
 .fav-list .tnode .ico { color: var(--gold); }
 
 .empty-tree { color: var(--text-dim); font-size: 13px; padding: 16px 18px; line-height: 1.6; }

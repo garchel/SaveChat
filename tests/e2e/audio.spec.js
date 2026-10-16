@@ -69,14 +69,15 @@ test.describe('mensagem de voz', () => {
           clientId: 'a1', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000,
           images: [], audio: a,
         }] },
-        ui: { expanded: {}, sounds: { enabled: false } },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
       };
       localStorage.setItem('notethread.v2', JSON.stringify(seed));
     }, AUDIO);
 
     await page.goto('/');
     await page.waitForTimeout(2000);
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore
+    await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
 
     // play à esquerda, remetente à direita
@@ -108,7 +109,7 @@ test.describe('mensagem de voz', () => {
     // player sobrevive ao reload (nota veio do storage)
     await page.reload();
     await page.waitForTimeout(2000);
-    await page.locator('.tnode').first().click();
+    await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible();
     await expect(page.locator('.va-dur')).toHaveText('0:07');
   });
@@ -125,13 +126,14 @@ test.describe('mensagem de voz', () => {
         threads: { t1: { id: 't1', name: 'Old', folderId: null, created: Date.now() - 1000 } },
         folders: {},
         notes: { t1: [{ clientId: 'a2', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000, images: [], audio: a }] },
-        ui: { expanded: {}, sounds: { enabled: false } },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
       }));
     }, { url: 'https://exemplo.test/audio/fala-velha.webm', mime: 'audio/wav', dur: 1, peaks: [], sender: { name: 'Ana', photo: '' } });
 
     await page.goto('/');
     await page.waitForTimeout(2000);
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore
+    await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
 
     // o esqueleto existe logo, mas depois de decodificar as barras ficam

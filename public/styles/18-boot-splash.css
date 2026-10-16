@@ -1,46 +1,157 @@
 /* ===================== BOOT SPLASH (primeira carga / PWA) =====================
-   Cobriu o flash em branco antes do JS montar a UI. Escondido o quanto antes
-   via JS inline no <head>; removeSplash() dá o fade quando o app está pronto. */
+   Cobre o flash em branco antes do JS montar a UI. Escondido o quanto antes
+   via JS inline no <head>; removeSplash() dá o fade quando o app está pronto.
+
+   POR QUE ESTE LAYOUT
+   O splash aparece ANTES de qualquer JS: é o HTML+CSS crus. Duas regras
+   vieram dessa restrição e mudaram o desenho:
+
+   1. A logo é SVG por tema (`assets/themes/logo-*.svg`), não o PNG 512. O PNG
+      é raster e tenho um vetor do mesmo desenho, que fica nítido em qualquer
+      densidade e pesa menos no preload.
+   2. A fonte do splash NÃO pode contar com a webfont do Google (ela chega
+      depois). Por isso o nome usa a pilha de SISTEMA com fallback no próprio
+      app: em 844px de celular o bloco não salta de posição quando a fonte
+      troca — e `swap` mantém o texto visível desde o primeiro quadro.
+
+   O conjunto é centralizado no AXE VERTICAL com um empurrão para cima
+   (o olho espera o conteúdo acima do centro geométrico) e a barra de progresso
+   tem largura CRESCENTE real, não um brilho atravessando um trilho: o
+   argumento antigo era "a linha parece um separador sem função". */
 #boot-splash {
-  background: var(--bg); /* fallback p/ browsers sem color-mix */
   position: fixed; inset: 0; z-index: 9998;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 18px;
+  display: grid; place-items: center;
+  overflow: hidden;
+  background: var(--bg); /* fallback p/ browsers sem color-mix */
   background:
-    radial-gradient(560px 420px at 18% 8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
-    radial-gradient(520px 460px at 88% 96%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 72%),
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 62%),
+    radial-gradient(100% 80% at 50% 112%, color-mix(in srgb, var(--accent-2) 11%, transparent), transparent 66%),
     var(--bg-login, var(--bg));
-  transition: opacity .35s ease;
+  transition: opacity .34s cubic-bezier(.4,0,.2,1);
 }
-#boot-splash.boot-done { opacity: 0; pointer-events: none; }
+/* halo atrás da marca: dá profundidade sem nenhum elemento extra no DOM */
+#boot-splash .boot-orb {
+  position: absolute; left: 50%; top: 38%;
+  width: min(420px, 108vw); aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent) 0%, transparent 68%);
+  filter: blur(6px);
+  pointer-events: none;
+  animation: bootBreathe 5.5s ease-in-out infinite;
+}
+#boot-splash .boot-inner {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  /* sobe ~6% do centro: o peso visual deve ficar acima da meia da tela */
+  padding: 0 24px;
+  translate: 0 -6%;
+  width: 100%; max-width: 340px;
+}
+
 #boot-splash .boot-mark {
-  width: 112px; height: 112px; border-radius: 28px;
+  position: relative;
+  width: 116px; height: 116px; border-radius: 30px;
   display: grid; place-items: center;
   background: var(--bg-elev);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-lg);
-  animation: bootFloat 2.6s ease-in-out infinite;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--text) 8%, transparent),
+    0 18px 40px -18px color-mix(in srgb, var(--accent) 45%, transparent),
+    var(--shadow-lg);
+  animation: bootFloat 4.2s ease-in-out infinite;
+}
+/* aro de luz que contorna a marca, no tom do tema */
+#boot-splash .boot-mark-glow {
+  position: absolute; inset: -1px; border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 55%, transparent), transparent 42%, transparent 62%, color-mix(in srgb, var(--accent-2) 45%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
 }
 #boot-splash .boot-mark img { width: 88px; height: 88px; border-radius: 20px; display: block; }
+
 #boot-splash .boot-name {
-  font-family: var(--font-display, inherit);
-  font-size: 26px; font-weight: 800; letter-spacing: .2px; color: var(--text);
+  /* sem webfont de propósito (ver cabeçalho): a família de sistema com
+     fallback no app mantém a altura estável enquanto as fontes chegam */
+  font-family: var(--font-display, ui-rounded, "SF Pro Rounded", "Segoe UI", Roboto, system-ui, sans-serif);
+  font-size: 27px; font-weight: 800; letter-spacing: -.4px; color: var(--text);
+  line-height: 1.1;
+  margin-top: 22px;
+  animation: bootRise .6s cubic-bezier(.2,.8,.25,1) both;
 }
+#boot-splash .boot-tag {
+  /* a tagline ANTES da barra: hierarquia de leitura nome → o que é → progresso.
+     A versão antiga punha a frase de estado embaixo da linha, e o usuário lia
+     "SaveChat" + uma linha sem função. */
+  font-size: 13.5px; font-weight: 500; line-height: 1.45;
+  color: var(--text-dim);
+  text-align: center;
+  max-width: 26ch;
+  margin-top: 7px;
+  animation: bootRise .6s .07s cubic-bezier(.2,.8,.25,1) both;
+}
+
 #boot-splash .boot-bar {
-  width: 148px; height: 5px; border-radius: 999px; overflow: hidden;
-  background: var(--border); position: relative;
+  width: 100%; height: 4px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--border) 90%, transparent);
+  position: relative;
+  margin-top: 24px;
 }
 #boot-splash .boot-bar span {
   position: absolute; inset: 0; border-radius: inherit;
-  background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent-2, var(--accent)) 65%, transparent);
-  animation: bootSweep 1.25s cubic-bezier(.45,0,.25,1) infinite;
+  /* largura CRESCENTE de verdade (scaleX com origin à esquerda): o trilho
+     mostra o quanto já foi percorrido, em vez de um brilho que passa */
+  background: linear-gradient(90deg, var(--accent), var(--accent-2, var(--accent)));
+  transform-origin: left center;
+  animation: bootFill 2.1s cubic-bezier(.45,.05,.2,1) infinite;
 }
-#boot-splash .boot-tag { font-size: 13px; font-weight: 600; color: var(--text-dim); }
-@keyframes bootFloat { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
-@keyframes bootSweep { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+
+/* três passos discretos: dão a sensação de progresso mesmo sem back-end
+   reportando nada. `is-on` é ligado por removeSplash() no último quadro. */
+#boot-splash .boot-meta {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 13px;
+  /* 12px, não menos: a suíte trava texto corrido abaixo do piso de
+     legibilidade (tests/sync.test.js) e `.boot-meta` é rótulo, não glifo */
+  font-size: 12px; font-weight: 600; letter-spacing: .3px;
+  color: var(--text-dim);
+  opacity: .72;
+}
+#boot-splash .boot-step {
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: color .3s ease, opacity .3s ease;
+  opacity: .5;
+}
+#boot-splash .boot-step::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor;
+  transition: transform .3s cubic-bezier(.2,.8,.25,1);
+}
+#boot-splash .boot-step.is-on { opacity: 1; color: var(--accent); }
+#boot-splash .boot-step.is-on::before { transform: scale(1.45); }
+#boot-splash .boot-step + .boot-step { color: inherit; }
+
+#boot-splash.boot-done { opacity: 0; pointer-events: none; }
+
+@keyframes bootFloat { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+@keyframes bootBreathe { 0%,100% { opacity: .75; scale: 1 } 50% { opacity: 1; scale: 1.06 } }
+@keyframes bootFill {
+  0%   { transform: scaleX(0) }
+  55%  { transform: scaleX(.72) }
+  100% { transform: scaleX(1) }
+}
+@keyframes bootRise {
+  from { opacity: 0; transform: translateY(9px) }
+  to   { opacity: 1; transform: translateY(0) }
+}
 @media (prefers-reduced-motion: reduce) {
-  #boot-splash .boot-mark, #boot-splash .boot-bar span { animation: none; }
-  #boot-splash .boot-bar span { opacity: .55; }
+  #boot-splash .boot-mark, #boot-splash .boot-orb, #boot-splash .boot-bar span { animation: none; }
+  #boot-splash .boot-bar span { transform: scaleX(.6); opacity: .9; }
+  #boot-splash .boot-name, #boot-splash .boot-tag { animation: none; }
+  #boot-splash .boot-step { transition: none; }
 }
 
 /* btn-pin (mensagem fixada): pertence ao chat — não vaza para Busca/Lembretes/Pendências
