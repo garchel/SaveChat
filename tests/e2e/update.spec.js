@@ -9,7 +9,7 @@ const SEED = {
   threads: { t1: { id: 't1', name: 'Compras', folderId: null, created: Date.now() - 1000 } },
   folders: {},
   notes: { t1: [{ id: 'n1', threadId: 't1', user: 'me', text: 'leite', ts: Date.now() - 50000, clientId: 'c1' }] },
-  ui: { expanded: {}, sounds: { enabled: false } },
+  ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
 };
 
 test('abertura: check roda, chip mostra versão, botão Atualizar app no menu do perfil', async ({ page, context }) => {
@@ -28,10 +28,10 @@ test('abertura: check roda, chip mostra versão, botão Atualizar app no menu do
   const state1 = await chip.getAttribute('data-state');
   expect(['current', 'update', 'offline', 'error', 'checking']).toContain(state1);
 
-  // botões do popover: Configurações, Como usar, Instalar app (oculto até o
+  // botões do popover: Configurações, Como usar, Mascote, Instalar app (oculto até o
   // browser oferecer o prompt), Atualizar app e Sair
   const btns = page.locator('#profile-popover button');
-  await expect(btns).toHaveCount(5);
+  await expect(btns).toHaveCount(6);
   await expect(page.locator('#profile-help')).toBeVisible();
   await expect(page.locator('#profile-update')).toBeVisible();
   await expect(page.locator('#profile-install')).toBeHidden();

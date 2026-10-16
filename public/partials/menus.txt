@@ -155,7 +155,7 @@
     </div>
     <div class="settings-section settings-about">
       <div class="settings-label">Sobre</div>
-      <div class="about-version">SaveChat <span id="about-app-version">1.19.0</span></div>
+      <div class="about-version">SaveChat <span id="about-app-version">1.20.0</span></div>
       <div class="about-links">
         <a href="privacy.html" target="_blank" rel="noopener">Política de Privacidade</a>
         <span aria-hidden="true">·</span>
@@ -165,6 +165,80 @@
     </div>
   </div>
 
+  <div id="mascot-popover" class="popover mascot-popover hidden" role="dialog" aria-label="Personalizar o mascote">
+    <!-- cabeçalho fixo: o preview não rola com as seções -->
+    <div class="mascot-head">
+      <div class="mascot-preview">
+      <span id="mascot-preview-av"></span>
+      <div class="mascot-preview-row">
+          <span class="ai-mascot-name" id="mascot-preview-name"></span>
+          <button type="button" class="mascot-randomize" id="mascot-randomize" title="Sortear uma nova aparência">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+            <span>Sortear</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mascot-group">
+      <div class="mascot-group__title" id="mascot-name-label">Nome</div>
+      <input type="text" id="mascot-name" class="mascot-input" maxlength="18" placeholder="Bento" autocomplete="off" aria-labelledby="mascot-name-label" />
+    </div>
+
+    <div class="mascot-group">
+      <div class="mascot-group__title">Cores</div>
+      <div class="mascot-pair">
+        <div class="mascot-cell">
+          <div class="mascot-label" id="mascot-c1-label">Corpo</div>
+          <input type="color" id="mascot-c1" aria-labelledby="mascot-c1-label" />
+        </div>
+        <div class="mascot-cell">
+          <div class="mascot-label" id="mascot-c2-label">Sombra</div>
+          <input type="color" id="mascot-c2" aria-labelledby="mascot-c2-label" />
+        </div>
+        <div class="mascot-cell">
+          <div class="mascot-label" id="mascot-eye-label">Olhos</div>
+          <input type="color" id="mascot-eye-color" aria-labelledby="mascot-eye-label" />
+        </div>
+        <div class="mascot-cell">
+          <div class="mascot-label" id="mascot-acc-color-label">Acess.</div>
+          <input type="color" id="mascot-acc-color" aria-labelledby="mascot-acc-color-label" />
+        </div>
+      </div>
+    </div>
+
+    <div class="mascot-group">
+      <div class="mascot-group__title" id="mascot-shape-label">Silhueta</div>
+      <select id="mascot-shape" class="mascot-input" aria-labelledby="mascot-shape-label">
+        <option value="blobEllipse">Elipse</option>
+        <option value="blobFlat">Achatada</option>
+        <option value="blobTall">Alta</option>
+        <option value="blobDrop">Gota</option>
+        <option value="blobGrain">Grão</option>
+        <option value="blobBean">Feijão</option>
+      </select>
+    </div>
+
+    <div class="mascot-group">
+      <div class="mascot-group__title" id="mascot-group-olhos">Olhos</div>
+      <div class="mascot-chips mascot-chips--icons" id="mascot-eyes" role="group" aria-labelledby="mascot-group-eyes"></div>
+    </div>
+
+    <div class="mascot-group">
+      <div class="mascot-group__title" id="mascot-group-acessorio">Acessório</div>
+      <div class="mascot-chips mascot-chips--icons" id="mascot-acc" role="group" aria-labelledby="mascot-group-acc"></div>
+    </div>
+
+    <div class="mascot-group">
+      <div class="mascot-group__title">Boca e bochechas</div>
+      <div class="mascot-chips mascot-chips--icons mascot-chips--mouth" id="mascot-mouth" role="group" aria-label="Boca"></div>
+      <div class="mascot-chips mascot-chips--blush" id="mascot-blush" role="group" aria-label="Bochechas">
+        <button type="button" class="mascot-chip" data-v="1" aria-pressed="true">Sim</button>
+        <button type="button" class="mascot-chip" data-v="0" aria-pressed="false">Não</button>
+      </div>
+    </div>
+
+</div>
   <div id="rem-popover" class="popover rem-popover hidden" role="dialog" aria-label="Lembretes pendentes">
     <div class="rem-head"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Lembretes pendentes</div>
     <div id="rem-list" class="rem-list"></div>

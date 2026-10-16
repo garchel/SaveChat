@@ -5,7 +5,6 @@
           <div class="brand-name">SaveChat</div>
           <div class="brand-sub">Suas ideias, organizadas</div>
         </div>
-        <button id="explorer-tasks" class="btn-icon-sm" title="Pendências (checklists de todas as conversas)" aria-label="Pendências" data-friendly-name="Explorer: Pendências"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M5.2 7.2l1.4 1.6 2.6-3"/><line x1="14" y1="7.5" x2="21" y2="7.5"/><rect x="3" y="13.5" width="7" height="7" rx="1.5"/><path d="M5.2 16.7l1.4 1.6 2.6-3"/><line x1="14" y1="17" x2="21" y2="17"/></svg><span class="nav-badge hidden" id="tasks-badge"></span></button>
         <button id="explorer-reminders" class="btn-icon-sm" title="Lembretes" aria-label="Lembretes" data-friendly-name="Explorer: Lembretes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="nav-badge hidden" id="rem-badge"></span></button>
         <button id="btn-notifications" class="btn-icon-sm" title="Notificações" aria-label="Notificações" data-friendly-name="Explorer: Notificações"><!-- sino de notificação (traço estilo Hugeicons: stroke 1.5, cantos arredondados) --><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="nav-badge hidden" id="notif-badge"></span></button>
       </div>
@@ -13,7 +12,7 @@
            Rótulos completos (sem depender de emoji) e estado ativo legível. -->
       <div class="page-switcher" role="tablist" aria-label="Páginas">
         <button type="button" class="page-switch active" data-page="notes" aria-label="Cadernos" title="Cadernos e conversas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v17.5H7.5A2.5 2.5 0 0 0 5 22V4.5Z"/><path d="M9 7h6M9 10.5h6"/></svg><span>Cadernos</span></button>
-        <button type="button" class="page-switch" data-page="ai" aria-label="IA" title="IA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 15 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></svg><span>IA</span></button>
+        <button type="button" class="page-switch" data-page="tasks" aria-label="Tarefas" title="Tarefas (checklists de todas as conversas)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M5.2 7.2l1.4 1.6 2.6-3"/><line x1="14" y1="7.5" x2="21" y2="7.5"/><rect x="3" y="13.5" width="7" height="7" rx="1.5"/><path d="M5.2 16.7l1.4 1.6 2.6-3"/><line x1="14" y1="17" x2="21" y2="17"/></svg><span>Tarefas</span></button>
         <button type="button" class="page-switch" data-page="daily" aria-label="Diária" title="Diária"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg><span>Diária</span></button>
       </div>
 
@@ -39,12 +38,21 @@
         </div>
       </div>
 
-      <div id="fav-section" class="fav-section hidden">
-        <div class="fav-label"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17 5.5 21 7 14 2 9.3 9 9"/></svg> Favoritos</div>
-        <div id="fav-list" class="fav-list"></div>
-      </div>
+      <!-- O mascote fica ACIMA dos favoritos. Vem antes de #fav-section no DOM
+           porque os favoritos são renderizados num bloco próprio (não em #tree),
+           então a posição no HTML é o que decide a ordem. -->
+      <div id="ai-slot" data-friendly-name="Mascote da IA"></div>
 
       <div class="explorer-label" data-friendly-name="Seção MEUS CADERNOS">MEUS CADERNOS</div>
+
+      <!-- Favoritos é SUBCONTEÚDO de "Meus cadernos": entra depois do rótulo,
+           antes da lista. Sem rótulo próprio — a estrela e o texto dourado de
+           cada item já dizem quais são, e um segundo título em maiúscula logo
+           abaixo de "MEUS CADERNOS" competia com ele. A separação dos grupos
+           é feita por um único traço, no fim do bloco. -->
+      <div id="fav-section" class="fav-section hidden">
+        <div id="fav-list" class="fav-list"></div>
+      </div>
 
       <div id="tree" class="tree" data-friendly-name="Lista de Cadernos"></div>
 

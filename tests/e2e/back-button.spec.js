@@ -32,6 +32,10 @@ test.describe('botão físico de voltar do celular', () => {
       const { Store } = await import('/js/store.js');
       Store.load();
       Store.setUser({ name: 'Ana', mail: 'ana@note.app' });
+      // nome de mascote já definido: sem isto o modal de primeiro login abre
+      // sobre o app e bloqueia os cliques dos testes
+      Store.data.ui = Store.data.ui || {};
+      Store.data.ui.mascot = { nameSet: true };
       if (!Store.threadList().some(t => t.id === 'seed-back')) {
         Store.upsertThread({ id: 'seed-back', name: 'Conversa', updatedAt: Date.now() });
         Store.upsertNote({ clientId: 'nb-1', threadId: 'seed-back', text: 'ola', ts: Date.now() });
@@ -67,7 +71,8 @@ test.describe('botão físico de voltar do celular', () => {
   });
 
   test('conversa + nota são dois gestos: a nota fecha primeiro', async ({ page }) => {
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore (ver audio.spec.js)
+    await page.locator('.tnode[data-tid="seed-back"]').first().click();
     await expect.poll(() => showChat(page)).toBe(true);
     await page.evaluate(() => window.NoteThread.UI.showNotePreview('seed-back'));
     await expect.poll(() => vis(page, 'note-preview')).toBe(true);
@@ -104,7 +109,8 @@ test.describe('botão físico de voltar do celular', () => {
   });
 
   test('o botão ‹ na tela continua no mesmo nível (sem regressão)', async ({ page }) => {
-    await page.locator('.tnode').first().click();
+    // id explícito: o item da IA é o primeiro nó da árvore (ver audio.spec.js)
+    await page.locator('.tnode[data-tid="seed-back"]').first().click();
     await expect.poll(() => showChat(page)).toBe(true);
     await page.locator('#btn-back').click();
     await expect.poll(() => showChat(page)).toBe(false);

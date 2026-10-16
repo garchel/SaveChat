@@ -1,5 +1,6 @@
 import { uid, now, esc, haptic, $ } from '../utils.js';
 import { ICON, wrapSvg, COLOR_PALETTE, colorById, glyphSvg, GLYPH_ICONS } from '../icons.js';
+import { mascotAvatarHtml, mascotFromStore } from '../mascot.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
@@ -265,14 +266,19 @@ renderTree() {
       // realtime (thread:upsert da própria criação), snapshots de reconexão e
       // outros eventos chamam renderTree sem mudar nada — reconstruir a lista e
       // re-animar todos os nós era o flick ao criar conversa/caderno.
+      const mascotNameSig = mascotFromStore().name;
       const threadSig = (t) => [t.id, t.name, t.emoji || '', t.color || '', t.favorite ? 1 : 0, (Store.notesFor(t.id) || []).length, (Store.notesFor(t.id) || []).some((x) => x.remindAt && !x.remindFired) ? 1 : 0].join('~');
+      // A thread da IA é desenhada à parte (aiThreadNode), então entra aqui
+      // como thread comum — sem este filtro ela apareceria DUAS vezes.
+      const userThreads = () => Store.threadList().filter((t) => !t.localOnly);
       const fpFolders = Store.folderList();
-      const fpRoots = this.sortThreads(Store.threadList().filter((t) => !t.favorite && !t.folderId));
+      const fpRoots = this.sortThreads(userThreads().filter((t) => !t.favorite && !t.folderId));
       const fp = [
-        'F:' + this.sortThreads(Store.threadList().filter((t) => t.favorite)).map((t) => t.id).join(','),
+        'M:' + mascotNameSig,
+        'F:' + this.sortThreads(userThreads().filter((t) => t.favorite)).map((t) => t.id).join(','),
         'D:' + fpFolders.map((f) => [f.id, f.name, f.emoji || '', f.color || '', Store.isExpanded(f.id) ? 1 : 0].join('~')).join(','),
         'R:' + fpRoots.map(threadSig).join(','),
-        ...fpFolders.map((f) => 'K' + f.id + ':' + this.sortThreads(Store.threadList().filter((t) => !t.favorite && t.folderId === f.id)).map(threadSig).join(',')),
+        ...fpFolders.map((f) => 'K' + f.id + ':' + this.sortThreads(userThreads().filter((t) => !t.favorite && t.folderId === f.id)).map(threadSig).join(',')),
       ].join(';');
       if (fp === this._lastTreeFp) return;
 
@@ -290,8 +296,27 @@ renderTree() {
       this.renderFavorites();
       const tree = this.dom.tree;
       tree.innerHTML = '';
+      // A thread da IA é conversa permanente, não uma conversa do usuário (ver
+      // ai-thread.js). Fica fora do Store visível para não poder ser
+      // renomeada/excluída/arquivada — o clique abre a página da IA. Vai para
+      // #ai-slot, que fica ACIMA de #fav-section no DOM.
+      const aiNode = this.aiThreadNode();
+      const aiSlot = document.getElementById('ai-slot');
+      if (aiSlot) {
+        aiSlot.innerHTML = '';
+        if (aiNode) {
+          // kicker "Assistente" acima do item: é o rótulo do que aquele
+          // recurso é, e o texto moraria no explorador, não no cabeçalho
+          // da conversa (lá fica só o ícone de estrelinhas).
+          const k = document.createElement('div');
+          k.className = 'ai-kicker';
+          k.innerHTML = wrapSvg(ICON.sparkle, 11) + '<span>Assistente</span>';
+          aiSlot.appendChild(k);
+          aiSlot.appendChild(aiNode);
+        }
+      }
       const folders = Store.folderList();
-      const threads = Store.threadList().filter((t) => !t.favorite && !t.folderId);
+      const threads = userThreads().filter((t) => !t.favorite && !t.folderId);
 
       if (!folders.length && !threads.length) {
         tree.innerHTML = `<div class="tree-empty">
@@ -430,6 +455,54 @@ folderNode(f) {
         return `rgb(${r},${g},${b})`;
       } catch { return hex; }
     },
+    // Item da árvore "Conversa com a IA" — conversa permanente, ACIMA dos
+    // favoritos. Mesma forma visual de um tnode (mesmas classes, mesma
+    // altura de toque), mas SEM estrela (não é conversa do usuário, não
+    // faz sentido favoritar) e SEM menu de contexto (não pode ser
+    // renomeada/excluída/arquivada). O clique abre a página da IA.
+    //
+    // NÃO chama ensureAiThread(): render não pode MUTAR o Store. Quem
+    // garante a existência da thread é o boot (app.js) — chamar aqui
+    // recriava a thread a cada renderTree, o que quebrava o isolamento
+    // entre contas (a thread voltava à memória depois de setUser limpá-la,
+    // medido como 3 threads onde o contrato exige 0).
+    aiThreadNode() {
+      const ai = window.NoteThread && window.NoteThread.AiThread;
+      const Store = window.NoteThread && window.NoteThread.Store;
+      if (!ai || !Store) return null;
+      const t = Store.data.threads[ai.AI_THREAD_ID];
+      if (!t) return null;
+      const el = document.createElement('div');
+      el.className = 'tnode cozy-caderno ai-thread-node' + (this._aiTabOpen ? ' active' : '');
+      el.dataset.tid = ai.AI_THREAD_ID;
+      el.style.paddingLeft = '8px';
+      // O tile não leva fundo: o próprio avatar é o ícone. Mantém o mesmo
+      // quadrado de 52px do resto da árvore para o alinhamento não mudar.
+      const icoBase = 'width:52px;height:52px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:transparent';
+      const ic = `<span class="caderno-ico" style="${icoBase}">${mascotAvatarHtml('idle')}</span>`;
+      // o rótulo é o NOME DO MASCOTE escolhido pelo usuário, não "Conversa com
+      // a IA". Vem da config (e não de t.name) porque t.name é congelado no
+      // boot, em ensureAiThread — não acompanharia uma renomeação.
+      const mascotName = mascotFromStore().name;
+      const noteCount = (Store.notesFor(ai.AI_THREAD_ID) || []).length;
+      const countEl = noteCount ? `<span class="note-count" title="${noteCount} mensagem${noteCount !== 1 ? 's' : ''}">${noteCount}</span>` : '';
+      el.innerHTML = `<span class="twist" style="visibility:hidden">${wrapSvg(ICON.chevron, 10)}</span>
+                      <span class="ico">${ic}</span>
+                      <span class="label">${esc(mascotName)}</span>
+                      ${countEl}`;
+      el.addEventListener('click', () => this.openAiThread());
+      return el;
+    },
+
+    // Abre a conversa com a IA: mostra a página da IA no canvas.
+    // `_aiTabOpen` mantém o item da árvore aceso enquanto a página está
+    // aberta, mesmo que o canvas esteja sem conversa.
+    openAiThread() {
+      this._aiTabOpen = true;
+      this.showWorkspaceTab('ai');
+      this.renderTree();
+    },
+
     threadNode(t, depth) {
       const el = document.createElement('div');
       // .tree-new: animação de entrada só no nó realmente novo (anti-flick)
@@ -483,8 +556,8 @@ onTnodeTouchEnd() {
       if (this.tnodeLongPressTimer) { clearTimeout(this.tnodeLongPressTimer); this.tnodeLongPressTimer = null; }
     },
 
-updateNoteCount() {
-      Store.threadList().forEach((t) => {
+    updateNoteCount() {
+      Store.threadList().filter((t) => !t.localOnly).forEach((t) => {
         const count = Store.notesFor(t.id).length;
         document.querySelectorAll(`.tnode[data-tid="${t.id}"]`).forEach((el) => {
           let c = el.querySelector('.note-count');
@@ -501,9 +574,9 @@ updateNoteCount() {
       });
     },
 
-renderFavorites() {
+    renderFavorites() {
       const sec = this.dom.favSection, list = this.dom.favList;
-      const favs = this.sortThreads(Store.threadList().filter((t) => t.favorite));
+      const favs = this.sortThreads(Store.threadList().filter((t) => t.favorite && !t.localOnly));
       if (!favs.length) { sec.classList.add('hidden'); return; }
       sec.classList.remove('hidden');
       list.innerHTML = '';

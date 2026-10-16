@@ -13,6 +13,28 @@ import { esc } from './utils.js';
 
 const WAVE_BARS = 34;          // número de barrinhas do player
 const PEAK_TARGET = 120;       // resolução do waveform guardado no banco
+// Quantas barras CABEM na largura fixa do player (ver .va-wave). Os picos
+// guardados têm até PEAK_TARGET (120) entradas, mas 120 barras de 2px com gap
+// de 2px precisam de ~480px: o gap sozinho passava do `.vaudio` (max-width
+// 320px) e o flex transbordava a bolha. A waveform é DENTRO de um trilho
+// fixo, então os picos são reamostrados para o nº de barras que cabe — cada
+// barra assume o MÁXIMO do seu intervalo, então a altura aparente do áudio
+// não muda, só a densidade de detalhes.
+const WAVE_MAX_BARS = 34;
+
+function reamostrar(peaks, max) {
+  if (!Array.isArray(peaks) || peaks.length <= max) return peaks;
+  const out = [];
+  const passo = peaks.length / max;
+  for (let i = 0; i < max; i++) {
+    const ini = Math.floor(i * passo);
+    const fim = Math.max(ini + 1, Math.floor((i + 1) * passo));
+    let pico = 0;
+    for (let k = ini; k < Math.min(fim, peaks.length); k++) pico = Math.max(pico, Number(peaks[k]) || 0);
+    out.push(pico);
+  }
+  return out;
+}
 
 // ---------- geração dos picos ----------
 // Decodifica o áudio com WebAudio e devolve os picos normalizados. Amostragem
@@ -56,7 +78,9 @@ export async function computePeaks(blob, bars = PEAK_TARGET) {
 function audioHtml(n) {
   const a = n.audio || {};
   const sender = a.sender || {};
-  const peaks = Array.isArray(a.peaks) && a.peaks.length ? a.peaks : null;
+  const guardado = Array.isArray(a.peaks) && a.peaks.length ? a.peaks : null;
+  // o que vai para a tela cabe na largura fixa (ver WAVE_MAX_BARS)
+  const peaks = guardado ? reamostrar(guardado, WAVE_MAX_BARS) : null;
   const dur = Number(a.dur) || 0;
   const name = sender.name || 'Áudio';
   const photo = sender.photo

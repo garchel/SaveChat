@@ -301,6 +301,40 @@
   width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 
+/* Botão Voltar (‹) dos banners de Busca/Lembretes/Tarefas.
+   Mesmas regras do #btn-back acima — estas páginas escondem o cabeçalho global
+   e trazem o seu próprio botão. A classe NÃO existia no CSS: os três caíam no
+   <button> cru do navegador (medido 8×21px, sem área de toque, glifo de texto
+   "‹"). */
+.btn-icon {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  position: relative;              /* contexto do ::after de toque */
+  padding: 0; margin: 0;
+  border: none; border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background var(--dur-fast, 120ms) var(--ease-soft, ease),
+              color var(--dur-fast, 120ms) var(--ease-soft, ease),
+              transform var(--dur-fast, 120ms) var(--ease-soft, ease);
+}
+.btn-icon:hover { background: var(--accent-soft); color: var(--accent); }
+.btn-icon:active { transform: scale(var(--press-scale, .96)); }
+.btn-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-icon svg {
+  width: 22px; height: 22px; display: block;
+  fill: none; stroke: currentColor; stroke-width: 2.1;
+  stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--dur-base, 200ms) var(--ease-spring, cubic-bezier(.34,1.3,.64,1));
+}
+.btn-icon:active svg { transform: translateX(2px); }
+.btn-icon::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+}
+
 /* Ícone da página atual à esquerda do título no cabeçalho (Diária/IA/Lembretes) */
 .page-icon {
   display: grid; place-items: center; flex: 0 0 auto;
@@ -317,6 +351,12 @@
   width: 26px; height: 26px; flex: 0 0 26px; border: none; border-radius: 50%;
   background: transparent; color: var(--text-dim); cursor: pointer;
   display: grid; place-items: center; transition: background .15s, color .15s;
+  position: relative;
+}
+/* alvo de 44×44 sem crescer o glifo (piso WCAG 2.5.5) */
+.ai-info-btn::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .ai-info-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .ai-info-btn:hover, .ai-info-btn[aria-expanded="true"] { background: var(--bg); color: var(--accent); }
@@ -345,8 +385,13 @@
 .btn-thread-menu {
   background: rgba(255,255,255,.18); border: none; color: inherit;
   width: 32px; height: 32px; border-radius: 10px; cursor: pointer;
-  display: grid; place-items: center; flex-shrink: 0;
+  display: grid; place-items: center; flex-shrink: 0; position: relative;
   transition: background .13s, transform .1s;
+}
+/* alvo de 44×44 sem crescer o glifo (piso WCAG 2.5.5) */
+.btn-thread-menu::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .btn-thread-menu:hover { background: rgba(255,255,255,.32); }
 .btn-thread-menu:active { transform: scale(var(--press-scale, .96)); }
@@ -603,19 +648,28 @@
 .rp-grid .rp-grid-it { width: 100%; height: 34px; font-size: 18px; }
 @media (max-width: 480px) { .rp-grid { grid-template-columns: repeat(6, 1fr); } }
 
-/* Seta ▾ no canto SUPERIOR direito (abre popover da mensagem) — bloco único (dedup) */
-/* círculo do hover = só o miolo (~20px), desenhado num pseudo-elemento */
-.bubble .msg-toggle::before {
-  content: ""; position: absolute; inset: 50%; width: 22px; height: 22px;
-  transform: translate(-50%, -50%); border-radius: 50%;
-  background: rgba(255,255,255,.28); opacity: 0; transition: opacity .12s;
+/* Seta ▾ no canto SUPERIOR direito (abre popover da mensagem) — bloco único (dedup).
+   Área de toque 44×44 num ::after transparente: o glifo continua 13px e o
+   alvo é o do piso WCAG 2.5.5. O ::after também serve de "círculo" do
+   estado ativo — antes isso era um ::before de 22px, que deixava o alvo em
+   24×24 (medido) e não fechava o piso. */
+.bubble .msg-toggle::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+  border-radius: 50%; background: transparent; transition: background .15s;
 }
-.bubble.remote .msg-toggle::before { background: rgba(124, 92, 255, .18); }
-.bubble .msg-toggle:hover::before { opacity: 1; }
+.bubble .msg-toggle:active::after { background: var(--accent-soft); }
 .bubble .msg-toggle > * { position: relative; z-index: 1; }
 /* touch: seta sempre visível (não há hover) */
 @media (hover: none) {
   .bubble .msg-toggle { opacity: .55; }
+}
+/* `pointer: coarse` cobre o que `hover: none` não: laptop/tablet com tela de
+   toque E mouse. Nesses aparelhos o :hover não dispara por toque, então sem
+   esta regra o menu da mensagem ficaria invisível e inacessível. */
+@media (pointer: coarse) {
+  .bubble .msg-toggle { opacity: .55; }
+  .bubble .msg-toggle:hover { opacity: 1; }
 }
 
 /* Pull-to-refresh indicador no topo das mensagens */
@@ -658,15 +712,154 @@
 }
 .search-page.hidden, .reminders-page.hidden, .tasks-page.hidden { display: none; }
 .search-page .cozy-banner, .reminders-page .cozy-banner, .tasks-page .cozy-banner { display: flex; align-items: center; gap: 12px; }
-.search-query-label { font-size: 13px; font-weight: 600; color: var(--text-dim); background: rgba(255,255,255,.6); padding: 4px 10px; border-radius: 999px; }
+/* Contador ao lado do título ("40 abertas", "12 resultados"). O fundo era
+   rgba(255,255,255,.6) fixo: no tema escuro virava um chip claro com texto
+   cinza por cima, quase ilegível.
+   O texto usa --text (não --text-dim): medido --text-dim sobre --bg-elev dá
+   2.38 no tema claro e 3.89 no escuro, abaixo de 4.5. A hierarquia continua
+   vindo do peso menor e do chip, não de um contraste insuficiente. */
+.search-query-label {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  background: var(--bg-elev); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 999px;
+}
 .search-page-results, .reminders-page-list, .tasks-page-list { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .search-page .search-result, .reminders-page .rem-item { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
 
-/* ---- Visão Pendências (v1.8.2) ---- */
+/* ---- Página de Tarefas (v1.20.0): acordeões + CRUD próprio ---- */
 .tasks-page-list { max-width: 720px; margin: 0 auto; width: 100%; padding-bottom: 8px; }
+/* Barra de rolagem oculta, rolagem por wheel/toque continua — mesmo truque da
+   árvore do explorador. A coluna já tem respiro e o indicador visual competia
+   com o cabeçalho. */
+.tasks-page-list { scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior: contain; }
+.tasks-page-list::-webkit-scrollbar { display: none; }
+
+/* Accordion. O corpo anima com grid-template-rows 0fr↔1fr (a mesma técnica
+   das pastas da árvore): não mede max-height, então não tem jank com
+   conteúdo de altura variável. */
+.task-acc {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 16px;
+  /* `overflow: hidden` AQUI (no container) e não no `.task-acc-inner`:
+     com hidden só no inner, o cabeçalho vaza por cima do accordion de cima
+     durante a animação de abertura (medido: sobrepunha parte de "Minhas
+     tarefas"). O container é quem recorta. */
+  overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+}
+.task-acc + .task-acc { margin-top: 12px; }
+/* `flex-shrink: 0` é OBRIGATÓRIO: o container `.tasks-page-list` é
+   `display:flex; flex-direction:column`, e itens flex encolhem por padrão
+   quando o conteúdo estoura a altura. Ao abrir o accordion de baixo, os
+   DOIS comprimiam — foi isso que "comeu o espaçamento" entre os cartões
+   (medido nas capturas: lacuna ausente e o de cima comprimido). */
+.task-acc { flex-shrink: 0; }
+/* `padding-bottom` maior que o de cima: cria um respiro entre a faixa
+   colorida do hover e o conteúdo do accordion (o input de nova tarefa, ou
+   as tarefas da conversa), que hoje fica colado na borda inferior da cor. */
+.task-acc-head {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 20px; background: none; border: none; cursor: pointer;
+  color: var(--text); text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  /* `background` NÃO entra na transição: durante a animação do corpo, o
+     hover do cabeçalho interpolava a cor do zero ao cheio e o fundo parecia
+     "encolher" por alguns frames (flick). Cor de hover é estado binário —
+     não tem meio-termo. */
+}
+/* Gradiente top-down no hover: a cor sai cheia no topo e some até a base,
+   onde encosta no conteúdo. Evita a "faixa chapada" e integra o respiro. */
+.task-acc-head:hover {
+  background: linear-gradient(to bottom, var(--accent-soft) 0%, var(--accent-soft) 62%, transparent 100%);
+}
+/* Feedback de toque SEM `transform: scale()`: escalar 0.96 encolhe a faixa
+   de fundo junto com o botão, e o cartão branco aparecia por baixo nas
+   laterais — o "flick" que a captura mostrou (~10px de cada lado, medido).
+   Aqui o fundo escurece no lugar: o retângulo não muda de tamanho. */
+.task-acc-head:active {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 18%, transparent) 0%, color-mix(in srgb, var(--accent) 18%, transparent) 62%, transparent 100%);
+}
+/* `flex-shrink: 0` no cabeçalho também: ele é item do grid que anima
+   (`.task-acc-inner`), e encolher achataria o respiro do padding-bottom. */
+.task-acc-head { flex-shrink: 0; }
+.task-acc-chevron {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 22px; height: 22px; color: var(--text-dim);
+  transition: transform .2s var(--ease-soft, ease);
+}
+.task-acc.open .task-acc-chevron { transform: rotate(90deg); }
+.task-acc-title { flex: 1; font-size: 14px; font-weight: 800; letter-spacing: -.1px; }
+.task-acc-count {
+  flex-shrink: 0; min-width: 22px; height: 22px; padding: 0 7px;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  border-radius: 999px; font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.task-acc-count:empty { display: none; }
+/* corpo: 0fr quando fechado, 1fr quando aberto.
+   O truque do `grid-template-rows: 0fr/1fr` exige UM wrapper com
+   `min-height: 0; overflow: hidden` — com filhos soltos o 0fr não colapsa
+   de verdade (o conteúdo estoura a linha). Por isso o HTML embrulha o
+   conteúdo em `.task-acc-inner`; o CSS abaixo só posiciona. */
+.task-acc-body {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows .22s var(--ease-soft, ease);
+}
+.task-acc.open > .task-acc-body { grid-template-rows: 1fr; }
+.task-acc-inner { min-height: 0; overflow: hidden; }
+
+/* criador inline de tarefa própria */
+.task-new {
+  display: flex; align-items: center; gap: 8px;
+  /* `margin-top` em vez de 0: o padding-bottom do cabeçalho empurra o FUNDO
+     do hover, não o conteúdo — sem este margin o input encostava na faixa
+     colorida (medido: gapReal 0px). 8px é o mesmo gap dos itens da lista. */
+  margin: 8px 14px 10px; padding: 4px 4px 4px 14px;
+  background: var(--bg);
+  /* Só a borda TRACEJADA externa do campo. A caixa do input não leva
+     `border`/`outline` próprio — o `outline: none` é explícito porque o
+     `:focus` global do app desenhava uma borda quadrada por cima da
+     pílula arredondada (medido: quadrado interno visível ao focar). */
+  border: 1.5px dashed var(--border);
+  border-radius: 999px;
+  transition: border-color .15s, background .15s;
+}
+.task-new:focus-within { border-style: solid; border-color: var(--accent); background: var(--bg-elev); }
+.task-new input {
+  flex: 1; min-width: 0;
+  /* `border/box-shadow: none !important` + `outline: none !important` é o
+     MESMO contrato do campo de busca (`03a-sidebar-explorer.css:210`,
+     `.search-box input`) e do composer: sem o `!important` uma regra global
+     de `:focus` desenha outline sólido quadrado por cima da pílula
+     arredondada — medido `outlineStyle: solid` mesmo com `outline: none`
+     sem `!important`. A pílula já comunica o foco pelo `:focus-within`
+     (borda que fica sólida e muda de cor), então o outline do input é
+     redundante aqui. */
+  border: none !important; box-shadow: none !important; outline: none !important;
+  -webkit-appearance: none; appearance: none;
+  background: none;
+  font: inherit; font-size: 13.5px; color: var(--text);
+  padding: 8px 0;
+}
+.task-new input::placeholder { color: var(--text-dim); }
+.task-new-btn {
+  flex-shrink: 0; width: 34px; height: 34px;
+  display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent);
+  border: none; border-radius: 50%; cursor: pointer;
+  transition: transform .1s, filter .15s;
+}
+.task-new-btn:hover { filter: brightness(1.06); }
+.task-new-btn:active { transform: scale(var(--press-scale, .96)); }
+
+/* `padding-top` de 8px dá o mesmo respiro entre a faixa do hover e a
+   primeira tarefa da conversa — antes a lista encostava na cor (o
+   padding-bottom do cabeçalho empurra o fundo, não o conteúdo). */
+.task-list { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px 14px; }
 .task-row {
   display: flex; align-items: flex-start; gap: 12px;
-  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
   padding: 12px 14px; cursor: pointer;
   transition: background .13s, border-color .13s, box-shadow .15s, transform .1s;
   min-height: 56px;
@@ -683,18 +876,50 @@
   display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
 }
 .task-meta {
+  display: flex; align-items: center; gap: 5px;
   font-size: 12px; line-height: 1.4; color: var(--text-dim);
-  overflow-wrap: anywhere; white-space: normal;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-width: 0;
 }
+/* marcador da conversa de origem: quadrado de borda arredondada na cor da
+   conversa. `flex-shrink: 0` para nomes longos não o esmagarem. */
+.task-src {
+  flex-shrink: 0; width: 9px; height: 9px; border-radius: 3px;
+  background: var(--border);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+}
+.task-src-name {
+  font-weight: 700; color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 140px;
+}
+.task-meta-sep { opacity: .55; flex-shrink: 0; }
 .task-go { color: var(--text-dim); flex-shrink: 0; align-self: center; transition: transform .15s, color .15s; }
-.tasks-empty {
-  text-align: center; color: var(--text-dim); font-size: 14px; font-weight: 600;
-  padding: 40px 16px; line-height: 1.7;
-  background: var(--bg-elev); border: 1.5px dashed var(--border); border-radius: 16px;
+
+/* ações de editar/excluir (só nas próprias) */
+.task-own-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; align-self: center; }
+.task-ico {
+  width: 44px; height: 44px;              /* alvo de toque (piso WCAG 2.5.5) */
+  display: grid; place-items: center;
+  background: none; border: none; border-radius: 10px;
+  color: var(--text-dim); cursor: pointer;
+  transition: background .13s, color .13s;
 }
-.tasks-empty code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
-/* saída animada ao concluir */
+.task-ico:hover { background: var(--bg-elev); color: var(--text); }
+.task-ico-danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.task-edit-input {
+  width: 100%; border: none; background: none; outline: none;
+  font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text);
+  padding: 2px 0;
+}
+.task-acc-empty {
+  padding: 4px 16px 16px; margin: 0;
+  text-align: left; color: var(--text-dim);
+  font-size: 13px; font-weight: 600; line-height: 1.6;
+}
+.task-acc-empty.hidden { display: none; }
+.task-acc-empty-sub { font-weight: 500; opacity: .85; }
+.task-acc-empty code { background: var(--bg); border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+/* saída animada ao concluir/excluir */
 .task-row { transition: background .13s, border-color .13s, opacity .35s ease, transform .35s ease, max-height .35s ease; overflow: hidden; }
 .task-row.chk-out { opacity: 0; transform: translateX(18px); }
 .pull-spinner {
@@ -796,12 +1021,24 @@
 
 .va-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .va-wave {
-  display: flex; align-items: center; gap: 2px; height: 26px;
+  /* LARGURA FIXA e contida: as barras são o conteúdo, não o dono do espaço.
+     `width: 100%` + `max-width` impede o transbordo, e o `overflow: hidden`
+     é a rede de segurança para o caso de uma barra a mais (nota antiga com
+     picos de 120 pontos, ou o esqueleto de 34). Sem isto, 120 barras de
+     min-width 2px com gap de 2px somam ~480px e furam a bolha — medido
+     como transbordo horizontal no #messages. */
+  display: flex; align-items: center; gap: 2px;
+  width: 100%; max-width: 100%; min-width: 0;
+  height: 26px;
+  overflow: hidden;
   cursor: pointer; user-select: none;
 }
-/* cada barra cresce de baixo (transform) — mais barato que animar height */
+/* cada barra cresce de baixo (transform) — mais barato que animar height.
+   `flex: 1 1 0` + `min-width: 0` deixa TODAS as barras dividirem a largura
+   igualmente: o `min-width: 2px` de antes era o que, com muitas barras,
+   impedia o encolhimento e forçava o transbordo. */
 .va-bar {
-  flex: 1 1 0; min-width: 2px; height: var(--h, 40%);
+  flex: 1 1 0; min-width: 0; height: var(--h, 40%);
   border-radius: 2px; background: currentColor;
   opacity: .32; transition: opacity .12s;
 }

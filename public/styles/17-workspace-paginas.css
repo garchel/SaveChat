@@ -159,10 +159,18 @@
 .daily-item-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; align-self: center; opacity: 0; transition: opacity .15s; }
 .daily-item:hover .daily-item-actions, .daily-item .daily-item-actions:focus-within { opacity: 1; }
 @media (hover: none) { .daily-item-actions { opacity: .7; } }
+/* `pointer: coarse`: mesmo raciocínio do menu da bolha — laptop/tablet com
+   tela de toque e mouse não disparam :hover por toque. */
+@media (pointer: coarse) { .daily-item-actions { opacity: .7; } }
 .daily-item .daily-edit, .daily-item .daily-del {
   width: 32px; height: 32px; border: none; background: transparent; color: var(--text-dim);
-  border-radius: 9px; cursor: pointer; display: grid; place-items: center;
+  border-radius: 9px; cursor: pointer; display: grid; place-items: center; position: relative;
   transition: background .15s, color .15s, transform .1s;
+}
+/* alvo de 44×44 sem crescer o glifo (piso WCAG 2.5.5) */
+.daily-item .daily-edit::after, .daily-item .daily-del::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
 }
 .daily-item .daily-edit:hover { background: var(--accent-soft); color: var(--accent); }
 .daily-item .daily-del:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }

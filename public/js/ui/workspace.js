@@ -5,6 +5,7 @@
 import { Store } from '../store.js';
 import { ICON, wrapSvg } from '../icons.js';
 import { esc, haptic, now } from '../utils.js';
+import { mascotFromStore } from '../mascot.js';
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 // TABS: as páginas do workspace. 'reminders' não tem mais aba própria
 // (v1.12.0) — a lista é a mesma das Pendências e o header troca entre
@@ -14,7 +15,7 @@ const TAB_LABEL = { conversations: 'Cadernos', ai: 'IA', reminders: 'Lembretes',
 
 export const WorkspaceMethods = {
   bindWorkspace() {
-    // Navegação de páginas: seletor da sidebar do explorador (Cadernos | IA | Diária)
+    // Navegação de páginas: seletor da sidebar do explorador (Cadernos | Tarefas | Diária)
     document.querySelectorAll('.page-switch').forEach((button) => {
       button.addEventListener('click', () => {
         const page = button.dataset.page;
@@ -22,6 +23,29 @@ export const WorkspaceMethods = {
           this.showWorkspaceTab('conversations');
           const app = document.getElementById('app');
           if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+        } else if (page === 'tasks') {
+          // Tarefas é a visão "Pendências" (tasks.js) — a mesma página que o
+          // botão #explorer-tasks abria, agora com aba própria na barra.
+          this.showTasksPage();
+        } else {
+          this.showWorkspaceTab(page);
+        }
+      });
+    });
+    // Tabbar inferior (mobile): MESMA ação dos `.page-switch`, sem lógica
+    // duplicada. Ela só é um atalho de 1 toque — o estado ativo é
+    // sincronizado a partir do `.page-switch` da sidebar (que é a fonte
+    // única), então não há como as duas divergirem.
+    document.querySelectorAll('.tabbar-btn').forEach((button) => {
+      button.addEventListener('click', () => {
+        const page = button.dataset.page;
+        if (page === 'notes') {
+          this.showWorkspaceTab('conversations');
+          const app = document.getElementById('app');
+          if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+        } else if (page === 'tasks') {
+          // mesma ação do seletor da sidebar — fonte única
+          this.showTasksPage();
         } else {
           this.showWorkspaceTab(page);
         }
@@ -98,6 +122,9 @@ export const WorkspaceMethods = {
 
   showWorkspaceTab(name, { updateUrl = true } = {}) {
     const tab = TABS.includes(name) ? name : 'conversations';
+    // o item "Conversa com a IA" da árvore acende só enquanto a página da
+    // IA está aberta — em qualquer outra aba ele apaga
+    this._aiTabOpen = tab === 'ai';
     const app = document.getElementById('app');
     const pageIds = { ai: 'ai-page', reminders: 'reminders-page', daily: 'daily-page' };
     document.getElementById('search-page')?.classList.add('hidden');
@@ -122,6 +149,8 @@ export const WorkspaceMethods = {
       button.setAttribute('aria-selected', String(active));
       button.tabIndex = active ? 0 : -1;
     });
+    // o estado ativo da tabbar (mobile) é sincronizado em _syncTabbar(),
+    // chamado por syncExplorerChrome() abaixo — não duplicar aqui.
     if (tab !== 'conversations') document.getElementById(pageIds[tab])?.classList.remove('hidden');
     // cabeçalho e tooltip informativa na página da IA
     const aiInfoBtn = document.getElementById('ai-info-btn');
@@ -133,8 +162,8 @@ export const WorkspaceMethods = {
     const threadMenuBtn = document.getElementById('btn-thread-menu');
     const pageIcon = document.getElementById('page-icon');
     const PAGE_ICON = { ai: ICON.sparkle, daily: ICON.calendar, reminders: ICON.clock };
-    // título do cabeçalho por página (a IA tem rótulo próprio, mais descritivo)
-    const PAGE_TITLE = { ai: 'Conversa com a IA', daily: 'Diária', reminders: 'Lembretes' };
+    // título do cabeçalho por página (a IA usa o nome do mascote escolhido)
+    const PAGE_TITLE = { ai: mascotFromStore().name, daily: 'Diária', reminders: 'Lembretes' };
     if (chatName) chatName.textContent = PAGE_TITLE[tab] || 'Selecione uma conversa';
     if (threadMenuBtn) threadMenuBtn.classList.toggle('hidden', tab === 'conversations' ? !this.activeThread : true);
     if (pageIcon) {

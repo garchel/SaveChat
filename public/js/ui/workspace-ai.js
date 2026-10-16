@@ -6,6 +6,7 @@ import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
 import { renderMarkdown } from '../markdown.js';
 import { esc, haptic, uid, now } from '../utils.js';
+import { mascotAvatarHtml, mascotFromStore } from '../mascot.js';
 // normName: comparação sem acento/maiúscula (a IA manda o nome da
 // conversa e o nome real pode ter acento)
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -30,13 +31,17 @@ export const WorkspaceAiMethods = {
     if (!list) return;
     const history = (Store.data.ui && Store.data.ui.aiChat) || [];
     if (!history.length) {
-      list.innerHTML = '<div class="workspace-empty"><span aria-hidden="true">✦</span><strong>Peça à IA — ela conhece suas notas</strong><span>Resuma uma conversa, planeje seu dia ou peça: <em>“crie uma nota na conversa Compras com a lista do churrasco”</em>.</span></div>';
+      list.innerHTML = `<div class="workspace-empty">${mascotAvatarHtml('idle')}<span class="ai-mascot-name">${esc(mascotFromStore().name)}</span><strong>Peça à IA — ela conhece suas notas</strong><span>Resuma uma conversa, planeje seu dia ou peça: <em>“crie uma nota na conversa Compras com a lista do churrasco”</em>.</span></div>`;
       return;
     }
+    // Enquanto a resposta não chega, o avatar mostra "pensando" no fim da lista.
+    const thinking = this._aiBusy
+      ? `<div class="ai-typing">${mascotAvatarHtml('thinking')}<span>Pensando…</span></div>`
+      : '';
     list.innerHTML = history.map((item) => {
       const chips = (item.actions || []).map((a) => `<div class="ai-action-chip">${esc(a)}</div>`).join('');
       return `<article class="ai-message ${item.role === 'user' ? 'user' : 'model'}"><div class="ai-message-label">${item.role === 'user' ? 'Você' : 'IA'}</div>${chips}<div class="ai-message-body">${renderMarkdown(item.text || '')}</div></article>`;
-    }).join('');
+    }).join('') + thinking;
     list.scrollTop = list.scrollHeight;
   },
 
@@ -81,9 +86,16 @@ export const WorkspaceAiMethods = {
     const history = Store.data.ui.aiChat || (Store.data.ui.aiChat = []);
     history.push({ role: 'user', text: prompt, ts: Date.now() });
     Store.save();
+    // A thread da IA é conversa permanente na árvore (ai-thread.js): o
+    // histórico também vira nota ali, para persistir como qualquer outra
+    // conversa — mas a thread é `localOnly`, então o conteúdo não sai do
+    // aparelho. `role` fica gravado em `aiRole` para o render saber de
+    // quem é a fala.
+    this._aiPersistTurn('user', prompt);
     input.value = '';
     this._growAiPrompt(input);
     input.disabled = true; button.disabled = true;
+    this._aiBusy = true;
     this.renderAiMessages();
     const prior = history.slice(-21, -1).map(({ role, text }) => ({
       role: role === 'model' ? 'model' : 'user',
@@ -138,11 +150,17 @@ export const WorkspaceAiMethods = {
       history.push({ role: 'model', text: answer || '', actions, ts: Date.now() });
       if (history.length > 40) history.splice(0, history.length - 40);
       Store.save();
+      // espelha a resposta na thread da IA (a pergunta já foi espelhada
+      // antes da chamada; em falha, o catch desfaz só o ui.aiChat — ver
+      // o comentário de _aiPersistTurn)
+      this._aiPersistTurn('model', answer || '');
+      this._aiBusy = false;
       this.renderAiMessages();
       haptic('success');
     } catch (error) {
       history.pop();
       Store.save();
+      this._aiBusy = false;
       this.renderAiMessages();
       const message = error.message || 'Falha ao falar com a API Gemini';
       this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: 'error', duration: 5000 });
@@ -151,6 +169,37 @@ export const WorkspaceAiMethods = {
       button.disabled = false;
       input.focus();
     }
+  },
+
+  // Espelha um turno da conversa com a IA na thread permanente
+  // (`ai-assistant`, ver ai-thread.js), como nota comum — com `aiRole`
+  // dizendo de quem é a fala, porque uma nota normal só distingue
+  // user/other. A thread é `localOnly`, então o sync ignora; nada disso
+  // vai para o servidor.
+  //
+  // O histórico CANÔNICO continua sendo `ui.aiChat` (que a página da IA já
+  // usava e que guarda `actions`/tool-calls, algo que nota não tem). Este
+  // espelho é o que aparece na árvore; se os dois divergirem, manda o
+  // `ui.aiChat`. Em falha da API o catch dá `history.pop()` no
+  // `ui.aiChat` mas NÃO desfaz a nota da pergunta — aceitável: a pergunta
+  // existiu e fica registrada como tentativa, o que é mais honesto do que
+  // sumir com ela.
+  _aiPersistTurn(role, text) {
+    const ai = window.NoteThread && window.NoteThread.AiThread;
+    if (!ai || !text) return;
+    ai.ensureAiThread();
+    const note = {
+      clientId: uid(),
+      threadId: ai.AI_THREAD_ID,
+      user: 'me',
+      text,
+      ts: Date.now(),
+      images: [],
+      aiRole: role === 'model' ? 'model' : 'user',
+      localOnly: true,
+    };
+    Store.upsertNote(note);
+    if (typeof this.renderTree === 'function') this.queueRenderTree();
   },
 
   async _aiFetch(model, key, body) {

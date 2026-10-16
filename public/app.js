@@ -6,6 +6,7 @@ import { Store } from './js/store.js';
 import { CUELUME_SOUNDS, Sound } from './js/sound.js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, USE_SUPABASE, getSupa, Sync } from './js/sync-supabase.js';
 import { Updater } from './js/updater.js';
+import * as AiThread from './js/ai-thread.js';
 import { PickerMethods } from './js/ui/picker.js';
 import { NavigationMethods } from './js/ui/navigation.js';
 import { MessagesMethods } from './js/ui/messages.js';
@@ -20,6 +21,7 @@ import { WorkspaceMethods } from './js/ui/workspace.js';
 import { WorkspaceAiMethods } from './js/ui/workspace-ai.js';
 import { WorkspaceDailyMethods } from './js/ui/workspace-daily.js';
 import { SettingsMethods } from './js/ui/settings.js';
+import { MascotPanelMethods } from './js/ui/mascot-panel.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { TreeMethods } from './js/ui/tree.js';
 import { ComposerMethods } from './js/ui/composer.js';
@@ -70,19 +72,21 @@ async init() {
         if (backRem) backRem.addEventListener('click', () => this.showWorkspaceTab('conversations'));
         this.updateRemBadge();
       }
-      const expTasks = document.getElementById('explorer-tasks');
-      if (expTasks) {
-        // alterna como a lupa: clicar com a página já aberta fecha (volta às conversas)
-        expTasks.addEventListener('click', () => {
-          const open = document.getElementById('tasks-page') && !document.getElementById('tasks-page').classList.contains('hidden');
-          if (open) { this.hideTasksPage(); this._mobileBackToExplorer(); return; }
-          this.showTasksPage();
-          this._mobileRevealCanvas();
-        });
-        const backTasks = document.getElementById('tasks-back');
-        if (backTasks) backTasks.addEventListener('click', () => { this.hideTasksPage(); this._mobileBackToExplorer(); });
-        this.updateTasksBadge();
-      }
+      // Voltar de Tarefas.
+      // Este botão ficava DENTRO de `if (expTasks)` — mas `#explorer-tasks` não
+      // existe mais no DOM (foi substituído pela aba `.page-switch[data-page=
+      // "tasks"]`). A guarda é sempre falsa, então a seta nunca recebeu
+      // listener: era um botão inerte, não só sem estilo.
+      // Antes era `mobile-only`; agora aparece nos dois — no celular volta para
+      // o explorador, no desktop volta para a aba Cadernos e desmarca "Tarefas",
+      // que ficava aceso com a página já fechada.
+      const backTasks = document.getElementById('tasks-back');
+      if (backTasks) backTasks.addEventListener('click', () => {
+        this.hideTasksPage();
+        this._mobileBackToExplorer();
+        document.querySelectorAll('.page-switch').forEach((b) => b.classList.toggle('active', b.dataset.page === 'notes'));
+      });
+      this.updateTasksBadge();
       const notifBtn = document.getElementById('btn-notifications');
       if (notifBtn) {
         notifBtn.addEventListener('click', (e) => { e.stopPropagation(); this.toggleNotifPopover(); });
@@ -145,6 +149,14 @@ async init() {
           e.stopPropagation();
           profilePop.classList.add('hidden');
           window.open('help.html', '_blank', 'noopener');
+        });
+        // Mascote: fecha o menu do perfil e abre o painel de customização. O
+        // delay é o mesmo do Configurações — sem ele, o handler global de
+        // "clique fora" do painel mata o popover recém-aberto.
+        document.getElementById('profile-mascot')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          profilePop.classList.add('hidden');
+          setTimeout(() => this.openMascotPanel(), 10);
         });
         // Atualizar app: clique = instalar a versão nova (SW waiting assume + reload)
         document.getElementById('profile-update')?.addEventListener('click', (e) => {
@@ -211,12 +223,14 @@ async init() {
       this.bindPinPopover();
       this.bindPinButton();
       this.bindSettings();
+    this.bindMascotPanel();
       this.bindFooter();
       this.bindSearch();
       this.bindShortcuts();
       this.bindSwipe();
       this.bindHistoryBack();
       this.bindWorkspace();
+      this.bindTasksPage();
       this.initReminders();
       // persistência de login: restaura sessão Supabase antes do primeiro render
       if (USE_SUPABASE) {
@@ -246,7 +260,10 @@ async init() {
       setInterval(() => this.updateSyncLabel(), 15000);
     },
 
-removeSplash() {
+    removeSplash() {
+      // acende o último passo antes do fade: o usuário vê "Pronto" no quadro
+      // em que a UI entra, e a saída não parece um corte seco
+      document.querySelectorAll('#boot-splash .boot-step').forEach((el) => el.classList.add('is-on'));
       // tira o boot splash (primeira carga no mobile/PWA): fade rápido + remoção
       const sp = document.getElementById('boot-splash');
       if (!sp) return;
@@ -384,7 +401,7 @@ showModal(title, bodyHtml, onOk) {
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
     MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods,
-    WorkspaceAiMethods, WorkspaceDailyMethods);
+    WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods);
 
   // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do
   // markup. Em producao o build ja os inlineou e isto sai em seguida sem
@@ -393,6 +410,12 @@ showModal(title, bodyHtml, onOk) {
   await injectPartials();
 
   Store.load();
+  // A thread da IA é estrutural: precisa existir antes da primeira
+  // renderTree(), senão o item não aparece na árvore no boot.
+  // Tem de rodar ANTES de `window.NoteThread` ser atribuído (linha ~421),
+  // porque ensureAiThread() lê `window.NoteThread.Store` — por isso o
+  // Store é passado como argumento em vez de lido do global.
+  AiThread.ensureAiThread(Store);
   // aplica tema salvo antes de montar a UI
   const savedTheme = (Store.data.ui && Store.data.ui.theme) || 'terracota';
   document.documentElement.dataset.theme = savedTheme;
@@ -411,7 +434,7 @@ showModal(title, bodyHtml, onOk) {
     return origSend(type, payload);
   };
   // expõe para debugging/inspeção no console
-  window.NoteThread = { Store, Sync, UI, Sound };
+  window.NoteThread = { Store, Sync, UI, Sound, AiThread };
   window.NoteThread.debugLog = () => dbg.slice(-50);
   // marcador de build: torna óbvio no console se o navegador rodou o build novo
   // (lê o número do cache direto do sw.js para nunca mais destoar da versão real)

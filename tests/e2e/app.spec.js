@@ -5,7 +5,7 @@ const { test, expect } = require('@playwright/test');
 const seed = {
   user: { name: 'Tester', mail: 'tester@example.com', provider: 'email' },
   threads: {}, folders: {}, notes: {},
-  ui: { expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
+  ui: { mascot: { nameSet: true, name: 'Nina' }, expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
 };
 
 test.beforeEach(async ({ context }) => {
@@ -33,7 +33,8 @@ test('sem conversa selecionada: placeholder aparece e some ao abrir conversa', a
   // segundo CTA leva à conversa com a IA (com título próprio + tooltip ⓘ)
   await page.click('#nt-open-ai');
   await expect(page.locator('#ai-page')).toBeVisible();
-  await expect(page.locator('#chat-name')).toHaveText('Conversa com a IA');
+  // o título da página da IA é o NOME DO MASCOTE escolhido pelo usuário
+await expect(page.locator('#chat-name')).toHaveText('Nina');
   await expect(page.locator('#ai-info-btn')).toBeVisible();
   await page.click('#ai-info-btn');
   await expect(page.locator('#ai-info-tip')).toHaveClass(/open/);

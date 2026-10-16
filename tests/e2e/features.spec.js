@@ -13,7 +13,7 @@ const seed = {
       { id: 'n1', threadId: 't1', user: 'me', text: '- [x] leite\n- [ ] pão', ts: Date.now() - 50000, clientId: 'c1', tags: ['mercado'] },
     ],
   },
-  ui: { expanded: {}, sounds: { enabled: false } },
+  ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
 };
 
 test.beforeEach(async ({ context }) => {
@@ -34,21 +34,22 @@ test('botões do cabeçalho acendem quando a página está aberta e apagam ao fe
   await openApp(page);
   // espera o explorador montar de fato (o app carrega o cliente Supabase em
   // background; esperar por elemento é mais estável que um sleep fixo)
-  await expect(page.locator('#explorer-tasks')).toBeVisible();
+  await expect(page.locator('#explorer-reminders')).toBeVisible();
   const isOn = (id) => page.evaluate((i) => document.getElementById(i).classList.contains('active'), id);
 
   // nada aberto no início
-  expect(await isOn('explorer-tasks')).toBe(false);
   expect(await isOn('explorer-reminders')).toBe(false);
   expect(await isOn('btn-notifications')).toBe(false);
 
-  // Pendências: abre, fecha no segundo clique
-  await page.click('#explorer-tasks');
+  // Tarefas: agora entra pela ABA da barra (o botão #explorer-tasks foi
+  // removido — a página tem aba própria). Abre e o item da barra acende.
+  await page.click('.page-switch[data-page="tasks"]');
   await expect(page.locator('#tasks-page')).toBeVisible();
-  await expect.poll(() => isOn('explorer-tasks')).toBe(true);
-  await page.click('#explorer-tasks');
+  await expect.poll(() => page.evaluate(() => document.querySelector('.page-switch[data-page="tasks"]').classList.contains('active'))).toBe(true);
+  // trocar de aba apaga o estado de Tarefas
+  await page.click('.page-switch[data-page="daily"]');
   await expect(page.locator('#tasks-page')).toBeHidden();
-  await expect.poll(() => isOn('explorer-tasks')).toBe(false);
+  await expect.poll(() => page.evaluate(() => document.querySelector('.page-switch[data-page="tasks"]').classList.contains('active'))).toBe(false);
 
   // Lembretes: abre, apaga ao trocar de aba
   await page.click('#explorer-reminders');
