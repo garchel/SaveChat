@@ -13,16 +13,16 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 const TABS = ['conversations', 'ai', 'reminders', 'daily'];
 const TAB_LABEL = { conversations: 'Cadernos', ai: 'IA', reminders: 'Lembretes', daily: 'Diária' };
 
-// As três páginas do seletor, na ordem da tabbar: é este conjunto — e só
-// este — que o arrasto percorre.
+// As três páginas do seletor, na ordem em que aparecem nele: é este
+// conjunto — e só este — que o arrasto percorre.
 //
 // Antes ele andava por TABS, que inclui 'ai' e 'reminders'. Duas abas que
-// não têm botão no `.page-switcher` nem na tabbar: o arrasto levava para
-// telas que o usuário não vê listadas em lugar nenhum, e o Tarefas — que
-// tem botão — ficava fora do alcance do gesto.
+// não têm botão no `.page-switcher`: o arrasto levava para telas que o
+// usuário não vê listadas em lugar nenhum, e o Tarefas — que tem botão —
+// ficava fora do alcance do gesto.
 //
-// Os valores são os de `data-page`, os mesmos de `.page-switch` e
-// `.tabbar-btn`, então os três caminhos falam a mesma língua.
+// Os valores são os de `data-page`, o mesmo do `.page-switch`, então seletor
+// e arrasto falam a mesma língua.
 const SWIPE_PAGES = ['notes', 'tasks', 'daily'];
 const SWIPE_LABEL = { notes: 'Cadernos', tasks: 'Tarefas', daily: 'Diária' };
 
@@ -30,13 +30,6 @@ export const WorkspaceMethods = {
   bindWorkspace() {
     // Navegação de páginas: seletor da sidebar do explorador (Cadernos | Tarefas | Diária)
     document.querySelectorAll('.page-switch').forEach((button) => {
-      button.addEventListener('click', () => this.openWorkspacePage(button.dataset.page));
-    });
-    // Tabbar inferior (mobile): MESMA ação dos `.page-switch`, sem lógica
-    // duplicada. Ela só é um atalho de 1 toque — o estado ativo é
-    // sincronizado a partir do `.page-switch` da sidebar (que é a fonte
-    // única), então não há como as duas divergirem.
-    document.querySelectorAll('.tabbar-btn').forEach((button) => {
       button.addEventListener('click', () => this.openWorkspacePage(button.dataset.page));
     });
     // teclado no seletor (role=tab): setas movem, Home/End atalhos
@@ -146,8 +139,6 @@ export const WorkspaceMethods = {
       button.setAttribute('aria-selected', String(active));
       button.tabIndex = active ? 0 : -1;
     });
-    // o estado ativo da tabbar (mobile) é sincronizado em _syncTabbar(),
-    // chamado por syncExplorerChrome() abaixo — não duplicar aqui.
     if (tab !== 'conversations') document.getElementById(pageIds[tab])?.classList.remove('hidden');
     // cabeçalho e tooltip informativa na página da IA
     const aiInfoBtn = document.getElementById('ai-info-btn');
@@ -184,10 +175,10 @@ export const WorkspaceMethods = {
 
   // ---------- Fonte única das três páginas ----------
   //
-  // `.page-switch` (sidebar), `.tabbar-btn` (mobile) e o arrasto chamam ESTE
-  // método. O mapeamento page → ação fica escrito uma vez só, então os três
-  // caminhos não podem divergir — o Tarefas em especial é a página que não
-  // passa por showWorkspaceTab (ela define `_workspaceTab` direto, porque
+  // `.page-switch` (sidebar) e o arrasto chamam ESTE método. O mapeamento
+  // page → ação fica escrito uma vez só, então os dois caminhos não podem
+  // divergir — o Tarefas em especial é a página que não passa por
+  // showWorkspaceTab (ela define `_workspaceTab` direto, porque
   // showWorkspaceTab só conhece TABS, que não tem 'tasks').
   openWorkspacePage(page) {
     if (page === 'notes') {

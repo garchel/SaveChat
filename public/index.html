@@ -106,18 +106,6 @@
       <!-- Seletor removido da conversa aberta (v1.12.0): a navegação de páginas
            vive só na sidebar do explorador. -->
       <div id="workspace-swipe-hint" class="hidden" aria-hidden="true"></div>
-      <!-- Tabbar inferior (só no mobile, ver 04-responsive.css). As três
-           páginas do workspace vivem no `.page-switcher` da sidebar, que no
-           mobile fica fora da tela (translateX(-100%)) — medido em x:-378
-           com uma conversa aberta, o que custava 2 toques para trocar de
-           página. Esta barra é o atalho de 1 toque; ela NÃO é uma segunda
-           fonte de verdade: o clique é delegado a showWorkspaceTab(), e o
-           estado ativo vem do mesmo `.page-switch` da sidebar. -->
-      <nav id="tabbar" class="tabbar hidden" aria-label="Páginas do app">
-        <button type="button" class="tabbar-btn" data-page="notes" aria-label="Cadernos" title="Cadernos e conversas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v17.5H7.5A2.5 2.5 0 0 0 5 22V4.5Z"/><path d="M9 7h6M9 10.5h6"/></svg><span>Cadernos</span></button>
-        <button type="button" class="tabbar-btn" data-page="tasks" aria-label="Tarefas" title="Tarefas (checklists de todas as conversas)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1.5"/><path d="M5.2 7.2l1.4 1.6 2.6-3"/><line x1="14" y1="7.5" x2="21" y2="7.5"/><rect x="3" y="13.5" width="7" height="7" rx="1.5"/><path d="M5.2 16.7l1.4 1.6 2.6-3"/><line x1="14" y1="17" x2="21" y2="17"/></svg><span>Tarefas</span></button>
-        <button type="button" class="tabbar-btn" data-page="daily" aria-label="Diária" title="Diária"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg><span>Diária</span></button>
-      </nav>
         <!-- Menu popover da nota (backlinks, convidar, renomear, excluir) -->
         <div id="chat-title-menu" class="popover chat-title-menu hidden" role="menu">
           <button type="button" id="menu-backlinks" class="ctm-item hidden" data-act="backlinks"><span class="ctm-icon">@</span> Mencionado em <span id="menu-backlinks-count" class="ctm-badge"></span></button>
