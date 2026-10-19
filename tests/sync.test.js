@@ -28,6 +28,17 @@ describe('PWA', ()=>{
     assert.equal(m.name, 'SaveChat');
     assert.equal(m.short_name, 'SaveChat');
   });
+  it('background_color casa com o 1º frame do #boot-splash (transição contínua)', ()=>{
+    // O #boot-splash pinta ANTES de qualquer JS: nesse instante `data-theme`
+    // ainda não foi aplicado, então o fundo é o `--bg` de `:root`
+    // (00-tokens-base.css). A tela de abertura do sistema usa o
+    // `background_color` do manifest; se os dois divergirem, a passagem
+    // sistema → app mostra um salto de cor. Manter os dois amarrados.
+    const m = JSON.parse(readFileSync('public/manifest.webmanifest','utf8'));
+    const base = readFileSync('public/styles/00-tokens-base.css','utf8');
+    const rootBg = base.match(/--bg:\s*([^;\n]+);/)[1].trim();
+    assert.equal(m.background_color.toLowerCase(), rootBg.toLowerCase());
+  });
   it('precache do SW cobre os ícones do manifest (offline/instalação em device novo)', ()=>{
     const m = JSON.parse(readFileSync('public/manifest.webmanifest','utf8'));
     const sw = readFileSync('public/sw.js','utf8');
@@ -116,9 +127,9 @@ describe('PWA', ()=>{
     assert.deepEqual(oficiais, [],
       `texto abaixo de 12px (piso WCAG/legibilidade):\n  ${oficiais.join('\n  ')}`);
   });
-  it('sw.js é v160', ()=>{
+  it('sw.js é v161', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v160/);
+    assert.match(sw, /notethread-v161/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);
