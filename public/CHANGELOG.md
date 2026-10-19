@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.23.0] — 2026-10-19
 ### Adicionado
 - **Transcrição das mensagens de voz na conversa.** Cada bolha de áudio ganhou uma seta discreta no rodapé: ao tocar, o app transcreve a fala e mostra o texto entre aspas ali mesmo. A transcrição fica guardada na própria nota (acompanha os outros aparelhos) e usa o provedor de IA do assistente; sem sessão, vale a chave pessoal configurada em **Configurar IA**.
 
