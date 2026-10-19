@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.22.0] — 2026-10-19
 ### Adicionado
 - **O assistente de IA agora funciona sem cada pessoa colar uma chave.** Antes o campo de chave era obrigatório e a IA só respondia com a chave pessoal do Google AI Studio. Agora o app tem um provedor compartilhado: o cliente envia o pedido e a sessão do Supabase para `/api/ai`, uma função na Vercel que valida o login e chama o Gemini com a chave do projeto (`GEMINI_API_KEY`), que nunca chega ao navegador. Quem configurou a própria chave continua usando o caminho direto (BYOK).
 - O proxy limita o que o cliente pode pedir — modelo só da família `gemini-*`, saída de até 4096 tokens e corpo de até 4 MB — e, em pico de demanda (429/503), tenta de novo e cai para um modelo estável da mesma família antes de responder erro, tudo dentro do limite de 60s da função.
