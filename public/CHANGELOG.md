@@ -6,6 +6,7 @@ Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 ### Corrigido
 - No celular, **abrir a conversa, voltar e clicar nela de novo não reabria nada**: o clique era engolido. O `openThread` começava com `if (this.activeThread === id) return`, um atalho para não re-renderizar a conversa que já está na tela — mas o gesto de volta (`goBack`) só remove a classe `show-chat` da `.app` e deixa `activeThread` apontando para a conversa, então o atalho disparava com a conversa escondida e o `return` matava o clique. O atalho agora só vale quando a conversa está de fato visível. No desktop `show-chat` é inerte (04-responsive.css só a usa dentro de `max-width: 760px`), então a otimização continua valendo lá, sem re-render.
 - O mesmo atalho travava a saída das abas do workspace: `showWorkspaceTab` também remove `show-chat` no mobile, então voltar de IA/Diária/Lembretes/Busca e clicar na conversa aberta ficava sem efeito. A correção é a mesma e cobre os dois caminhos.
+- **Abrir uma conversa vazia depois de uma com conteúdo mostrava as mensagens da conversa anterior.** O `renderMessages` tem dois caminhos de limpeza: o do reset (quando a conversa tem notas) apaga bolhas e separadores de dia, mas o da conversa sem nenhuma nota apagava só os separadores. As bolhas ficavam dentro de `#messages` e, como o `#empty-state` é `margin: auto` (flex child centralizado), ele aparecia no meio delas em vez de substituí-las. Os dois caminhos agora limpam as mesmas coisas, preservando `#load-slot`, `#empty-state` e `#note-preview`.
 
 ## [1.20.0] — 2026-10-16
 ### Adicionado

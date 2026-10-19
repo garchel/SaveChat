@@ -309,7 +309,14 @@ export const MessagesMethods = {
       if (!notes.length) {
         empty.classList.remove('hidden');
         this._hideLoadSkeleton();
-        this._daySepNodes(box).forEach((n) => n.remove());
+        // Mesma limpeza do reset abaixo: bolhas E separadores. Este caminho
+        // apagava só os separadores de dia, então abrir uma conversa vazia
+        // depois de uma com conteúdo deixava as bolhas antigas dentro de
+        // #messages — e como o #empty-state é `margin: auto` (flex child
+        // centralizado), ele aparecia no meio delas em vez de substituí-las.
+        // Preservados: #load-slot, #empty-state e #note-preview, que vivem
+        // dentro de #messages por posição (ver o comentário do reset).
+        box.querySelectorAll('.bubble, .day-sep-wrap, .day-sep').forEach((el) => el.remove());
         this._syncScrollMetrics();
         this._applyCozyEmptyCopy(empty);
         this._bindEmptyCta();
