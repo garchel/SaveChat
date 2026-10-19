@@ -76,6 +76,14 @@ export const TasksMethods = {
     });
     this.renderTasksPage();
     this.updateTasksBadge();
+    // A aba REAL da página. Tarefas não passa por showWorkspaceTab (que só
+    // conhece TABS, e TABS não tem 'tasks'), então sem esta linha
+    // `_workspaceTab` continuava valendo 'conversations' com a página de
+    // Tarefas aberta na tela. Foi o que travou o arrasto entre páginas: de
+    // Tarefas ele achava que ainda estava em Cadernos e voltava para cá.
+    // Também é o que faz conversationOnScreen() saber que a conversa não
+    // está na tela quando o usuário está em Tarefas.
+    this._workspaceTab = 'tasks';
     // No celular o canvas precisa ficar à frente da sidebar. Sem isto a página
     // de Tarefas abria "por baixo" e a tabbar ficava com o estado antigo —
     // era a única das três abas que não revelava o canvas (as outras passam
@@ -90,7 +98,8 @@ export const TasksMethods = {
     if (page) page.classList.add('hidden');
     // Volta para a aba ativa do workspace (não força messages se estava na IA/Diária)
     const tab = this._workspaceTab || 'conversations';
-    if (tab === 'conversations') {
+    // 'tasks' é a própria página que está saindo — o destino é Cadernos.
+    if (tab === 'conversations' || tab === 'tasks') {
       document.getElementById('messages')?.classList.remove('hidden');
       document.getElementById('backlinks')?.classList.remove('hidden');
     } else if (typeof this.showWorkspaceTab === 'function') {

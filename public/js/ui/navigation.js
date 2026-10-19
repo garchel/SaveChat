@@ -359,6 +359,14 @@ export const NavigationMethods = {
         if (dt > SWIPE_TIME || Math.abs(dy) > VERTICAL_SLOP) return;
         if (Math.abs(dx) < SWIPE_THRESH) return;
 
+        // O arrasto entre páginas (Cadernos | Tarefas | Diária) e este aqui
+        // escutam touchend no mesmo document. Sem esta arbitragem o mesmo
+        // gesto voltava para o explorador E trocava de página ao mesmo tempo.
+        // Quem decide primeiro é o de workspace: quando não há conversa na
+        // tela o gesto é dele, e o da conversa não tem o que fazer — abrir
+        // uma conversa que já está visível não faria sentido.
+        if (typeof this.workspaceSwipeOwns === 'function' && this.workspaceSwipeOwns(dx)) return;
+
         // arrastar para a DIREITA = voltar, em qualquer tela
         if (dx > 0) { this.goBack(); return; }
         // arrastar para a ESQUERDA = entrar na conversa (só no explorador)

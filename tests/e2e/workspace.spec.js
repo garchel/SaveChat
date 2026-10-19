@@ -232,18 +232,43 @@ test('IA sem chave: pede a chave e não chama a API', async ({ page }) => {
   await expect(page.locator('#ai-messages .workspace-empty')).toBeVisible();
 });
 
-test('workspaceSwipe alterna páginas nos dois sentidos', async ({ page }) => {
+// O arrasto percorre as TRÊS páginas que têm botão no seletor: Cadernos,
+// Tarefas e Diária. Antes ele andava por TABS (conversations | ai |
+// reminders | daily), levando a telas que não têm botão em lugar nenhum e
+// deixando o Tarefas fora do alcance do gesto. IA e Lembretes continuam
+// acessíveis pelos botões da barra, que é de onde sempre vieram.
+//
+// Este teste chama workspaceSwipe() direto; o gesto de verdade (touch) está
+// em workspace-swipe.spec.js.
+test('workspaceSwipe alterna as três páginas do seletor nos dois sentidos', async ({ page }) => {
   await page.goto('/');
   await page.waitForTimeout(2000);
+
+  const abaAtiva = () => page.evaluate(() =>
+    (document.querySelector('.page-switch.active') || {}).dataset?.page || null);
+
+  expect(await abaAtiva()).toBe('notes');
+
   await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(1));
-  await expect(page.locator('#ai-page')).toBeVisible();
-  await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(1));
-  await expect(page.locator('#reminders-page')).toBeVisible();
+  await expect(page.locator('#tasks-page')).toBeVisible();
+  expect(await abaAtiva()).toBe('tasks');
+
   await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(1));
   await expect(page.locator('#daily-page')).toBeVisible();
+  expect(await abaAtiva()).toBe('daily');
+
   // última página: não passa
-  const moved = await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(1));
-  expect(moved).toBe(false);
+  const passou = await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(1));
+  expect(passou).toBe(false);
+  expect(await abaAtiva()).toBe('daily');
+
   await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(-1));
-  await expect(page.locator('#reminders-page')).toBeVisible();
+  await expect(page.locator('#tasks-page')).toBeVisible();
+  expect(await abaAtiva()).toBe('tasks');
+
+  // primeira página: não volta
+  await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(-1));
+  expect(await abaAtiva()).toBe('notes');
+  const voltou = await page.evaluate(() => window.NoteThread.UI.workspaceSwipe(-1));
+  expect(voltou).toBe(false);
 });

@@ -13,54 +13,51 @@ const DEFAULT_MODEL = 'gemini-2.5-flash';
 const TABS = ['conversations', 'ai', 'reminders', 'daily'];
 const TAB_LABEL = { conversations: 'Cadernos', ai: 'IA', reminders: 'Lembretes', daily: 'Diária' };
 
+// As três páginas do seletor, na ordem da tabbar: é este conjunto — e só
+// este — que o arrasto percorre.
+//
+// Antes ele andava por TABS, que inclui 'ai' e 'reminders'. Duas abas que
+// não têm botão no `.page-switcher` nem na tabbar: o arrasto levava para
+// telas que o usuário não vê listadas em lugar nenhum, e o Tarefas — que
+// tem botão — ficava fora do alcance do gesto.
+//
+// Os valores são os de `data-page`, os mesmos de `.page-switch` e
+// `.tabbar-btn`, então os três caminhos falam a mesma língua.
+const SWIPE_PAGES = ['notes', 'tasks', 'daily'];
+const SWIPE_LABEL = { notes: 'Cadernos', tasks: 'Tarefas', daily: 'Diária' };
+
 export const WorkspaceMethods = {
   bindWorkspace() {
     // Navegação de páginas: seletor da sidebar do explorador (Cadernos | Tarefas | Diária)
     document.querySelectorAll('.page-switch').forEach((button) => {
-      button.addEventListener('click', () => {
-        const page = button.dataset.page;
-        if (page === 'notes') {
-          this.showWorkspaceTab('conversations');
-          const app = document.getElementById('app');
-          if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
-        } else if (page === 'tasks') {
-          // Tarefas é a visão "Pendências" (tasks.js) — a mesma página que o
-          // botão #explorer-tasks abria, agora com aba própria na barra.
-          this.showTasksPage();
-        } else {
-          this.showWorkspaceTab(page);
-        }
-      });
+      button.addEventListener('click', () => this.openWorkspacePage(button.dataset.page));
     });
     // Tabbar inferior (mobile): MESMA ação dos `.page-switch`, sem lógica
     // duplicada. Ela só é um atalho de 1 toque — o estado ativo é
     // sincronizado a partir do `.page-switch` da sidebar (que é a fonte
     // única), então não há como as duas divergirem.
     document.querySelectorAll('.tabbar-btn').forEach((button) => {
-      button.addEventListener('click', () => {
-        const page = button.dataset.page;
-        if (page === 'notes') {
-          this.showWorkspaceTab('conversations');
-          const app = document.getElementById('app');
-          if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
-        } else if (page === 'tasks') {
-          // mesma ação do seletor da sidebar — fonte única
-          this.showTasksPage();
-        } else {
-          this.showWorkspaceTab(page);
-        }
-      });
+      button.addEventListener('click', () => this.openWorkspacePage(button.dataset.page));
     });
     // teclado no seletor (role=tab): setas movem, Home/End atalhos
     const tablist = document.querySelector('.page-switcher');
     if (tablist) tablist.addEventListener('keydown', (e) => {
-      const idx = TABS.indexOf(this._workspaceTab || 'conversations');
+      // Um role=tablist navega entre as PRÓPRIAS abas. As setas percorriam
+      // TABS (conversations | ai | reminders | daily), mas o seletor só tem
+      // três botões — Cadernos, Tarefas e Diária. 'ai' e 'reminders' não têm
+      // botão, então a seta caía numa página sem aba acesa e o focus() apontava
+      // para um seletor inexistente. Usa o mesmo conjunto do arrasto.
+      const idx = SWIPE_PAGES.indexOf(this._currentSwipePage());
       let next = null;
-      if (e.key === 'ArrowRight') next = TABS[(idx + 1) % TABS.length];
-      else if (e.key === 'ArrowLeft') next = TABS[(idx - 1 + TABS.length) % TABS.length];
-      else if (e.key === 'Home') next = TABS[0];
-      else if (e.key === 'End') next = TABS[TABS.length - 1];
-      if (next) { e.preventDefault(); this.showWorkspaceTab(next); document.querySelector(`.page-switch[data-page="${next === 'conversations' ? 'notes' : next}"]`)?.focus(); }
+      if (e.key === 'ArrowRight') next = SWIPE_PAGES[(idx + 1) % SWIPE_PAGES.length];
+      else if (e.key === 'ArrowLeft') next = SWIPE_PAGES[(idx - 1 + SWIPE_PAGES.length) % SWIPE_PAGES.length];
+      else if (e.key === 'Home') next = SWIPE_PAGES[0];
+      else if (e.key === 'End') next = SWIPE_PAGES[SWIPE_PAGES.length - 1];
+      if (next) {
+        e.preventDefault();
+        this.openWorkspacePage(next);
+        document.querySelector(`.page-switch[data-page="${next}"]`)?.focus();
+      }
     });
     // ----- IA -----
     document.getElementById('ai-key')?.addEventListener('change', (event) => {
@@ -185,6 +182,78 @@ export const WorkspaceMethods = {
     this.syncExplorerChrome(); // botão de Lembretes acende só na aba Lembretes
   },
 
+  // ---------- Fonte única das três páginas ----------
+  //
+  // `.page-switch` (sidebar), `.tabbar-btn` (mobile) e o arrasto chamam ESTE
+  // método. O mapeamento page → ação fica escrito uma vez só, então os três
+  // caminhos não podem divergir — o Tarefas em especial é a página que não
+  // passa por showWorkspaceTab (ela define `_workspaceTab` direto, porque
+  // showWorkspaceTab só conhece TABS, que não tem 'tasks').
+  openWorkspacePage(page) {
+    if (page === 'notes') {
+      this.showWorkspaceTab('conversations');
+      // Cadernos no celular é o explorador: garante que a sidebar volte
+      // para a frente, mesmo vindo de uma conversa aberta.
+      const app = document.getElementById('app');
+      if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+    } else if (page === 'tasks') {
+      // Tarefas é a visão "Pendências" (tasks.js) — a mesma página que o
+      // botão #explorer-tasks abria, agora com aba própria na barra.
+      this.showTasksPage();
+    } else {
+      this.showWorkspaceTab(page);
+    }
+  },
+
+  // ---------- Portão do arrasto ----------
+  //
+  // O arrasto entre páginas só faz sentido no explorador. Com uma conversa
+  // aberta na tela, o gesto horizontal já tem outro dono: ele abre
+  // (esquerda) ou fecha (direita) a conversa.
+  //
+  // `activeThread` sozinho NÃO serve como teste: ele continua preenchido
+  // depois que o usuário volta para o explorador — é o mesmo estado que
+  // travava a reabertura da conversa (messages.js openThread). Por isso o
+  // teste é se a conversa está DE FATO na tela.
+  conversationOnScreen() {
+    // fora da aba Conversas nada de conversa está na tela, mesmo com
+    // activeThread preenchido: em Tarefas/Diária/IA o arrasto é livre.
+    if ((this._workspaceTab || 'conversations') !== 'conversations') return false;
+    const msgs = document.getElementById('messages');
+    if (msgs && msgs.classList.contains('hidden')) return false;
+    if (!window.matchMedia('(max-width: 760px)').matches) return !!this.activeThread;
+    const app = document.getElementById('app');
+    return !!(this.activeThread && app && app.classList.contains('show-chat'));
+  },
+
+  // Qual das três páginas está na tela agora. `_workspaceTab` guarda o
+  // identificador interno, que nem sempre é o nome do botão: 'conversations'
+  // é o botão "notes", e 'ai'/'reminders' não são botões.
+  _currentSwipePage() {
+    const tab = this._workspaceTab || 'conversations';
+    if (tab === 'tasks' || tab === 'daily') return tab;
+    // Cadernos, IA e Lembretes: a página do arrasto é Cadernos. Quem estava
+    // na IA/Lembretes e arrasta volta para o explorador, que é o destino
+    // natural (e o botão aceso no seletor).
+    return 'notes';
+  },
+
+  _nextSwipePage(direction) {
+    const i = SWIPE_PAGES.indexOf(this._currentSwipePage());
+    const n = SWIPE_PAGES[i + direction];
+    return n || null;
+  },
+
+  // O arrasto entre páginas tem a prioridade sobre o de abrir/fechar
+  // conversa. Os dois escutam touchend no document, e o mesmo gesto não pode
+  // voltar para o explorador E trocar de página ao mesmo tempo. Vale quando
+  // não há conversa na tela — aí o gesto "abrir conversa" (esquerda) não faz
+  // sentido, porque o canvas já está visível.
+  workspaceSwipeOwns(dx) {
+    if (this.conversationOnScreen()) return false;
+    return !!this._nextSwipePage(dx < 0 ? 1 : -1);
+  },
+
   // ---------- Swipe como atalho + carrossel temporário (feedback) ----------
 
   _bindWorkspaceSwipe() {
@@ -194,10 +263,9 @@ export const WorkspaceMethods = {
     const hiddenHint = () => hint && !hint.classList.contains('hidden');
     const showHint = (dir, progress) => {
       if (!hint) return;
-      const idx = TABS.indexOf(this._workspaceTab || 'conversations');
-      const next = TABS[idx + dir];
+      const next = this._nextSwipePage(dir);
       if (!next) { hint.classList.add('hidden'); return; }
-      hint.innerHTML = `${dir > 0 ? esc(TAB_LABEL[TABS[idx]]) : ''}<span class="wsh-target">${esc(TAB_LABEL[next])}</span>${dir < 0 ? esc(TAB_LABEL[TABS[idx]]) : ''}`;
+      hint.innerHTML = `${dir > 0 ? esc(SWIPE_LABEL[this._currentSwipePage()]) : ''}<span class="wsh-target">${esc(SWIPE_LABEL[next])}</span>${dir < 0 ? esc(SWIPE_LABEL[this._currentSwipePage()]) : ''}`;
       hint.classList.remove('hidden');
       hint.style.setProperty('--wsh-progress', String(Math.min(1, progress)));
     };
@@ -206,7 +274,8 @@ export const WorkspaceMethods = {
       if (e.touches.length !== 1) return;
       const t = e.touches[0];
       sx = t.clientX; sy = t.clientY; st = Date.now();
-      armed = true;
+      // com conversa na tela o gesto é dela: nem arma o carrossel
+      armed = !this.conversationOnScreen();
     }, { passive: true });
 
     document.addEventListener('touchmove', (e) => {
@@ -245,10 +314,11 @@ export const WorkspaceMethods = {
   },
 
   workspaceSwipe(direction) {
-    const index = TABS.indexOf(this._workspaceTab || 'conversations');
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= TABS.length) return false;
-    this.showWorkspaceTab(TABS[nextIndex]);
+    const next = this._nextSwipePage(direction);
+    if (!next) return false;
+    // mesmo caminho dos botões: o arrasto não pode abrir a página de outro
+    // jeito (Tarefas não passa por showWorkspaceTab)
+    this.openWorkspacePage(next);
     return true;
   },
 
