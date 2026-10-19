@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.21.2] — 2026-10-19
 ### Corrigido
 - **A tela de abertura do sistema (Android/Chrome) pintava numa cor fria (lavanda `#f4f1fb`) antes da `#boot-splash`, que abre em tom quente.** Essa janela do sistema é desenhada a partir de `background_color` do manifest, `name` e ícone, antes de qualquer byte do `index.html`. A `background_color` estava no lavanda, que é a cor de um tema que não é o padrão (o padrão é o terracota, `#fff3ef`), então a passagem sistema → app trocava de fundo. O primeiro quadro da `#boot-splash` — instante em que `data-theme` ainda não foi aplicado pelo JS — é o `--bg` base (`#F8F5EE`); a `background_color` passou a ser exatamente esse tom. Agora a janela do sistema (fundo + ícone, que já é a mesma arte do splash, + `name` "SaveChat") encosta no `#boot-splash` sem salto de cor. Um teste em `tests/sync.test.js` amarra a `background_color` ao `--bg` de `:root` para os dois não voltarem a divergir.
 
