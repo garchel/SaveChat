@@ -19,6 +19,15 @@ describe('PWA', ()=>{
     assert.ok(m.icons.find(i=>i.src.includes('logo')));
     assert.equal(m.short_name, 'SaveChat');
   });
+  it('splash do sistema mostra só o nome, sem slogan', ()=>{
+    // Android/Chrome desenham a tela de abertura a partir de `name`. Um
+    // sufixo aqui vira texto fixo antes do #boot-splash, que já traz a
+    // tagline "Suas ideias em conversas que nunca acabam" — o usuário via
+    // duas telas de abertura, a primeira com o slogan errado.
+    const m = JSON.parse(readFileSync('public/manifest.webmanifest','utf8'));
+    assert.equal(m.name, 'SaveChat');
+    assert.equal(m.short_name, 'SaveChat');
+  });
   it('precache do SW cobre os ícones do manifest (offline/instalação em device novo)', ()=>{
     const m = JSON.parse(readFileSync('public/manifest.webmanifest','utf8'));
     const sw = readFileSync('public/sw.js','utf8');
