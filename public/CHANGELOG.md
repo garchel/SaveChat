@@ -2,6 +2,10 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## Não publicado
+### Adicionado
+- **Transcrição das mensagens de voz na conversa.** Cada bolha de áudio ganhou uma seta discreta no rodapé: ao tocar, o app transcreve a fala e mostra o texto entre aspas ali mesmo. A transcrição fica guardada na própria nota (acompanha os outros aparelhos) e usa o provedor de IA do assistente; sem sessão, vale a chave pessoal configurada em **Configurar IA**.
+
 ## [1.22.0] — 2026-10-19
 ### Adicionado
 - **O assistente de IA agora funciona sem cada pessoa colar uma chave.** Antes o campo de chave era obrigatório e a IA só respondia com a chave pessoal do Google AI Studio. Agora o app tem um provedor compartilhado: o cliente envia o pedido e a sessão do Supabase para `/api/ai`, uma função na Vercel que valida o login e chama o Gemini com a chave do projeto (`GEMINI_API_KEY`), que nunca chega ao navegador. Quem configurou a própria chave continua usando o caminho direto (BYOK).

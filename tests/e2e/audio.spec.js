@@ -114,6 +114,84 @@ test.describe('mensagem de voz', () => {
     await expect(page.locator('.va-dur')).toHaveText('0:07');
   });
 
+  test('transcrição guardada: a seta abre e fecha o texto entre aspas', async ({ page }) => {
+    await page.addInitScript((a) => {
+      localStorage.setItem('notethread.v2', JSON.stringify({
+        user: { name: 'Paulo', mail: 'paulo@test.com', provider: 'email' },
+        threads: { t1: { id: 't1', name: 'Voz', folderId: null, created: Date.now() - 1000 } },
+        folders: {},
+        notes: { t1: [{
+          clientId: 'a3', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000,
+          images: [], audio: Object.assign({}, a, { transcript: 'comprar pão e café' }),
+        }] },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
+      }));
+    }, AUDIO);
+
+    await page.goto('/');
+    await page.waitForTimeout(2000);
+    await page.locator('.tnode[data-tid="t1"]').first().click();
+    await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
+
+    // começa fechada, com a seta (não um texto solto)
+    const toggle = page.locator('.va-tr-toggle');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('.va-transcript')).toBeHidden();
+
+    // a seta fica no rodapé e CENTRALIZADA na bolha
+    const row = await page.locator('.va-row').boundingBox();
+    const arrow = await toggle.boundingBox();
+    expect(arrow.y, 'a seta deve ficar abaixo do player').toBeGreaterThanOrEqual(row.y + row.height - 1);
+    expect(Math.abs((arrow.x + arrow.width / 2) - (row.x + row.width / 2)),
+      'a seta deve ficar no centro horizontal').toBeLessThan(2);
+
+    await toggle.click();
+    await expect(page.locator('.va-transcript')).toBeVisible();
+    await expect(page.locator('.va-transcript')).toHaveText('“comprar pão e café”');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await toggle.click();
+    await expect(page.locator('.va-transcript')).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('sem transcrição: transcreve no clique (BYOK) e mostra entre aspas', async ({ page, context }) => {
+    await context.route('**/audio/fala.webm', (route) =>
+      route.fulfill({ status: 200, contentType: 'audio/wav', body: Buffer.from(WAV, 'base64') }));
+
+    let pedido = null;
+    await context.route('https://generativelanguage.googleapis.com/**', (route) => {
+      pedido = JSON.parse(route.request().postData() || '{}');
+      return route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'fala transcrita' }] } }] }),
+      });
+    });
+
+    await page.addInitScript((a) => {
+      localStorage.setItem('notethread.v2', JSON.stringify({
+        user: { name: 'Paulo', mail: 'paulo@test.com', provider: 'email' },
+        threads: { t1: { id: 't1', name: 'Voz', folderId: null, created: Date.now() - 1000 } },
+        folders: {},
+        notes: { t1: [{
+          clientId: 'a4', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000,
+          images: [], audio: a,
+        }] },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false }, aiKey: 'chave-e2e' },
+      }));
+    }, AUDIO);
+
+    await page.goto('/');
+    await page.waitForTimeout(2000);
+    await page.locator('.tnode[data-tid="t1"]').first().click();
+    await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
+
+    await page.locator('.va-tr-toggle').click();
+    await expect(page.locator('.va-transcript')).toHaveText('“fala transcrita”', { timeout: 15000 });
+    expect(pedido).toBeTruthy();
+    expect(pedido.generationConfig.thinkingConfig.thinkingBudget).toBe(0);
+  });
+
   test('peaks ausentes: o player calcula o waveform decodificando o audio', async ({ page, context }) => {
     // nota SEM peaks (ex.: gravada antes desta feature) -> barra esqueleto,
     // e o player tenta recalcular os picos buscando a URL.
