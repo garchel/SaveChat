@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.21.1] — 2026-10-19
 ### Corrigido
 - **No celular, o app abria com uma tela indesejada escrita "SaveChat — Notas em threads".** Essa tela não é HTML: o Android/Chrome a desenham a partir do campo `name` do manifest, antes de qualquer byte do `index.html` ser renderizado — por isso ela aparecia antes do `#boot-splash`, que é a abertura de verdade (logo, nome e a tagline "Suas ideias em conversas que nunca acabam"). O `name` do manifest passou a ser apenas "SaveChat", então a tela gerada pelo sistema fica só com o ícone e o nome, e a única abertura com mensagem é a do `#boot-splash`. O `background_color` (#f4f1fb) já é a cor do tema padrão (lavanda), então a passagem da tela do sistema para a do app é contínua, sem troca de fundo.
 
