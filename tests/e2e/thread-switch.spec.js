@@ -17,6 +17,7 @@ const seed = {
   threads: {
     t1: { id: 't1', name: 'Conversa A', folderId: null, created: T0 - 90000 },
     t2: { id: 't2', name: 'Conversa B', folderId: null, created: T0 - 80000 },
+    t3: { id: 't3', name: 'Conversa vazia', folderId: null, created: T0 - 70000 },
   },
   folders: {},
   notes: {
@@ -28,6 +29,8 @@ const seed = {
       { clientId: 'b1', threadId: 't2', user: 'me', text: 'BRAVO-1', ts: T0 - 40000 },
       { clientId: 'b2', threadId: 't2', user: 'me', text: 'BRAVO-2', ts: T0 - 30000 },
     ],
+    // t3 existe e não tem nota nenhuma — é a conversa vazia do sintoma
+    t3: [],
   },
   ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false, volume: 0.5, map: {} } },
 };
@@ -107,4 +110,58 @@ test('o dia separador também não sobrevive à troca de conversa', async ({ pag
   // o separador criado por A não pode sobreviver: B é de um dia só
   const sepsB = await page.locator('#messages .day-sep-wrap').count();
   expect(sepsB, 'o separador de A vazou para B').toBe(0);
+});
+
+// Abrir uma conversa VAZIA depois de uma com conteúdo.
+//
+// O renderMessages tem dois caminhos de limpeza. O do reset (com conteúdo)
+// apaga `.bubble, .day-sep-wrap, .day-sep`. O da conversa sem nenhuma nota
+// apagava SÓ os separadores de dia — as bolhas ficavam dentro de #messages.
+// Como o #empty-state é `margin: auto` (flex child centralizado), ele
+// aparecia no meio das bolhas antigas em vez de substituí-las: dava para ver
+// a conversa anterior "por baixo" do estado vazio.
+test('abrir uma conversa vazia limpa as bolhas da conversa anterior', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+
+  await page.locator('.tnode[data-tid="t1"]').first().click();
+  await expect(page.locator('#chat-name')).toHaveText('Conversa A');
+  await expect(bolhas(page)).toHaveCount(2);
+  expect((await textos(page)).join('|')).toContain('ALFA-1');
+
+  // agora uma conversa que não tem nota nenhuma
+  await page.locator('.tnode[data-tid="t3"]').first().click();
+  await expect(page.locator('#chat-name')).toHaveText('Conversa vazia');
+
+  // o estado vazio aparece...
+  await expect(page.locator('#empty-state')).toBeVisible();
+  // ...e nenhuma bolha da conversa anterior sobreviveu
+  await expect(bolhas(page)).toHaveCount(0);
+  expect(await page.locator('#messages .bubble').count()).toBe(0);
+
+  // e voltando para A, ela volta inteira
+  await page.locator('.tnode[data-tid="t1"]').first().click();
+  await expect(bolhas(page)).toHaveCount(2);
+  expect((await textos(page)).join('|')).toContain('ALFA-1');
+});
+
+test('vazio -> vazio -> com conteúdo não empilha bolhas', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(1500);
+
+  await page.locator('.tnode[data-tid="t2"]').first().click();
+  await expect(bolhas(page)).toHaveCount(2);
+
+  await page.locator('.tnode[data-tid="t3"]').first().click();
+  await expect(page.locator('#empty-state')).toBeVisible();
+  await expect(bolhas(page)).toHaveCount(0);
+
+  await page.locator('.tnode[data-tid="t3"]').first().click();
+  await expect(bolhas(page)).toHaveCount(0);
+
+  await page.locator('.tnode[data-tid="t2"]').first().click();
+  await expect(bolhas(page)).toHaveCount(2);
+  const t = (await textos(page)).join('|');
+  expect(t).toContain('BRAVO-1');
+  expect(t).not.toContain('ALFA-');
 });
