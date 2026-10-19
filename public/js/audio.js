@@ -93,13 +93,22 @@ function audioHtml(n) {
     // os picos ao carregar e repinta as barrinhas sem mexer no resto.
     : Array.from({ length: WAVE_BARS }, (_, i) => `<i class="va-bar" data-i="${i}" style="--h:${28 + ((i * 7) % 34)}%"></i>`).join('');
 
+  // a seta de transcrição vive no rodapé CENTRAL da bolha: só a ponta (chevron),
+  // sem haste. O texto entra entre aspas logo abaixo quando o usuário abre.
+  const trId = n.clientId ? `va-tr-${esc(n.clientId)}` : '';
+  const trAttr = trId ? ` id="${trId}"` : '';
+
   return `<div class="vaudio" data-dur="${dur}">
-    <button type="button" class="va-play" aria-label="Reproduzir áudio">${wrapSvg(ICON.play, 15)}</button>
-    <div class="va-mid">
-      <div class="va-wave" role="presentation">${bars}</div>
-      <div class="va-time"><span class="va-elapsed">0:00</span> <span class="va-dur">${fmtDur(dur)}</span></div>
+    <div class="va-row">
+      <button type="button" class="va-play" aria-label="Reproduzir áudio">${wrapSvg(ICON.play, 15)}</button>
+      <div class="va-mid">
+        <div class="va-wave" role="presentation">${bars}</div>
+        <div class="va-time"><span class="va-elapsed">0:00</span> <span class="va-dur">${fmtDur(dur)}</span></div>
+      </div>
+      <span class="va-who" title="${esc(name)}">${photo}<span class="va-name">${esc(name)}</span></span>
     </div>
-    <span class="va-who" title="${esc(name)}">${photo}<span class="va-name">${esc(name)}</span></span>
+    <button type="button" class="va-tr-toggle" aria-label="Mostrar transcrição" aria-expanded="false" title="Transcrição"${trId ? ` aria-controls="${trId}"` : ''}>${wrapSvg(ICON.chevron, 14)}</button>
+    <p class="va-transcript"${trAttr} hidden></p>
   </div>`;
 }
 
@@ -117,7 +126,7 @@ function sharedAudio() {
   return shared;
 }
 
-export function bindAudioPlayer(rootEl, note) {
+export function bindAudioPlayer(rootEl, note, opts = {}) {
   const box = rootEl && rootEl.querySelector('.vaudio');
   if (!box || box._bound) return;
   box._bound = true;
@@ -125,6 +134,7 @@ export function bindAudioPlayer(rootEl, note) {
   const btn = box.querySelector('.va-play');
   const wave = box.querySelector('.va-wave');
   const elapsed = box.querySelector('.va-elapsed');
+  const trBtn = box.querySelector('.va-tr-toggle');
   const audio = sharedAudio();
 
   // peaks ausentes: calcula na hora (nota antiga, ou o waveform ainda não foi
@@ -196,6 +206,15 @@ export function bindAudioPlayer(rootEl, note) {
     const d = audio.duration || Number(a.dur) || 0;
     audio.currentTime = (i + 0.5) * (d / wave.querySelectorAll('.va-bar').length);
   });
+
+  // a transcrição (carregar/salvar) fica no módulo de mensagens, que tem
+  // Store/Sync/toast; o player só entrega o clique.
+  if (trBtn) {
+    trBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (typeof opts.onTranscript === 'function') opts.onTranscript(box, note);
+    });
+  }
 }
 
 export { audioHtml };

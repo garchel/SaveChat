@@ -1015,9 +1015,10 @@
    WhatsApp. As cores vêm do bubble (color: inherit / accent), então o
    player acompanha o tema e o lado (minha nota / nota remota) sem regra extra. */
 .vaudio {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: stretch;
   min-width: 232px; max-width: 320px; padding: 2px 0 4px;
 }
+.va-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .va-play {
   flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
   border: none; display: grid; place-items: center; cursor: pointer;
@@ -1084,6 +1085,28 @@
   font-size: 12px; font-weight: 700; opacity: .8;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* Transcrição (v1.22.x): seta discreta no rodapé central, só a ponta do
+   chevron. Ao abrir, gira 180° e o texto aparece entre aspas. */
+.va-tr-toggle {
+  align-self: center; width: 28px; height: 18px; margin-top: 1px;
+  padding: 0; border: none; border-radius: 9px;
+  display: grid; place-items: center;
+  background: transparent; color: inherit; opacity: .5;
+  cursor: pointer; transition: opacity .15s, transform .15s;
+}
+.va-tr-toggle:hover { opacity: .9; }
+.va-tr-toggle:active { transform: scale(.92); }
+.va-tr-toggle svg { transition: transform .18s ease; }
+.vaudio.tr-open .va-tr-toggle svg { transform: rotate(180deg); }
+.vaudio.tr-loading .va-tr-toggle { opacity: .3; cursor: progress; }
+.va-transcript {
+  margin: 2px 2px 1px; padding: 0 2px;
+  font-size: 12.5px; line-height: 1.45; letter-spacing: .1px;
+  opacity: .85; overflow-wrap: anywhere;
+}
+.vaudio.tr-loading .va-transcript { opacity: .55; font-style: italic; }
+.vaudio.tr-error .va-transcript { color: var(--danger); opacity: .9; }
 
 /* bolha só de áudio não deve ter a largura mínima de texto (180px) */
 .bubble:has(.vaudio) { min-width: 0; }

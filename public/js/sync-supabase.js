@@ -323,6 +323,12 @@ import { OfflineQueue } from './offline-queue.js';
         await this.supa.from('notes').delete().eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'note:edit') {
         await this.supa.from('notes').update({ text: payload.text, edited: payload.edited !== undefined ? !!payload.edited : true, edited_at: payload.editedAt, rev: payload.rev }).eq('client_id', payload.clientId).eq('user_id', uid);
+      } else if (type === 'note:transcript') {
+        // atualiza só a coluna audio (a transcrição vive dentro do JSON da nota);
+        // não reescreve texto/tags/rev — evita corrida com uma edição concorrente
+        const res = await this.supa.from('notes').update({ audio: payload.audio || null }).eq('client_id', payload.clientId).eq('user_id', uid);
+        // servidor sem a migração de audio (42703): não enfileira retry infinito
+        if (res.error && !(res.error.code === '42703' || /audio/i.test(res.error.message || ''))) throw res.error;
       } else if (type === 'note:tags') {
         await this.supa.from('notes').update({ tags: payload.tags }).eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'note:pin') {
