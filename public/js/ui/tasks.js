@@ -63,11 +63,10 @@ export const TasksMethods = {
     document.getElementById('daily-page')?.classList.add('hidden');
     page.classList.remove('hidden');
     this.setChatActiveUi(true);
-    // A aba "Tarefas" da barra é a entrada desta página, então ela precisa
-    // acender aqui — senão abrir por outro caminho deixa a barra sem item
+    // A aba "Tarefas" do seletor é a entrada desta página, então ela precisa
+    // acender aqui — senão abrir por outro caminho deixa o seletor sem item
     // ativo. `syncExplorerChrome` só cuida dos botões da marca, não do
-    // seletor de páginas. Marcada ANTES do syncExplorerChrome/_syncTabbar,
-    // porque o tabbar lê o estado do `.page-switch`.
+    // seletor de páginas.
     document.querySelectorAll('.page-switch').forEach((button) => {
       const active = button.dataset.page === 'tasks';
       button.classList.toggle('active', active);
@@ -85,10 +84,9 @@ export const TasksMethods = {
     // está na tela quando o usuário está em Tarefas.
     this._workspaceTab = 'tasks';
     // No celular o canvas precisa ficar à frente da sidebar. Sem isto a página
-    // de Tarefas abria "por baixo" e a tabbar ficava com o estado antigo —
-    // era a única das três abas que não revelava o canvas (as outras passam
-    // por showWorkspaceTab, que já faz isso). Também RE-SINCRONIZA a tabbar
-    // depois do show-chat, senão `_syncTabbar` mediu o momento errado.
+    // de Tarefas abria "por trás" da sidebar, com o cabeçalho 8px fora de
+    // posição — era a única das três abas que não revelava o canvas (as
+    // outras passam por showWorkspaceTab, que já faz isso).
     this._mobileRevealCanvas();
     this.syncExplorerChrome();
   },
