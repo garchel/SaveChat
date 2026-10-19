@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.21.0] — 2026-10-19
 ### Removido
 - **A barra inferior de navegação (Cadernos | Tarefas | Diária no rodapé, acima do campo de escrita) foi removida.** Ela ficava fixa sobre o rodapé e ocupava espaço permanente do celular para repetir o que o seletor de páginas da sidebar e o arrasto horizontal já fazem. Sem ela, a troca de páginas é o seletor da sidebar (na lista de conversas) e o arrasto horizontal (com o canvas à frente). O CSS da `.tabbar`, o `_syncTabbar()` que a mantinha em sincronia e o binding dos `.tabbar-btn` saíram junto; o `padding-bottom` do composer com `env(safe-area-inset-bottom)` fica, porque ele protege a área de gestos do iPhone e não tinha relação com a barra.
 ### Adicionado
