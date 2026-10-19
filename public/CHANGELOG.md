@@ -2,6 +2,10 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## [1.21.1] — 2026-10-19
+### Corrigido
+- **No celular, o app abria com uma tela indesejada escrita "SaveChat — Notas em threads".** Essa tela não é HTML: o Android/Chrome a desenham a partir do campo `name` do manifest, antes de qualquer byte do `index.html` ser renderizado — por isso ela aparecia antes do `#boot-splash`, que é a abertura de verdade (logo, nome e a tagline "Suas ideias em conversas que nunca acabam"). O `name` do manifest passou a ser apenas "SaveChat", então a tela gerada pelo sistema fica só com o ícone e o nome, e a única abertura com mensagem é a do `#boot-splash`. O `background_color` (#f4f1fb) já é a cor do tema padrão (lavanda), então a passagem da tela do sistema para a do app é contínua, sem troca de fundo.
+
 ## [1.21.0] — 2026-10-19
 ### Removido
 - **A barra inferior de navegação (Cadernos | Tarefas | Diária no rodapé, acima do campo de escrita) foi removida.** Ela ficava fixa sobre o rodapé e ocupava espaço permanente do celular para repetir o que o seletor de páginas da sidebar e o arrasto horizontal já fazem. Sem ela, a troca de páginas é o seletor da sidebar (na lista de conversas) e o arrasto horizontal (com o canvas à frente). O CSS da `.tabbar`, o `_syncTabbar()` que a mantinha em sincronia e o binding dos `.tabbar-btn` saíram junto; o `padding-bottom` do composer com `env(safe-area-inset-bottom)` fica, porque ele protege a área de gestos do iPhone e não tinha relação com a barra.
