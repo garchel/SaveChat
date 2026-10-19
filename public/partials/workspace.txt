@@ -49,9 +49,9 @@
           <div class="ai-controls">
             <details class="ai-settings">
               <summary>Configurar IA <span aria-hidden="true">⌄</span></summary>
-              <label for="ai-key">Chave da API Gemini</label>
-              <input id="ai-key" type="password" autocomplete="off" placeholder="Cole sua chave do Google AI Studio" />
-              <small>A chave fica somente neste dispositivo e não é sincronizada. A IA lê suas notas recentes e pode criar notas quando você pedir.</small>
+              <label for="ai-key">Chave da API Gemini (opcional)</label>
+              <input id="ai-key" type="password" autocomplete="off" placeholder="Opcional — cole sua chave do Google AI Studio" />
+              <small>O app já vem com a IA configurada. A chave acima só é necessária se você quiser usar a sua própria cota. Sua chave fica somente neste dispositivo e não é sincronizada. A IA lê suas notas recentes e pode criar notas quando você pedir.</small>
             </details>
             <div id="ai-rec-status" class="ai-rec-status hidden" aria-live="polite">
               <span class="ai-rec-dot" aria-hidden="true"></span>
