@@ -6,7 +6,7 @@ import { Store } from '../store.js';
 import { ICON, wrapSvg } from '../icons.js';
 import { esc, haptic, now } from '../utils.js';
 import { mascotFromStore } from '../mascot.js';
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-3.6-flash';
 // TABS: as páginas do workspace. 'reminders' não tem mais aba própria
 // (v1.12.0) — a lista é a mesma das Pendências e o header troca entre
 // elas, então a entrada continua existindo só para o toggle do explorer.
