@@ -7,7 +7,17 @@ import { now, esc, $, PAGE_SIZE } from '../utils.js';
 
 export const MessagesMethods = {
     openThread(id) {
-      if (this.activeThread === id) return;
+      // Atalho para não re-renderizar a conversa que já está em tela. Só vale
+      // enquanto ela está DE FATO visível: no celular o gesto de volta (goBack)
+      // apenas tira a classe `show-chat` da .app e deixa `activeThread`
+      // apontando para a conversa — sem esta checagem, clicar nela de novo
+      // caía no return e o clique morria ali, sem reabrir nada.
+      // No desktop `show-chat` é inerte (04-responsive.css só a usa dentro de
+      // max-width: 760px), então o atalho continua valendo.
+      const app = $('#app');
+      const visivel = !window.matchMedia('(max-width: 760px)').matches
+        || !!(app && app.classList.contains('show-chat'));
+      if (this.activeThread === id && visivel) return;
       this.activeThread = id;
       this.renderedClientIds = new Set();
       this.oldestTs = null; this.oldestKey = null; this.loading = false;

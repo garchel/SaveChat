@@ -2,6 +2,11 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## Não publicado
+### Corrigido
+- No celular, **abrir a conversa, voltar e clicar nela de novo não reabria nada**: o clique era engolido. O `openThread` começava com `if (this.activeThread === id) return`, um atalho para não re-renderizar a conversa que já está na tela — mas o gesto de volta (`goBack`) só remove a classe `show-chat` da `.app` e deixa `activeThread` apontando para a conversa, então o atalho disparava com a conversa escondida e o `return` matava o clique. O atalho agora só vale quando a conversa está de fato visível. No desktop `show-chat` é inerte (04-responsive.css só a usa dentro de `max-width: 760px`), então a otimização continua valendo lá, sem re-render.
+- O mesmo atalho travava a saída das abas do workspace: `showWorkspaceTab` também remove `show-chat` no mobile, então voltar de IA/Diária/Lembretes/Busca e clicar na conversa aberta ficava sem efeito. A correção é a mesma e cobre os dois caminhos.
+
 ## [1.20.0] — 2026-10-16
 ### Adicionado
 - Mascote da IA configurável, no botão **Mascote** do menu do perfil: nome, cor do corpo, cor da sombra, cor dos olhos, cor dos acessórios, silhueta (6 formas), olhos (7), boca (4), bochechas e acessórios (12, de orelhas a coroa). Um preview fixo no topo do painel mostra o resultado na hora, e a escolha vale ao mesmo tempo no item da barra lateral, no estado vazio da página da IA e no indicador "Pensando…". Cor vazia = herda a cor do tema.
