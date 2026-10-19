@@ -8,6 +8,7 @@ import { renderMarkdown } from '../markdown.js';
 import { ICON, wrapSvg } from '../icons.js';
 import { burstConfetti } from '../confetti.js';
 import { audioHtml, bindAudioPlayer } from '../audio.js';
+import { transcribeAudio } from '../transcribe.js';
 
 export const MessagesBubbleMethods = {
     bubbleEl(n, opts) {
@@ -82,7 +83,7 @@ export const MessagesBubbleMethods = {
       div.addEventListener('drop', (e) => this.onDrop(e, n));
       div.addEventListener('dragend', () => this.onDragEnd());
       // player de audio (um <audio> compartilhado, play/pause sem recriar o elemento)
-      if (vaudio) bindAudioPlayer(div, n);
+      if (vaudio) bindAudioPlayer(div, n, { onTranscript: (box, note) => this.toggleVoiceTranscript(box, note) });
       // Lightbox: clicar na imagem abre em tela cheia
       div.querySelectorAll('.bubble-img').forEach((img) => {
         img.style.cursor = 'zoom-in';
@@ -121,6 +122,62 @@ export const MessagesBubbleMethods = {
       });
 
       return div;
+    },
+
+    // ---------- Transcrição da mensagem de voz ----------
+    // Abre/fecha o texto transcrito. A transcrição é feita sob demanda (só no
+    // primeiro clique) e fica guardada em `audio.transcript` da própria nota:
+    // não paga o modelo de novo e acompanha a nota nos outros aparelhos.
+    async toggleVoiceTranscript(box, note) {
+      const tr = box.querySelector('.va-transcript');
+      const btn = box.querySelector('.va-tr-toggle');
+      if (!tr || !btn) return;
+      if (box.classList.contains('tr-open')) { this._hideVoiceTranscript(box, tr, btn); return; }
+      if (box.classList.contains('tr-loading')) return;
+
+      // o `note` capturado no render pode estar velho (transcrição chegou de
+      // outro aparelho): a Store é a fonte de verdade
+      const latest = (Store.notesFor(note.threadId) || []).find((x) => x.clientId === note.clientId) || note;
+      const saved = latest.audio && latest.audio.transcript;
+      if (saved) { this._showVoiceTranscript(box, tr, btn, saved); return; }
+
+      box.classList.add('tr-loading'); box.classList.remove('tr-error');
+      btn.disabled = true;
+      tr.hidden = false; tr.textContent = 'Transcrevendo…';
+      try {
+        const key = (Store.data.ui && Store.data.ui.aiKey) || '';
+        const text = await transcribeAudio(latest.audio.url, { key, mime: latest.audio.mime });
+        latest.audio = Object.assign({}, latest.audio, { transcript: text });
+        Store.upsertNote(latest);
+        // evento próprio: atualiza só a coluna `audio`, sem reescrever a nota
+        Sync.send('note:transcript', { threadId: latest.threadId, clientId: latest.clientId, audio: latest.audio });
+        this._showVoiceTranscript(box, tr, btn, text);
+      } catch (err) {
+        const msg = (err && err.message) || 'Não foi possível transcrever este áudio.';
+        box.classList.add('tr-error');
+        tr.textContent = msg;
+        this.toast(msg, { kind: 'error', duration: 5000 });
+      } finally {
+        box.classList.remove('tr-loading');
+        btn.disabled = false;
+      }
+    },
+
+    _showVoiceTranscript(box, tr, btn, text) {
+      tr.textContent = `“${text}”`;
+      tr.hidden = false;
+      box.classList.add('tr-open'); box.classList.remove('tr-error');
+      btn.setAttribute('aria-expanded', 'true');
+      btn.setAttribute('aria-label', 'Ocultar transcrição');
+      btn.title = 'Ocultar transcrição';
+    },
+
+    _hideVoiceTranscript(box, tr, btn) {
+      box.classList.remove('tr-open');
+      tr.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Mostrar transcrição');
+      btn.title = 'Transcrição';
     },
 
     // ---------- Copy cozy: frases variadas no empty state ----------
