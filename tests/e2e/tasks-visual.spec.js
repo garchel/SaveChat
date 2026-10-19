@@ -236,29 +236,38 @@ test.describe('no celular', () => {
     expect((rr + gg + bb) / 3).toBeLessThan(128);
   });
 
-  // No celular as tres abas precisam se comportar igual: revelam o canvas e
-  // mantem a tabbar visivel. `showTasksPage()` nao chamava
-  // `_mobileRevealCanvas()` (as outras abas passam por showWorkspaceTab, que ja
-  // faz), entao Tarefas abria "por tras" da sidebar e sem tabbar - era a
-  // pagina com o formato diferente, e nao a Diaria.
-  test('tarefas revela o canvas e mantem a tabbar como as outras abas', async ({ page }) => {
+  // No celular as tres abas precisam se comportar igual: revelam o canvas e a
+  // pagina ativa ocupa o topo. `showTasksPage()` nao chamava
+  // `_mobileRevealCanvas()` (as outras abas passam por showWorkspaceTab, que
+  // ja faz), entao Tarefas abria "por tras" da sidebar e com o conteudo
+  // deslocado - era a pagina com o formato diferente, e nao a Diaria.
+  //
+  // A tabbar foi removida do app. Nao se compara a posicao de `#chat-header`
+  // entre as abas: ele e o banner compartilhado, que tem conteudo na Diaria e
+  // fica colapsado (altura 0) em Tarefas. O que vale e o canvas e a pagina.
+  test('tarefas revela o canvas como as outras abas', async ({ page }) => {
     await page.goto('/');
     await page.waitForTimeout(1600);
 
-    const medir = () => page.evaluate(() => {
-      const tb = document.getElementById('tabbar');
+    const medir = (id) => page.evaluate((pageId) => {
+      const el = document.getElementById(pageId);
+      const r = el?.getBoundingClientRect();
       return {
         showChat: document.getElementById('app').classList.contains('show-chat'),
-        tabbarVisivel: getComputedStyle(tb).display !== 'none',
-        tabbarY: Math.round(tb.getBoundingClientRect().y),
+        // o canvas tem que estar à frente: a sidebar fora da tela
+        sidebarX: Math.round(document.querySelector('.sidebar').getBoundingClientRect().right),
+        visivel: !!el && !el.classList.contains('hidden') && !!r && r.width > 0,
+        top: r ? Math.round(r.top) : null,
       };
-    });
+    }, id);
 
     await page.click('.page-switch[data-page="tasks"]');
     await page.waitForTimeout(800);
-    const tasks = await medir();
+    const tasks = await medir('tasks-page');
     expect(tasks.showChat).toBe(true);
-    expect(tasks.tabbarVisivel).toBe(true);
+    expect(tasks.sidebarX, 'a sidebar saiu da frente do canvas').toBeLessThanOrEqual(0);
+    expect(tasks.visivel, 'a página de Tarefas está visível').toBe(true);
+    expect(tasks.top, 'Tarefas colada no topo').toBeLessThanOrEqual(12);
 
     // volta ao explorer antes de trocar de aba (com show-chat a sidebar esta
     // coberta e o .page-switch nao e clicavel)
@@ -266,10 +275,12 @@ test.describe('no celular', () => {
     await page.waitForTimeout(300);
     await page.click('.page-switch[data-page="daily"]');
     await page.waitForTimeout(800);
-    const daily = await medir();
+    const daily = await medir('daily-page');
 
     expect(daily.showChat).toBe(true);
-    expect(daily.tabbarVisivel).toBe(true);
-    expect(tasks.tabbarY).toBe(daily.tabbarY);
+    expect(daily.sidebarX, 'a sidebar saiu da frente do canvas na Diária').toBeLessThanOrEqual(0);
+    expect(daily.visivel, 'a página da Diária está visível').toBe(true);
+    // a Diária tem o banner acima, mas não fica atrás da sidebar nem deslocada
+    expect(daily.top, 'Diária dentro da tela').toBeLessThanOrEqual(80);
   });
 });

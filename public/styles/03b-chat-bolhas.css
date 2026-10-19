@@ -578,8 +578,21 @@
 }
 /* seta ▾ agora no topo: rodapé volta ao normal, meta alinhada à direita */
 .bubble {
-  min-width: 90px; /* largura mínima: mensagens curtas não esmagam status/hora */
+  /* Largura mínima: mensagens curtas não esmagam status/hora.
+     A meta é `position: absolute; right: 12px` — fora do fluxo, então ela
+     NÃO entra na largura intrínseca da bolha e o piso tem de ser medido.
+     Medido a 12px no tema peach:
+       "19:12" .................. 32px  -> com o recuo de 13px, 45px
+       "enviando…" .............. 61px  -> 74px
+       "editada 19:12" .......... 81px  -> 94px
+       "editada enviando…" ..... 109px  -> 122px  (pior caso)
+     O piso de 90px cobria só a meta curta: numa nota editada e curta a
+     bolha encolhia até 90px e o "editada" transbordava pela esquerda. */
+  min-width: 90px;
 }
+/* A meta mais larga é a da nota editada. 124px cobre o pior caso medido
+   (122px) com folga para a variação de fonte entre temas. */
+.bubble:has(.meta .edited) { min-width: 124px; }
 .bubble .meta {
   display: block; font-size: 12px;
   color: var(--bubble-meta); /* token por tema: branco puro nas bolhas claras, 70% nas escuras.

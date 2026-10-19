@@ -22,32 +22,6 @@ export const NavigationMethods = {
       };
       set('explorer-reminders', isOpen('reminders-page'));
       set('btn-notifications', isOpen('notif-popover'));
-      this._syncTabbar();
-    },
-
-    // Tabbar inferior (mobile). Fica AQUI, e não em showWorkspaceTab(),
-    // porque `.show-chat` é ligado por três caminhos diferentes
-    // (messages.js:22 ao abrir conversa, navigation.js:335 no swipe,
-    // app.js:263 no boot) e só um deles passa pelo workspace. Sincronizar
-    // no lugar que todos já chamam é o que garante que a barra apareça
-    // junto com o canvas, sem duplicar a regra em cada caminho.
-    //
-    // Regra: só no mobile E com o canvas à frente (`.show-chat`). Na lista
-    // de conversas a sidebar já está visível e a barra seria ruído.
-    // O item ativo espelha o `.page-switch` da sidebar — fonte única.
-    _syncTabbar() {
-      const tabbar = document.getElementById('tabbar');
-      if (!tabbar) return;
-      const noMobile = !window.matchMedia('(max-width: 760px)').matches;
-      const app = document.getElementById('app');
-      const noCanvas = !app?.classList.contains('show-chat');
-      tabbar.classList.toggle('hidden', noMobile || noCanvas);
-      tabbar.querySelectorAll('.tabbar-btn').forEach((btn) => {
-        // a sidebar marca 'notes' quando a aba real é 'conversations'
-        const ativo = document.querySelector(`.page-switch[data-page="${btn.dataset.page}"]`)?.classList.contains('active');
-        btn.classList.toggle('active', !!ativo);
-        btn.setAttribute('aria-current', ativo ? 'page' : 'false');
-      });
     },
 
     showSearchPage(q) {
@@ -358,6 +332,14 @@ export const NavigationMethods = {
 
         if (dt > SWIPE_TIME || Math.abs(dy) > VERTICAL_SLOP) return;
         if (Math.abs(dx) < SWIPE_THRESH) return;
+
+        // O arrasto entre páginas (Cadernos | Tarefas | Diária) e este aqui
+        // escutam touchend no mesmo document. Sem esta arbitragem o mesmo
+        // gesto voltava para o explorador E trocava de página ao mesmo tempo.
+        // Quem decide primeiro é o de workspace: quando não há conversa na
+        // tela o gesto é dele, e o da conversa não tem o que fazer — abrir
+        // uma conversa que já está visível não faria sentido.
+        if (typeof this.workspaceSwipeOwns === 'function' && this.workspaceSwipeOwns(dx)) return;
 
         // arrastar para a DIREITA = voltar, em qualquer tela
         if (dx > 0) { this.goBack(); return; }
