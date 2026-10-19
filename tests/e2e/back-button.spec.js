@@ -12,40 +12,41 @@ import { test, expect } from '@playwright/test';
 //
 // Este teste usa page.goBack(), que dispara o mesmo popstate que o botão
 // do aparelho dispara.
+const vis = (page, id) => page.evaluate(i => {
+  const e = document.getElementById(i);
+  return !!e && !e.classList.contains('hidden');
+}, id);
+const showChat = (page) => page.evaluate(() =>
+  document.getElementById('app').classList.contains('show-chat'));
+// o aviso é .app-toast com a classe .show (medido: é o que toast() renderiza)
+const toastAvisou = (page) => page.evaluate(() => {
+  const t = document.querySelector('.app-toast');
+  return !!t && t.classList.contains('show') && /lista de conversas/.test(t.textContent || '');
+});
+
+// no escopo do arquivo: os dois describes (back e reabrir) usam a mesma semente
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await page.waitForTimeout(1200);
+  await page.evaluate(async () => {
+    const { Store } = await import('/js/store.js');
+    Store.load();
+    Store.setUser({ name: 'Ana', mail: 'ana@note.app' });
+    // nome de mascote já definido: sem isto o modal de primeiro login abre
+    // sobre o app e bloqueia os cliques dos testes
+    Store.data.ui = Store.data.ui || {};
+    Store.data.ui.mascot = { nameSet: true };
+    if (!Store.threadList().some(t => t.id === 'seed-back')) {
+      Store.upsertThread({ id: 'seed-back', name: 'Conversa', updatedAt: Date.now() });
+      Store.upsertNote({ clientId: 'nb-1', threadId: 'seed-back', text: 'ola', ts: Date.now() });
+    }
+    Store.save();
+  });
+  await page.reload();
+  await page.waitForTimeout(2200);
+});
+
 test.describe('botão físico de voltar do celular', () => {
-  const vis = (page, id) => page.evaluate(i => {
-    const e = document.getElementById(i);
-    return !!e && !e.classList.contains('hidden');
-  }, id);
-  const showChat = (page) => page.evaluate(() =>
-    document.getElementById('app').classList.contains('show-chat'));
-  // o aviso é .app-toast com a classe .show (medido: é o que toast() renderiza)
-  const toastAvisou = (page) => page.evaluate(() => {
-    const t = document.querySelector('.app-toast');
-    return !!t && t.classList.contains('show') && /lista de conversas/.test(t.textContent || '');
-  });
-
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForTimeout(1200);
-    await page.evaluate(async () => {
-      const { Store } = await import('/js/store.js');
-      Store.load();
-      Store.setUser({ name: 'Ana', mail: 'ana@note.app' });
-      // nome de mascote já definido: sem isto o modal de primeiro login abre
-      // sobre o app e bloqueia os cliques dos testes
-      Store.data.ui = Store.data.ui || {};
-      Store.data.ui.mascot = { nameSet: true };
-      if (!Store.threadList().some(t => t.id === 'seed-back')) {
-        Store.upsertThread({ id: 'seed-back', name: 'Conversa', updatedAt: Date.now() });
-        Store.upsertNote({ clientId: 'nb-1', threadId: 'seed-back', text: 'ola', ts: Date.now() });
-      }
-      Store.save();
-    });
-    await page.reload();
-    await page.waitForTimeout(2200);
-  });
-
   test('existe handler de popstate e a pilha ganha uma entrada base', async ({ page }) => {
     // sem a entrada base, um deep link deixaria o primeiro "voltar" fechar
     // o app em vez de passar por goBack
@@ -114,5 +115,70 @@ test.describe('botão físico de voltar do celular', () => {
     await expect.poll(() => showChat(page)).toBe(true);
     await page.locator('#btn-back').click();
     await expect.poll(() => showChat(page)).toBe(false);
+  });
+});
+
+// Reabrir a conversa depois de voltar.
+//
+// O openThread começava com `if (this.activeThread === id) return`, um atalho
+// para não re-renderizar a conversa que já está na tela. No celular esse
+// shortcut é falso: o gesto de volta (goBack) só tira a classe `show-chat` da
+// .app — `activeThread` continua apontando para a conversa. Clicar nela de novo
+// caía no return e o clique morria ali: a conversa nunca reabria.
+//
+// No desktop a classe `show-chat` é inerte (04-responsive.css, só dentro de
+// max-width: 760px), então o atalho continua válido e é preservado.
+test.describe('reabrir a conversa depois de voltar', () => {
+  // o bug só aparece no mobile: a suíte roda a 1280px por padrão
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  test('voltar e clicar de novo reabre a conversa', async ({ page }) => {
+    const conversa = page.locator('.tnode[data-tid="seed-back"]').first();
+
+    await conversa.click();
+    await expect.poll(() => showChat(page)).toBe(true);
+
+    await page.goBack();
+    await expect.poll(() => showChat(page)).toBe(false);
+
+    // o passo que falhava: activeThread ainda é 'seed-back'
+    expect(await page.evaluate(() => window.NoteThread.UI.activeThread)).toBe('seed-back');
+
+    await conversa.click();
+    await expect.poll(() => showChat(page)).toBe(true);
+  });
+
+  test('o botão ‹ na tela também não trava a reabertura', async ({ page }) => {
+    const conversa = page.locator('.tnode[data-tid="seed-back"]').first();
+
+    await conversa.click();
+    await expect.poll(() => showChat(page)).toBe(true);
+
+    await page.locator('#btn-back').click();
+    await expect.poll(() => showChat(page)).toBe(false);
+
+    await conversa.click();
+    await expect.poll(() => showChat(page)).toBe(true);
+  });
+
+  test('no desktop, clicar na conversa já aberta não re-renderiza', async ({ page }) => {
+    // a otimização do guard precisa continuar valendo onde ela é verdade
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const render = await page.evaluate(() => {
+      let n = 0;
+      const orig = window.NoteThread.UI.renderMessages;
+      window.NoteThread.UI.renderMessages = function (...a) { n++; return orig.apply(this, a); };
+      window.__n = () => n;
+      return true;
+    });
+    expect(render).toBe(true);
+
+    await page.locator('.tnode[data-tid="seed-back"]').first().click();
+    await expect.poll(() => showChat(page)).toBe(true);
+    const depoisDaAbertura = await page.evaluate(() => window.__n());
+
+    await page.locator('.tnode[data-tid="seed-back"]').first().click();
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => window.__n())).toBe(depoisDaAbertura);
   });
 });
