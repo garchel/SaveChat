@@ -2,6 +2,10 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## Não publicado
+### Corrigido
+- **A tela de abertura do sistema (Android/Chrome) pintava numa cor fria (lavanda `#f4f1fb`) antes da `#boot-splash`, que abre em tom quente.** Essa janela do sistema é desenhada a partir de `background_color` do manifest, `name` e ícone, antes de qualquer byte do `index.html`. A `background_color` estava no lavanda, que é a cor de um tema que não é o padrão (o padrão é o terracota, `#fff3ef`), então a passagem sistema → app trocava de fundo. O primeiro quadro da `#boot-splash` — instante em que `data-theme` ainda não foi aplicado pelo JS — é o `--bg` base (`#F8F5EE`); a `background_color` passou a ser exatamente esse tom. Agora a janela do sistema (fundo + ícone, que já é a mesma arte do splash, + `name` "SaveChat") encosta no `#boot-splash` sem salto de cor. Um teste em `tests/sync.test.js` amarra a `background_color` ao `--bg` de `:root` para os dois não voltarem a divergir.
+
 ## [1.21.1] — 2026-10-19
 ### Corrigido
 - **No celular, o app abria com uma tela indesejada escrita "SaveChat — Notas em threads".** Essa tela não é HTML: o Android/Chrome a desenham a partir do campo `name` do manifest, antes de qualquer byte do `index.html` ser renderizado — por isso ela aparecia antes do `#boot-splash`, que é a abertura de verdade (logo, nome e a tagline "Suas ideias em conversas que nunca acabam"). O `name` do manifest passou a ser apenas "SaveChat", então a tela gerada pelo sistema fica só com o ícone e o nome, e a única abertura com mensagem é a do `#boot-splash`. O `background_color` (#f4f1fb) já é a cor do tema padrão (lavanda), então a passagem da tela do sistema para a do app é contínua, sem troca de fundo.
