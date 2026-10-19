@@ -2,6 +2,14 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## Não publicado
+### Adicionado
+- **O assistente de IA agora funciona sem cada pessoa colar uma chave.** Antes o campo de chave era obrigatório e a IA só respondia com a chave pessoal do Google AI Studio. Agora o app tem um provedor compartilhado: o cliente envia o pedido e a sessão do Supabase para `/api/ai`, uma função na Vercel que valida o login e chama o Gemini com a chave do projeto (`GEMINI_API_KEY`), que nunca chega ao navegador. Quem configurou a própria chave continua usando o caminho direto (BYOK).
+- O proxy limita o que o cliente pode pedir — modelo só da família `gemini-*`, saída de até 4096 tokens e corpo de até 4 MB — e, em pico de demanda (429/503), tenta de novo e cai para um modelo estável da mesma família antes de responder erro, tudo dentro do limite de 60s da função.
+### Alterado
+- O modelo padrão passou a ser o `gemini-3.6-flash`: o `gemini-2.5-flash` não atende mais chaves novas, e o `3.8` e o `3.7` estão com picos de demanda.
+- O campo de chave em **Configurar IA** virou opcional, com o texto explicando que a IA já vem configurada e que a chave pessoal só é usada por quem quiser a própria cota.
+
 ## [1.21.2] — 2026-10-19
 ### Corrigido
 - **A tela de abertura do sistema (Android/Chrome) pintava numa cor fria (lavanda `#f4f1fb`) antes da `#boot-splash`, que abre em tom quente.** Essa janela do sistema é desenhada a partir de `background_color` do manifest, `name` e ícone, antes de qualquer byte do `index.html`. A `background_color` estava no lavanda, que é a cor de um tema que não é o padrão (o padrão é o terracota, `#fff3ef`), então a passagem sistema → app trocava de fundo. O primeiro quadro da `#boot-splash` — instante em que `data-theme` ainda não foi aplicado pelo JS — é o `--bg` base (`#F8F5EE`); a `background_color` passou a ser exatamente esse tom. Agora a janela do sistema (fundo + ícone, que já é a mesma arte do splash, + `name` "SaveChat") encosta no `#boot-splash` sem salto de cor. Um teste em `tests/sync.test.js` amarra a `background_color` ao `--bg` de `:root` para os dois não voltarem a divergir.

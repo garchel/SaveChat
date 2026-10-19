@@ -217,17 +217,20 @@ test('campo da IA é o mesmo componente do composer da conversa', async ({ page 
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('ai-prompt')).outlineStyle)).toBe('none');
 });
 
-test('IA sem chave: pede a chave e não chama a API', async ({ page }) => {
-  let geminiCalls = 0;
-  page.on('request', (r) => { if (r.url().includes('generativelanguage')) geminiCalls++; });
+test('IA sem chave e sem sessão: orienta a entrar e não chama o Gemini direto', async ({ page }) => {
+  let directCalls = 0;
+  page.on('request', (r) => { if (r.url().includes('generativelanguage.googleapis.com')) directCalls++; });
   await page.goto('/');
   await page.waitForTimeout(2000);
   await page.click('.ai-thread-node');
   await page.fill('#ai-prompt', 'me ajude a planejar o dia');
   await page.click('#ai-send');
-  await expect(page.locator('.app-toast')).toContainText('chave');
+  // Sem chave própria, o app usa o provedor do servidor (api/ai.js), que
+  // exige sessão do Supabase. O harness não tem sessão, então orienta a
+  // entrar — e nada vai direto ao Google.
+  await expect(page.locator('.app-toast')).toContainText('conta');
   await page.waitForTimeout(800);
-  expect(geminiCalls).toBe(0);
+  expect(directCalls).toBe(0);
   // histórico permanece vazio (estado inicial)
   await expect(page.locator('#ai-messages .workspace-empty')).toBeVisible();
 });

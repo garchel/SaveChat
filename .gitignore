@@ -15,3 +15,8 @@ shot-*.png
 
 # worktrees de tarefa (um por agente) — nunca versionado
 .worktrees/
+
+# segredos locais — nunca versionar (use .env.example como modelo)
+.env
+.env.*
+!.env.example

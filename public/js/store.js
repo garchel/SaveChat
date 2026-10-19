@@ -104,6 +104,10 @@ const AI_THREAD_ID = 'ai-assistant';
       // migrado — e o save() no fim persiste, entao a migracao e' de uma vez.
       if (d.ui.theme === 'peach') { d.ui.theme = 'terracota'; themeRenamed = true; }
     d.ui.theme = d.ui.theme || 'terracota';
+      // v1.21.3: a família gemini-2.5 foi aposentada para chaves novas — quem
+      // tinha o modelo salvo passaria a receber 404. Limpa para o padrão atual.
+      let aiModelReset = false;
+      if (d.ui.aiModel && /^gemini-2\.5/.test(d.ui.aiModel)) { d.ui.aiModel = ''; aiModelReset = true; }
       // migração: limpa flag "pending" de notas antigas (dados de versões anteriores)
       let migrated = false;
       Object.values(d.notes).forEach((arr) => arr.forEach((n) => { if (n.pending) { n.pending = false; migrated = true; } }));
@@ -121,7 +125,7 @@ const AI_THREAD_ID = 'ai-assistant';
         clean.forEach((x, idx) => { if (x.sortOrder == null) { x.sortOrder = idx; migrated = true; } });
       });
       this.data = d;
-      if (migrated || themeRenamed) this.save();
+      if (migrated || themeRenamed || aiModelReset) this.save();
       // cura de double-send também nos dados LOCAIS: builds antigos salvavam a
       // mesma nota com client_id diferente a cada tentativa — gêmeas no localStorage
       // renderizam duplicadas em todo boot sem nunca passar pelo snapshot

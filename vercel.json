@@ -1,6 +1,9 @@
 {
   "outputDirectory": "public",
   "github": { "silent": true },
+  "functions": {
+    "api/ai.js": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/sw.js",

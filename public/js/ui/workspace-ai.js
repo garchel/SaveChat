@@ -3,15 +3,15 @@
 // (grava -> transcreve pelo Gemini -> campo para revisão).
 
 import { Store } from '../store.js';
-import { Sync } from '../sync-supabase.js';
+import { Sync, getSupa, USE_SUPABASE, SUPABASE_ANON_KEY } from '../sync-supabase.js';
 import { renderMarkdown } from '../markdown.js';
 import { esc, haptic, uid, now } from '../utils.js';
 import { mascotAvatarHtml, mascotFromStore } from '../mascot.js';
 // normName: comparação sem acento/maiúscula (a IA manda o nome da
 // conversa e o nome real pode ter acento)
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-const DEFAULT_MODEL = 'gemini-2.5-flash';
-const TRANSCRIBE_MODEL = 'gemini-2.5-flash';
+const DEFAULT_MODEL = 'gemini-3.6-flash';
+const TRANSCRIBE_MODEL = 'gemini-3.6-flash';
 // Glifos do botão único da IA — os MESMOS paths de composer-audio.js,
 // para o botão ser indistinguível do da conversa.
 const MIC_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
@@ -79,7 +79,10 @@ export const WorkspaceAiMethods = {
     const prompt = input && input.value.trim();
     const key = keyField && keyField.value.trim();
     if (!prompt) return;
-    if (!key) { this.toast('Adicione sua chave da API Gemini para começar', { kind: 'info' }); keyField?.focus(); return; }
+    // Sem chave própria, o app usa o provedor do servidor (api/ai.js). A
+    // chave só é obrigatória quando não há Supabase (dev local), porque nesse
+    // caso não existe sessão para o proxy autenticar.
+    if (!key && !USE_SUPABASE) { this.toast('Adicione sua chave da API Gemini para começar', { kind: 'info' }); keyField?.focus(); return; }
     Store.data.ui = Store.data.ui || {};
     Store.data.ui.aiKey = key;
     Store.data.ui.aiModel = (modelField && modelField.value.trim()) || DEFAULT_MODEL;
@@ -202,12 +205,48 @@ export const WorkspaceAiMethods = {
     if (typeof this.renderTree === 'function') this.queueRenderTree();
   },
 
+  // Token do Supabase para o proxy (api/ai.js). Sem sessão não há como
+  // provar ao servidor que a chamada vem de um usuário do app.
+  async _aiSessionToken() {
+    if (!USE_SUPABASE) return '';
+    try {
+      const supa = await getSupa();
+      const { data: { session } } = await supa.auth.getSession();
+      return (session && session.access_token) || '';
+    } catch (e) {
+      return '';
+    }
+  },
+
   async _aiFetch(model, key, body) {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify(Object.assign({ generationConfig: { maxOutputTokens: 2048 } }, body)),
-    });
+    const payload = Object.assign({ generationConfig: { maxOutputTokens: 2048 } }, body);
+    const json = JSON.stringify(payload);
+    let response;
+    if (key) {
+      // BYOK: a chave do próprio usuário, direto no Google — nada passa
+      // pelo servidor do app.
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: json,
+      });
+    } else {
+      // Provedor do app: a chave fica no servidor. Daqui saem só o pedido e
+      // a sessão; a função valida o token antes de gastar a cota.
+      const token = await this._aiSessionToken();
+      if (!token) throw new Error('Entre na sua conta para usar a IA.');
+      response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          // anon key pública: identifica o projeto do Supabase na validação
+          // da sessão. Não é segredo (já vai no HTML).
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ model, payload }),
+      });
+    }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error && data.error.message ? data.error.message : `Erro da API (${response.status})`);
     return data;
@@ -265,7 +304,7 @@ export const WorkspaceAiMethods = {
     const rec = this._aiRecorder;
     if (rec && rec.state === 'recording') { rec.stop(); return; }
     const key = (Store.data.ui && Store.data.ui.aiKey) || (document.getElementById('ai-key') || {}).value?.trim();
-    if (!key) { this.toast('Adicione sua chave da API Gemini para usar áudio', { kind: 'info' }); document.getElementById('ai-key')?.focus(); return; }
+    if (!key && !USE_SUPABASE) { this.toast('Adicione sua chave da API Gemini para usar áudio', { kind: 'info' }); document.getElementById('ai-key')?.focus(); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
       this.toast('Gravação de áudio não é suportada neste navegador', { kind: 'error' }); return;
     }
@@ -333,22 +372,16 @@ export const WorkspaceAiMethods = {
       reader.onerror = () => reject(new Error('Falha ao ler o áudio'));
       reader.readAsDataURL(blob);
     });
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${TRANSCRIBE_MODEL}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        contents: [{
-          role: 'user',
-          parts: [
-            { text: 'Transcreva este áudio em português brasileiro, fielmente, sem comentários. Responda APENAS com a transcrição.' },
-            { inlineData: { mimeType: blob.type || 'audio/webm', data: b64 } },
-          ],
-        }],
-        generationConfig: { maxOutputTokens: 1024 },
-      }),
+    const data = await this._aiFetch(TRANSCRIBE_MODEL, key, {
+      contents: [{
+        role: 'user',
+        parts: [
+          { text: 'Transcreva este áudio em português brasileiro, fielmente, sem comentários. Responda APENAS com a transcrição.' },
+          { inlineData: { mimeType: blob.type || 'audio/webm', data: b64 } },
+        ],
+      }],
+      generationConfig: { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error && data.error.message ? data.error.message : `Erro da API (${response.status})`);
     const out = ((data.candidates || [])[0] && data.candidates[0].content && data.candidates[0].content.parts || [])
       .map((p) => p.text || '').join('').trim();
     if (!out) throw new Error('Não consegui extrair fala deste áudio.');
