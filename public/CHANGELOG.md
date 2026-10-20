@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.24.0] — 2026-10-20
 ### Alterado
 - **A transcrição de voz agora usa o Groq Whisper, com a chave só no servidor.** O cliente chama `/api/transcribe`, que valida a sessão do Supabase, baixa o áudio do bucket (ou recebe a gravação local em base64) e repassa ao `whisper-large-v3-turbo` com `language=pt`. O texto continua guardado em `audio.transcript` e sincronizado pelo evento `note:transcript`. Requer `GROQ_API_KEY` na Vercel.
 
