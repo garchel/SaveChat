@@ -1,13 +1,11 @@
 // Transcrição de mensagens de voz — compartilhada entre a bolha da conversa e
-// o assistente de IA. O áudio é lido da própria nota (URL pública do bucket ou
-// objectURL local) e vai ao Gemini pelo provedor do app (`/api/ai`) ou, para
-// quem configurou a própria chave, direto no Google (BYOK).
+// o assistente de IA. O áudio vai ao Groq Whisper pelo proxy `/api/transcribe`
+// (a chave fica no servidor). Áudios salvos no Supabase vão por URL; gravações
+// locais (blob) vão em base64.
 import { getSupa, USE_SUPABASE, SUPABASE_ANON_KEY } from './sync-supabase.js';
 
-// Duplicado de propósito de `TRANSCRIBE_MODEL` em workspace-ai.js: a regra do
-// repo é replicar constantes de módulo em vez de criar dependência entre eles.
-const TRANSCRIBE_MODEL = 'gemini-3.6-flash';
-const PROMPT = 'Transcreva este áudio em português brasileiro, fielmente, sem comentários. Responda APENAS com a transcrição.';
+const PROXY = '/api/transcribe';
+const MAX_LOCAL_BYTES = 2.5 * 1024 * 1024; // base64 cresce 4/3 e o corpo do proxy tem teto de 4 MB
 
 async function sessionToken() {
   if (!USE_SUPABASE) return '';
@@ -32,62 +30,53 @@ async function toBase64(blob) {
   return btoa(raw);
 }
 
-export async function transcribeAudio(url, { key = '', mime = '' } = {}) {
-  if (!url) throw new Error('Áudio indisponível.');
-  // falha antes de baixar o áudio: sem sessão não há como autenticar no proxy
-  let token = '';
-  if (!key) {
-    token = await sessionToken();
-    if (!token) throw new Error('Entre na sua conta para transcrever o áudio.');
-  }
-
+async function blobFrom(source) {
+  if (typeof Blob !== 'undefined' && source instanceof Blob) return source;
   let res;
   try {
-    res = await fetch(url);
+    res = await fetch(source);
   } catch (e) {
     throw new Error('Não foi possível carregar o áudio.');
   }
   if (!res.ok) throw new Error('Não foi possível carregar o áudio.');
-  const blob = await res.blob();
+  return res.blob();
+}
 
-  const payload = {
-    contents: [{
-      role: 'user',
-      parts: [
-        { text: PROMPT },
-        // `blob.type` pode vir vazio/octet-stream de um storage: a nota guarda
-        // o MIME real da gravação, então ele é o plano B.
-        { inlineData: { mimeType: blob.type || mime || 'audio/webm', data: await toBase64(blob) } },
-      ],
-    }],
-    // sem "thinking": a transcrição é uma tarefa direta e o orçamento curto
-    // (1024 tokens) seria consumido por raciocínio, devolvendo texto vazio.
-    generationConfig: { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
-  };
+export async function transcribeAudio(source, { mime = '', token = '' } = {}) {
+  if (!source) throw new Error('Áudio indisponível.');
+
+  // o proxy exige sessão: sem ela, falha antes de baixar o áudio
+  const auth = token || await sessionToken();
+  if (!auth) throw new Error('Entre na sua conta para transcrever o áudio.');
+
+  let body;
+  if (typeof source === 'string' && /^https?:\/\//i.test(source)) {
+    body = { audioUrl: source, mime };
+  } else {
+    const blob = await blobFrom(source);
+    if (!blob.size) throw new Error('Áudio vazio.');
+    if (blob.size > MAX_LOCAL_BYTES) throw new Error('Áudio grande demais para transcrever. Envie um áudio mais curto.');
+    body = { audioBase64: await toBase64(blob), mime: blob.type || mime || 'audio/webm' };
+  }
 
   let response;
-  if (key) {
-    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(TRANSCRIBE_MODEL)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify(payload),
-    });
-  } else {
-    response = await fetch('/api/ai', {
+  try {
+    response = await fetch(PROXY, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${auth}`,
         apikey: SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ model: TRANSCRIBE_MODEL, payload }),
+      body: JSON.stringify(body),
     });
+  } catch (e) {
+    throw new Error('Não foi possível falar com o serviço de transcrição.');
   }
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error((data.error && data.error.message) || `Erro da API (${response.status})`);
-  const out = (((data.candidates || [])[0] || {}).content && data.candidates[0].content.parts || [])
-    .map((p) => p.text || '').join('').trim();
+  const out = String(data.text || '').trim();
   if (!out) throw new Error('Não consegui extrair fala deste áudio.');
   return out;
 }

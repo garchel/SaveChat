@@ -1,17 +1,17 @@
 // Pagina da IA: assistente que lê as notas recentes como contexto e
 // pode criar mensagens (function calling). Inclui o áudio
-// (grava -> transcreve pelo Gemini -> campo para revisão).
+// (grava -> transcreve pelo Groq Whisper -> campo para revisão).
 
 import { Store } from '../store.js';
 import { Sync, getSupa, USE_SUPABASE, SUPABASE_ANON_KEY } from '../sync-supabase.js';
 import { renderMarkdown } from '../markdown.js';
 import { esc, haptic, uid, now } from '../utils.js';
 import { mascotAvatarHtml, mascotFromStore } from '../mascot.js';
+import { transcribeAudio } from '../transcribe.js';
 // normName: comparação sem acento/maiúscula (a IA manda o nome da
 // conversa e o nome real pode ter acento)
 const normName = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const DEFAULT_MODEL = 'gemini-3.6-flash';
-const TRANSCRIBE_MODEL = 'gemini-3.6-flash';
 // Glifos do botão único da IA — os MESMOS paths de composer-audio.js,
 // para o botão ser indistinguível do da conversa.
 const MIC_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
@@ -298,13 +298,13 @@ export const WorkspaceAiMethods = {
     ta.style.height = `${Math.min(ta.scrollHeight, 120)}px`;
   },
 
-  // ---------- Áudio: gravar → transcrever (Gemini) → campo de texto ----------
+  // ---------- Áudio: gravar → transcrever (Groq Whisper) → campo de texto ----------
 
   async _toggleAiRecording() {
     const rec = this._aiRecorder;
     if (rec && rec.state === 'recording') { rec.stop(); return; }
-    const key = (Store.data.ui && Store.data.ui.aiKey) || (document.getElementById('ai-key') || {}).value?.trim();
-    if (!key && !USE_SUPABASE) { this.toast('Adicione sua chave da API Gemini para usar áudio', { kind: 'info' }); document.getElementById('ai-key')?.focus(); return; }
+    const token = await this._aiSessionToken();
+    if (!token) { this.toast('Entre na sua conta para transcrever áudio', { kind: 'info' }); return; }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
       this.toast('Gravação de áudio não é suportada neste navegador', { kind: 'error' }); return;
     }
@@ -314,7 +314,7 @@ export const WorkspaceAiMethods = {
       const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       const chunks = [];
       recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-      recorder.onstop = () => this._finishAiRecording(stream, chunks, mime || 'audio/webm', key);
+      recorder.onstop = () => this._finishAiRecording(stream, chunks, mime || 'audio/webm');
       recorder.start();
       this._aiRecorder = recorder;
       this._setRecUI(true);
@@ -332,7 +332,7 @@ export const WorkspaceAiMethods = {
     }
   },
 
-  async _finishAiRecording(stream, chunks, mime, key) {
+  async _finishAiRecording(stream, chunks, mime) {
     stream.getTracks().forEach((t) => t.stop());
     clearInterval(this._aiRecTimer);
     this._aiRecorder = null;
@@ -348,7 +348,7 @@ export const WorkspaceAiMethods = {
     mic && mic.classList.add('busy');
     this._setRecStatus('Transcrevendo áudio…');
     try {
-      const text = await this._transcribeAudio(blob, key);
+      const text = await this._transcribeAudio(blob);
       const ta = document.getElementById('ai-prompt');
       if (ta) {
         ta.value = ta.value ? `${ta.value} ${text}` : text;
@@ -365,27 +365,8 @@ export const WorkspaceAiMethods = {
     }
   },
 
-  async _transcribeAudio(blob, key) {
-    const b64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
-      reader.onerror = () => reject(new Error('Falha ao ler o áudio'));
-      reader.readAsDataURL(blob);
-    });
-    const data = await this._aiFetch(TRANSCRIBE_MODEL, key, {
-      contents: [{
-        role: 'user',
-        parts: [
-          { text: 'Transcreva este áudio em português brasileiro, fielmente, sem comentários. Responda APENAS com a transcrição.' },
-          { inlineData: { mimeType: blob.type || 'audio/webm', data: b64 } },
-        ],
-      }],
-      generationConfig: { maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
-    });
-    const out = ((data.candidates || [])[0] && data.candidates[0].content && data.candidates[0].content.parts || [])
-      .map((p) => p.text || '').join('').trim();
-    if (!out) throw new Error('Não consegui extrair fala deste áudio.');
-    return out;
+  async _transcribeAudio(blob) {
+    return transcribeAudio(blob, { mime: blob.type });
   },
 
   _setRecUI(on) {
