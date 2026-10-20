@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
-## Não publicado
+## [1.25.0] — 2026-10-20
 ### Adicionado
 - **O assistente agora lê as transcrições das mensagens de voz.** As notas recentes enviadas como contexto incluem o texto guardado em `audio.transcript`, marcado com `[áudio transcrito]`. Assim, pedir um resumo ou uma informação de um áudio transcrito funciona como pedir sobre uma nota escrita. O limite continua sendo as notas recentes (15 conversas × últimas 10 notas).
 
