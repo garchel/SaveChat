@@ -110,8 +110,6 @@ button:focus { outline: none; }
    regra vencia o banner e o cabeçalho voltava a 72px. */
 .chat-header { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
 .composer:not(.cozy-composer) { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
-/* Campo de entrada flutuante: margem superior = margem inferior */
-.cozy-composer { bottom: 14px; }
 
 /* Sidebar footer: avatar e texto um pouco mais harmoniosos */
 .sidebar-footer {

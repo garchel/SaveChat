@@ -53,6 +53,31 @@ describe('bolha de áudio com transcrição', () => {
   });
 });
 
+describe('contexto da IA', () => {
+  it('inclui a transcrição do áudio nas notas recentes', async () => {
+    const { WorkspaceAiMethods } = await import('../public/js/ui/workspace-ai.js');
+    const { Store } = await import('../public/js/store.js');
+    const prev = Store.data;
+    Store.data = {
+      threads: { t1: { id: 't1', name: 'Vozes', created: 1 } },
+      notes: {
+        t1: [
+          { clientId: 'a', threadId: 't1', text: '', audio: { url: 'x', transcript: 'comprar leite amanhã' } },
+          { clientId: 'b', threadId: 't1', text: 'nota escrita' },
+        ],
+      },
+    };
+    try {
+      const ctx = WorkspaceAiMethods._buildAiContext();
+      assert.match(ctx, /\[áudio transcrito\] comprar leite amanhã/,
+        'a transcrição precisa entrar no contexto da IA');
+      assert.match(ctx, /- nota escrita/, 'as notas de texto continuam no contexto');
+    } finally {
+      Store.data = prev;
+    }
+  });
+});
+
 describe('cliente de transcrição', () => {
   const AUDIO = 'https://exemplo.test/fala.webm';
   const blob = () => new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'audio/webm' });
