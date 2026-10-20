@@ -1,7 +1,14 @@
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 760px) {
   .mobile-only { display: grid; place-items: center; }
-  .app { grid-template-columns: 1fr; margin: 0; border-radius: 0; height: 100vh; height: 100dvh; }
+  /* `--app-h`/`--app-top` vêm do keyboard-viewport.js quando o navegador só
+     encolhe a viewport visual (iOS); sem eles, o app ocupa a tela toda. */
+  .app {
+    grid-template-columns: 1fr; margin: 0; border-radius: 0;
+    height: 100vh; height: 100dvh;
+    height: var(--app-h, 100dvh);
+    margin-top: var(--app-top, 0px);
+  }
   .nav-bar { display: none; }
   .sidebar {
     position: fixed; inset: 0; z-index: 20; width: 100%;
@@ -21,9 +28,6 @@
     opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 19;
   }
   .app:not(.show-chat)::before { opacity: 1; pointer-events: auto; }
-  /* o composer precisa respirar acima da barra (56px + faixa de gestos) */
-  .cozy-composer { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px)); }
-  /* e o fluxo de mensagens não pode ficar escondido atrás dela */
   #messages { padding-bottom: 12px; }
 }
 

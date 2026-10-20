@@ -29,26 +29,28 @@ const seed = {
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
 // quanto a meta ultrapassa a borda esquerda da bolha (px). Negativo = dentro.
-const transbordo = (page, id) => page.evaluate((cid) => {
-  const b = document.querySelector(`#messages .bubble[data-client-id="${cid}"]`);
-  const m = b && b.querySelector('.meta');
-  if (!b || !m) return null;
-  const br = b.getBoundingClientRect();
-  const mr = m.getBoundingClientRect();
-  return {
-    esquerda: +(br.left - mr.left).toFixed(1),
-    direita: +(mr.right - br.right).toFixed(1),
-    larguraBolha: +br.width.toFixed(1),
-    larguraMeta: +mr.width.toFixed(1),
-  };
-}, id);
+const transbordo = async (page, id) => {
+  await page.locator(`#messages .bubble[data-client-id="${id}"]`).waitFor();
+  return page.evaluate((cid) => {
+    const b = document.querySelector(`#messages .bubble[data-client-id="${cid}"]`);
+    const m = b && b.querySelector('.meta');
+    if (!b || !m) return null;
+    const br = b.getBoundingClientRect();
+    const mr = m.getBoundingClientRect();
+    return {
+      esquerda: +(br.left - mr.left).toFixed(1),
+      direita: +(mr.right - br.right).toFixed(1),
+      larguraBolha: +br.width.toFixed(1),
+      larguraMeta: +mr.width.toFixed(1),
+    };
+  }, id);
+};
 
 test.beforeEach(async ({ context, page }) => {
   await context.addInitScript((s) => { localStorage.setItem('notethread.v2', JSON.stringify(s)); }, seed);
   await page.goto('/');
-  await page.waitForTimeout(1500);
-  await page.evaluate(() => document.querySelector('.tnode[data-tid="t1"]')?.click());
-  await page.waitForTimeout(800);
+  await page.locator('.tnode[data-tid="t1"]').click();
+  await page.locator('#messages .bubble').first().waitFor();
 });
 
 test('a meta cabe dentro da bolha em toda nota', async ({ page }) => {

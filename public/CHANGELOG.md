@@ -2,6 +2,14 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## [1.23.1] — 2026-10-20
+### Corrigido
+- **No celular, o teclado virtual cobria o campo de escrita.** O app ocupava sempre a tela inteira (`100dvh`) e o `body` não rola, então, ao focar o composer, o teclado abria por cima da conversa e do campo. O viewport agora pede `interactive-widget=resizes-content` (o Chrome Android encolhe o layout) e, nos navegadores que só encolhem a viewport visual (iOS Safari), o app passa a usar a altura visível — inclusive quando a viewport é deslocada. A conversa continua ancorada na última mensagem ao encolher.
+- **O composer flutuava 56px acima do rodapé no celular.** O `padding-bottom` de 62px era da barra inferior removida em 1.21.0; sobrou o `6px + safe-area`, que protege a faixa de gestos sem deixar a faixa morta.
+- **As mensagens de voz não tocavam em produção.** O CSP do site liberava mídia só da própria origem (`default-src 'self'`), então o navegador recusava o `<audio src="https://…supabase.co/…">` antes de baixar o arquivo — o botão continuava em play e o áudio nunca começava. O `media-src` agora libera o bucket (`https://*.supabase.co`) e `blob:` (áudios locais); o `img-src` ganhou o mesmo bucket para as imagens anexadas.
+- **O botão de play agora vira pause assim que a reprodução começa** (com feedback imediato, revertido se o navegador recusar), pausar e tocar de novo retoma de onde parou, e tocar em outro áudio pausa o anterior.
+- **O avatar de quem enviou a mensagem de voz não aparecia.** A foto do Google (`lh3.googleusercontent.com`) também era bloqueada pelo CSP; o host foi liberado. Se a foto falhar por qualquer motivo (URL expirada, offline), o player agora cai para a inicial do nome em vez de deixar um círculo quebrado.
+
 ## [1.23.0] — 2026-10-19
 ### Adicionado
 - **Transcrição das mensagens de voz na conversa.** Cada bolha de áudio ganhou uma seta discreta no rodapé: ao tocar, o app transcreve a fala e mostra o texto entre aspas ali mesmo. A transcrição fica guardada na própria nota (acompanha os outros aparelhos) e usa o provedor de IA do assistente; sem sessão, vale a chave pessoal configurada em **Configurar IA**.

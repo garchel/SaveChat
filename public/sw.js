@@ -1,6 +1,6 @@
 // NoteThread Service Worker — app shell offline + cache-first para assets.
 // Bump CACHE (vN) a cada deploy para invalidar versões anteriores.
-const CACHE = 'notethread-v163';
+const CACHE = 'notethread-v164';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './CHANGELOG.md',
   './styles/00-tokens-base.css',
@@ -26,7 +26,7 @@ const ASSETS = [
   './styles/18-boot-splash.css',
   './styles/19-ai-avatar.css',
   './assets/logo.svg', './assets/logo.png',
-  './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js', './js/audio.js', './js/transcribe.js',
+  './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js', './js/audio.js', './js/transcribe.js', './js/keyboard-viewport.js',
   './js/mascot.js', './js/store.js', './js/sound.js', './js/sync-supabase.js', './js/offline-queue.js', './js/confetti.js',
   './js/bg-patterns.js', './js/friendly-names.js', './js/error-tracking.js', './js/updater.js',
   './js/partials.js',

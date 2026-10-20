@@ -65,20 +65,9 @@ export const ComposerMethods = {
       window.addEventListener('resize', () => resize());
       // inicializa com estado correto (evita scrollbar fantasma no carregamento)
       resize();
-      ta.addEventListener('focus', () => {
-        setTimeout(() => { ta.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 300);
-      });
-      // visualViewport: quando teclado virtual muda altura, mantém composer visível
-      if (window.visualViewport) {
-        let lastH = window.visualViewport.height;
-        window.visualViewport.addEventListener('resize', () => {
-          const curH = window.visualViewport.height;
-          if (curH < lastH - 80 && document.activeElement === ta) {
-            setTimeout(() => ta.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
-          }
-          lastH = curH;
-        });
-      }
+      // teclado virtual: o gerenciador global (keyboard-viewport.js) encolhe o
+      // .app para a área visível; nada de scrollIntoView (ele deslocava o
+      // cabeçalho e não resolvia o composer atrás do teclado).
       // pull-to-refresh nos messages (puxar topo recarrega)
       this._initPullToRefresh();
       // colar markdown → converte para o editor WYSIWYG (listas, checklists,

@@ -30,6 +30,7 @@ import { ComposerMarkdownMethods } from './js/ui/composer-markdown.js';
 import { ComposerListsMethods } from './js/ui/composer-lists.js';
 import { SyncEventsMethods } from './js/ui/sync-events.js';
 import { injectPartials } from './js/partials.js';
+import { initKeyboardViewport } from './js/keyboard-viewport.js';
 
 // bundle ES Modules carregado
 
@@ -40,6 +41,7 @@ import { injectPartials } from './js/partials.js';
   // ===================================================================
   const UI = {
 async init() {
+      initKeyboardViewport();
       this.dom = {
         tree: $('#tree'), favSection: $('#fav-section'), favList: $('#fav-list'),
         ctx: $('#ctx-menu'), modal: $('#modal'), modalTitle: $('#modal-title'),
