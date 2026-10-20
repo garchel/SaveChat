@@ -53,7 +53,7 @@
    campo cresce com muitas linhas. */
 .composer.cozy-composer {
   position: relative; flex: 0 0 auto;
-  margin: 0 16px 16px;
+  margin: 0 16px 20px;
   display: flex; flex-direction: column;
   background: transparent; backdrop-filter: none;
   border: none; border-top: none; box-shadow: none;

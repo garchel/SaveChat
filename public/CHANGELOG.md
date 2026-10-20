@@ -1,6 +1,13 @@
 # Changelog ÔÇö SaveChat
 
-Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
+Todas as mudanças notáveis serão documentadas aqui (semver).
+
+## [1.25.0] — 2026-10-20
+### Adicionado
+- **O assistente agora lê as transcrições das mensagens de voz.** As notas recentes enviadas como contexto incluem o texto guardado em `audio.transcript`, marcado com `[áudio transcrito]`. Assim, pedir um resumo ou uma informação de um áudio transcrito funciona como pedir sobre uma nota escrita. O limite continua sendo as notas recentes (15 conversas × últimas 10 notas).
+
+### Alterado
+- **O campo de entrada da conversa ficou mais próximo do rodapé.** O vão abaixo do composer caiu de 30px para 20px (cerca de 1/3), e o deslocamento `bottom: 14px` que sobrou da época do composer flutuante foi removido — ele também fazia o compositor invadir 14px da área rolável das mensagens.
 
 ## [1.24.0] — 2026-10-20
 ### Alterado

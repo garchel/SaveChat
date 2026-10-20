@@ -57,7 +57,14 @@ export const WorkspaceAiMethods = {
       const notes = (Store.notesFor(t.id) || []).slice(-10);
       if (!notes.length) return;
       lines.push(`### Conversa: ${t.name}`);
-      notes.forEach((n) => lines.push(`- ${String(n.text || '').replace(/\s+/g, ' ').slice(0, 300)}`));
+      notes.forEach((n) => {
+        const text = String(n.text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+        // a transcrição do áudio vive em `audio.transcript` (sincronizada na
+        // coluna jsonb `audio`); sem esta linha a IA não "ouve" a mensagem de voz
+        const transcript = String((n.audio && n.audio.transcript) || '').replace(/\s+/g, ' ').trim().slice(0, 600);
+        if (text) lines.push(`- ${text}`);
+        if (transcript) lines.push(`- [áudio transcrito] ${transcript}`);
+      });
     });
     return lines.join('\n').slice(0, 24000);
   },
@@ -65,7 +72,7 @@ export const WorkspaceAiMethods = {
   _aiSystemInstruction() {
     const context = this._buildAiContext();
     let text = 'Você é o assistente de IA do SaveChat, um app de notas em conversas. Responda em português brasileiro, com clareza e simpatia, usando markdown quando ajudar. ' +
-      'Você RECEBE como contexto as notas recentes das conversas do usuário — use esse conteúdo para responder resumos, planejamentos e perguntas sobre as notas. Se algo não estiver nas notas, diga que não encontrou. ' +
+      'Você RECEBE como contexto as notas recentes das conversas do usuário — incluindo a transcrição das mensagens de voz, marcada com [áudio transcrito] — use esse conteúdo para responder resumos, planejamentos e perguntas sobre as notas. Se algo não estiver nas notas, diga que não encontrou. ' +
       'Você PODE CRIAR NOTAS: sempre que o usuário pedir para registrar/anotar/criar algo numa conversa, chame a função criar_nota com o nome EXATO da conversa e o conteúdo em markdown. Depois de criar, confirme em uma frase curta.';
     if (context) text += `\n\n=== Notas recentes do usuário (contexto — não repita no chat) ===\n${context}`;
     return { parts: [{ text }] };
