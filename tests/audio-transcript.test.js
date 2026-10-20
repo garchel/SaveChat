@@ -1,5 +1,5 @@
 // Transcrição das mensagens de voz: markup do toggle na bolha, contrato do
-// evento de sync e o cliente do provedor (BYOK/sem sessão/erros).
+// evento de sync e o cliente do provedor (proxy Groq/base64/erros).
 const { describe, it, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('fs');
@@ -57,29 +57,41 @@ describe('cliente de transcrição', () => {
   const AUDIO = 'https://exemplo.test/fala.webm';
   const blob = () => new Blob([new Uint8Array([1, 2, 3, 4])], { type: 'audio/webm' });
 
-  it('BYOK: lê o áudio e chama o Gemini direto com o modelo estável', async () => {
+  it('manda a URL pública para o proxy com a sessão', async () => {
     const calls = [];
     global.fetch = async (url, opts) => {
       calls.push({ url: String(url), opts });
-      if (String(url) === AUDIO) return { ok: true, blob: async () => blob() };
-      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: '  olá mundo  ' }] } }] }) };
+      return { ok: true, status: 200, json: async () => ({ text: '  olá mundo  ' }) };
     };
     const { transcribeAudio } = await import('../public/js/transcribe.js');
-    const out = await transcribeAudio(AUDIO, { key: 'chave-teste' });
+    const out = await transcribeAudio(AUDIO, { mime: 'audio/webm', token: 'tok-teste' });
 
     assert.equal(out, 'olá mundo');
-    assert.equal(calls.length, 2);
-    assert.match(calls[1].url, /gemini-3\.6-flash:generateContent/);
-    assert.equal(calls[1].opts.headers['x-goog-api-key'], 'chave-teste');
-    const body = JSON.parse(calls[1].opts.body);
-    assert.equal(body.generationConfig.maxOutputTokens, 1024);
-    assert.equal(body.generationConfig.thinkingConfig.thinkingBudget, 0,
-      'sem thinking: respostas curtas saíam vazias (MAX_TOKENS)');
-    assert.equal(body.contents[0].parts[1].inlineData.mimeType, 'audio/webm');
-    assert.equal(body.contents[0].parts[1].inlineData.data, Buffer.from([1, 2, 3, 4]).toString('base64'));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].url, '/api/transcribe');
+    assert.equal(calls[0].opts.headers.Authorization, 'Bearer tok-teste');
+    const body = JSON.parse(calls[0].opts.body);
+    assert.equal(body.audioUrl, AUDIO);
+    assert.equal(body.mime, 'audio/webm');
+    assert.equal(body.key, undefined, 'a chave do Gemini não participa mais da transcrição');
   });
 
-  it('sem sessão e sem chave: orienta a entrar antes de baixar o áudio', async () => {
+  it('gravação local (blob) vai em base64 para o proxy', async () => {
+    let body = null;
+    global.fetch = async (url, opts) => {
+      assert.equal(url, '/api/transcribe');
+      body = JSON.parse(opts.body);
+      return { ok: true, status: 200, json: async () => ({ text: 'fala local' }) };
+    };
+    const { transcribeAudio } = await import('../public/js/transcribe.js');
+    const out = await transcribeAudio(blob(), { token: 'tok-teste' });
+
+    assert.equal(out, 'fala local');
+    assert.equal(body.audioBase64, Buffer.from([1, 2, 3, 4]).toString('base64'));
+    assert.equal(body.mime, 'audio/webm');
+  });
+
+  it('sem sessão: orienta a entrar antes de chamar o proxy', async () => {
     let called = false;
     global.fetch = async () => { called = true; throw new Error('não deveria chamar'); };
     const { transcribeAudio } = await import('../public/js/transcribe.js');
@@ -88,20 +100,14 @@ describe('cliente de transcrição', () => {
   });
 
   it('erro do provedor chega legível na bolha', async () => {
-    global.fetch = async (url) => {
-      if (String(url) === AUDIO) return { ok: true, blob: async () => blob() };
-      return { ok: false, status: 503, json: async () => ({ error: { message: 'modelo ocupado' } }) };
-    };
+    global.fetch = async () => ({ ok: false, status: 429, json: async () => ({ error: { message: 'muitas transcrições' } }) });
     const { transcribeAudio } = await import('../public/js/transcribe.js');
-    await assert.rejects(transcribeAudio(AUDIO, { key: 'k' }), /modelo ocupado/);
+    await assert.rejects(transcribeAudio(AUDIO, { token: 'tok' }), /muitas transcrições/);
   });
 
   it('resposta sem fala vira erro em vez de bolha vazia', async () => {
-    global.fetch = async (url) => {
-      if (String(url) === AUDIO) return { ok: true, blob: async () => blob() };
-      return { ok: true, json: async () => ({ candidates: [{ content: {} }] }) };
-    };
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ text: '   ' }) });
     const { transcribeAudio } = await import('../public/js/transcribe.js');
-    await assert.rejects(transcribeAudio(AUDIO, { key: 'k' }), /Não consegui extrair fala/);
+    await assert.rejects(transcribeAudio(AUDIO, { token: 'tok' }), /Não consegui extrair fala/);
   });
 });

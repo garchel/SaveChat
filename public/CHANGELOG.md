@@ -2,6 +2,10 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
+## [1.24.0] — 2026-10-20
+### Alterado
+- **A transcrição de voz agora usa o Groq Whisper, com a chave só no servidor.** O cliente chama `/api/transcribe`, que valida a sessão do Supabase, baixa o áudio do bucket (ou recebe a gravação local em base64) e repassa ao `whisper-large-v3-turbo` com `language=pt`. O texto continua guardado em `audio.transcript` e sincronizado pelo evento `note:transcript`. Requer `GROQ_API_KEY` na Vercel.
+
 ## [1.23.1] — 2026-10-20
 ### Corrigido
 - **No celular, o teclado virtual cobria o campo de escrita.** O app ocupava sempre a tela inteira (`100dvh`) e o `body` não rola, então, ao focar o composer, o teclado abria por cima da conversa e do campo. O viewport agora pede `interactive-widget=resizes-content` (o Chrome Android encolhe o layout) e, nos navegadores que só encolhem a viewport visual (iOS Safari), o app passa a usar a altura visível — inclusive quando a viewport é deslocada. A conversa continua ancorada na última mensagem ao encolher.

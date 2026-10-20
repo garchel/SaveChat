@@ -2,7 +2,8 @@
   "outputDirectory": "public",
   "github": { "silent": true },
   "functions": {
-    "api/ai.js": { "maxDuration": 60 }
+    "api/ai.js": { "maxDuration": 60 },
+    "api/transcribe.js": { "maxDuration": 60 }
   },
   "headers": [
     {
