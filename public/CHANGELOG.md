@@ -2,7 +2,7 @@
 
 Todas as mudan├ºas not├íveis ser├úo documentadas aqui (semver).
 
-## Não publicado
+## [1.23.1] — 2026-10-20
 ### Corrigido
 - **No celular, o teclado virtual cobria o campo de escrita.** O app ocupava sempre a tela inteira (`100dvh`) e o `body` não rola, então, ao focar o composer, o teclado abria por cima da conversa e do campo. O viewport agora pede `interactive-widget=resizes-content` (o Chrome Android encolhe o layout) e, nos navegadores que só encolhem a viewport visual (iOS Safari), o app passa a usar a altura visível — inclusive quando a viewport é deslocada. A conversa continua ancorada na última mensagem ao encolher.
 - **O composer flutuava 56px acima do rodapé no celular.** O `padding-bottom` de 62px era da barra inferior removida em 1.21.0; sobrou o `6px + safe-area`, que protege a faixa de gestos sem deixar a faixa morta.
