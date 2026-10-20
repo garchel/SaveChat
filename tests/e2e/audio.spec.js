@@ -155,16 +155,18 @@ test.describe('mensagem de voz', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
-  test('sem transcrição: transcreve no clique (BYOK) e mostra entre aspas', async ({ page, context }) => {
+  test('sem transcrição: transcreve no clique via Groq e mostra entre aspas', async ({ page, context }) => {
     await context.route('**/audio/fala.webm', (route) =>
       route.fulfill({ status: 200, contentType: 'audio/wav', body: Buffer.from(WAV, 'base64') }));
 
     let pedido = null;
-    await context.route('https://generativelanguage.googleapis.com/**', (route) => {
+    let headers = null;
+    await context.route('**/api/transcribe', (route) => {
       pedido = JSON.parse(route.request().postData() || '{}');
+      headers = route.request().headers();
       return route.fulfill({
         status: 200, contentType: 'application/json',
-        body: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'fala transcrita' }] } }] }),
+        body: JSON.stringify({ text: 'fala transcrita' }),
       });
     });
 
@@ -177,7 +179,7 @@ test.describe('mensagem de voz', () => {
           clientId: 'a4', threadId: 't1', user: 'me', text: '', ts: Date.now() - 5000,
           images: [], audio: a,
         }] },
-        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false }, aiKey: 'chave-e2e' },
+        ui: { mascot: { nameSet: true }, expanded: {}, sounds: { enabled: false } },
       }));
     }, AUDIO);
 
@@ -186,10 +188,25 @@ test.describe('mensagem de voz', () => {
     await page.locator('.tnode[data-tid="t1"]').first().click();
     await expect(page.locator('.vaudio')).toBeVisible({ timeout: 10000 });
 
+    // o proxy exige sessão: injeta a sessão DEPOIS de a conversa abrir, para
+    // não trocar o bucket de dados no boot (o endpoint é interceptado, então
+    // o token só precisa existir no cliente)
+    await page.evaluate(() => {
+      const ref = new URL(window.SUPABASE_URL).hostname.split('.')[0];
+      localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify({
+        access_token: 'tok-e2e', refresh_token: 'refresh-e2e',
+        expires_at: Math.floor(Date.now() / 1000) + 3600, expires_in: 3600,
+        token_type: 'bearer',
+        user: { id: 'u-e2e', aud: 'authenticated', role: 'authenticated', email: 'paulo@test.com' },
+      }));
+    });
+
     await page.locator('.va-tr-toggle').click();
     await expect(page.locator('.va-transcript')).toHaveText('“fala transcrita”', { timeout: 15000 });
     expect(pedido).toBeTruthy();
-    expect(pedido.generationConfig.thinkingConfig.thinkingBudget).toBe(0);
+    expect(pedido.audioUrl).toBe(AUDIO.url);
+    expect(pedido.audioBase64).toBeUndefined();
+    expect(headers.authorization).toBe('Bearer tok-e2e');
   });
 
   test('peaks ausentes: o player calcula o waveform decodificando o audio', async ({ page, context }) => {

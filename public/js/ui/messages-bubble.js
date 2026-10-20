@@ -145,8 +145,7 @@ export const MessagesBubbleMethods = {
       btn.disabled = true;
       tr.hidden = false; tr.textContent = 'Transcrevendo…';
       try {
-        const key = (Store.data.ui && Store.data.ui.aiKey) || '';
-        const text = await transcribeAudio(latest.audio.url, { key, mime: latest.audio.mime });
+        const text = await transcribeAudio(latest.audio.url, { mime: latest.audio.mime });
         latest.audio = Object.assign({}, latest.audio, { transcript: text });
         Store.upsertNote(latest);
         // evento próprio: atualiza só a coluna `audio`, sem reescrever a nota
