@@ -137,6 +137,23 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
   const trBtn = box.querySelector('.va-tr-toggle');
   const audio = sharedAudio();
 
+  // Foto do Google pode falhar (CSP, URL expirada, offline): em vez de deixar
+  // um círculo vazio/quebrado, cai para a inicial do remetente.
+  const avatar = box.querySelector('img.va-av');
+  if (avatar) {
+    const fallback = () => {
+      if (!avatar.isConnected) return;
+      const ini = document.createElement('span');
+      ini.className = 'va-av va-av-ini';
+      ini.setAttribute('aria-hidden', 'true');
+      const nameEl = box.querySelector('.va-name');
+      ini.textContent = (((nameEl && nameEl.textContent) || 'A').charAt(0) || 'A').toUpperCase();
+      avatar.replaceWith(ini);
+    };
+    avatar.addEventListener('error', fallback);
+    if (avatar.complete && avatar.naturalWidth === 0) fallback();
+  }
+
   // peaks ausentes: calcula na hora (nota antiga, ou o waveform ainda não foi
   // guardado) e repinta as barrinhas. Silencioso se falhar (URL morta/offline).
   if (!(Array.isArray(a.peaks) && a.peaks.length) && a.url) {
@@ -166,6 +183,9 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
     btn.setAttribute('aria-label', playing ? 'Pausar áudio' : 'Reproduzir áudio');
     box.classList.toggle('playing', playing);
   };
+  // outro player pausa este pelo clique; ele precisa conseguir repintar o
+  // próprio botão mesmo depois de `shared._owner` já apontar para a nova bolha
+  box._setIcon = setIcon;
 
   const reset = () => {
     paint(0);
@@ -176,14 +196,32 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     if (!a.url) { box.classList.add('failed'); return; }
-    if (audio.paused) {
-      // só um áudio por vez
-      if (shared._owner && shared._owner !== box) shared._owner.click();
-      audio.src = a.url;
-      audio.play().then(() => { setIcon(true); shared._owner = box; }).catch(() => box.classList.add('failed'));
-    } else {
+    if (shared._owner === box && !audio.paused) {
+      // pausa o próprio áudio; o próximo clique retoma de onde parou
       audio.pause();
+      setIcon(false);
+      return;
     }
+    // só um áudio por vez: pausa o anterior e já devolve o ícone dele
+    if (shared._owner && shared._owner !== box) {
+      audio.pause();
+      if (typeof shared._owner._setIcon === 'function') shared._owner._setIcon(false);
+      shared._owner = null;
+    }
+    // mesma URL: retoma/repete sem recarregar o arquivo
+    if (shared._src !== a.url) {
+      shared._src = a.url;
+      audio.src = a.url;
+      try { audio.currentTime = 0; } catch {}
+    } else if (audio.ended) {
+      try { audio.currentTime = 0; } catch {}
+    }
+    shared._owner = box;
+    setIcon(true); // feedback imediato; volta ao play se o play() falhar
+    audio.play().catch(() => {
+      if (shared._owner === box) { shared._owner = null; setIcon(false); }
+      box.classList.add('failed');
+    });
   });
 
   audio.addEventListener('timeupdate', () => {
