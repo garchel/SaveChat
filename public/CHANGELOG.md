@@ -2,6 +2,11 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## Não publicado
+### Corrigido
+- **Puxar para atualizar não apaga mais as mensagens.** O gesto reiniciava a paginação sem limpar o cursor antigo, então a conversa ficava vazia até ser reaberta. O cursor e o timestamp agora são resetados junto com a lista, e a primeira página volta a ser carregada.
+- **O assistente não perde mais a assinatura de raciocínio ao criar uma nota.** A segunda chamada ao Gemini reenviava a mensagem sem o `thoughtSignature` dos function calls. O histórico agora preserva as partes originais e a confirmação continua funcionando; se a chamada falhar, a nota ou pergunta não é apagada.
+
 ## [1.25.0] — 2026-10-20
 ### Adicionado
 - **O assistente agora lê as transcrições das mensagens de voz.** As notas recentes enviadas como contexto incluem o texto guardado em `audio.transcript`, marcado com `[áudio transcrito]`. Assim, pedir um resumo ou uma informação de um áudio transcrito funciona como pedir sobre uma nota escrita. O limite continua sendo as notas recentes (15 conversas × últimas 10 notas).

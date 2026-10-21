@@ -126,54 +126,84 @@ export const WorkspaceAiMethods = {
         },
       }],
     }];
+    let actions = [];
+    let acted = false;
     try {
       const first = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents, tools });
       const cand = (first.candidates || [])[0] || {};
       const parts = (cand.content && cand.content.parts) || [];
-      const calls = parts.filter((p) => p.functionCall).map((p) => p.functionCall);
+      const callParts = parts.filter((p) => p.functionCall);
+      const calls = callParts.map((p) => p.functionCall);
       let answer = parts.filter((p) => p.text).map((p) => p.text).join('').trim();
-      let actions = [];
       let finalContents = contents;
       if (calls.length) {
         // executa as ferramentas e faz a 2ª chamada com os resultados
-        const modelParts = [];
+        acted = true;
+        // Manda as parts de volta EXATAMENTE como o modelo respondeu. O
+        // Gemini 3 exige o `thoughtSignature` que vem junto do functionCall;
+        // remontar `{ functionCall: call }` jogava a assinatura fora e a 2ª
+        // chamada falhava com "missing thought_signature" DEPOIS de a nota já
+        // ter sido criada — o usuário via erro de function call e a nota
+        // aparecia mesmo assim.
+        const modelParts = parts.slice();
         const responses = [];
-        actions = calls.map((call) => {
-          modelParts.push({ functionCall: call });
+        callParts.forEach((part) => {
+          const call = part.functionCall;
           if (call.name === 'criar_nota') {
             const res = this._execCreateNote({ conversa: call.args && call.args.conversa, texto: call.args && call.args.texto });
             responses.push({ functionResponse: { name: 'criar_nota', response: res } });
-            return res.ok ? `📝 Nota criada em “${res.conversa}”` : `⚠️ Não consegui criar a nota: ${res.erro}`;
+            actions.push(res.ok ? `📝 Nota criada em “${res.conversa}”` : `⚠️ Não consegui criar a nota: ${res.erro}`);
+          } else {
+            responses.push({ functionResponse: { name: call.name, response: { ok: false, erro: 'Função desconhecida' } } });
+            actions.push(`⚠️ Função desconhecida: ${call.name}`);
           }
-          responses.push({ functionResponse: { name: call.name, response: { ok: false, erro: 'Função desconhecida' } } });
-          return `⚠️ Função desconhecida: ${call.name}`;
         });
         finalContents = [...contents,
           { role: 'model', parts: modelParts },
           { role: 'user', parts: responses },
         ];
-        const second = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents: finalContents, tools });
-        const cand2 = (second.candidates || [])[0] || {};
-        answer = ((cand2.content && cand2.content.parts) || []).filter((p) => p.text).map((p) => p.text).join('').trim();
+        try {
+          const second = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents: finalContents, tools });
+          const cand2 = (second.candidates || [])[0] || {};
+          answer = ((cand2.content && cand2.content.parts) || []).filter((p) => p.text).map((p) => p.text).join('').trim();
+        } catch (err) {
+          // A ferramenta JÁ rodou: a falha aqui é só da confirmação textual.
+          // Não desfaz a nota nem a pergunta do usuário; usa o resultado da
+          // ação como resposta.
+          console.warn('[ai] confirmação após function call falhou', err);
+          answer = actions.join('\n');
+        }
       }
       if (!answer && !actions.length) throw new Error('A IA não retornou uma resposta. Tente novamente.');
-      history.push({ role: 'model', text: answer || '', actions, ts: Date.now() });
+      if (!answer) answer = actions.join('\n');
+      history.push({ role: 'model', text: answer, actions, ts: Date.now() });
       if (history.length > 40) history.splice(0, history.length - 40);
       Store.save();
       // espelha a resposta na thread da IA (a pergunta já foi espelhada
       // antes da chamada; em falha, o catch desfaz só o ui.aiChat — ver
       // o comentário de _aiPersistTurn)
-      this._aiPersistTurn('model', answer || '');
+      this._aiPersistTurn('model', answer);
       this._aiBusy = false;
       this.renderAiMessages();
       haptic('success');
     } catch (error) {
-      history.pop();
-      Store.save();
+      if (!acted) {
+        history.pop();
+        Store.save();
+      } else {
+        // A ação já teve efeito (a nota foi criada): preserva a pergunta e
+        // registra o resultado em vez de sumir com o turno do usuário.
+        const fallback = actions.join('\n') || 'A ação foi executada, mas não consegui gerar a resposta.';
+        history.push({ role: 'model', text: fallback, actions, ts: Date.now() });
+        Store.save();
+        this._aiPersistTurn('model', fallback);
+      }
       this._aiBusy = false;
       this.renderAiMessages();
-      const message = error.message || 'Falha ao falar com a API Gemini';
-      this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: 'error', duration: 5000 });
+      const message = acted
+        ? 'A ação foi executada, mas a IA não conseguiu confirmar.'
+        : (error.message || 'Falha ao falar com a API Gemini');
+      this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: acted ? 'info' : 'error', duration: 5000 });
     } finally {
       input.disabled = false;
       button.disabled = false;
