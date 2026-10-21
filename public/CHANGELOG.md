@@ -2,6 +2,15 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## Não publicado
+### Adicionado
+- **Lista completa ganhou um aviso persistente e um botão para revelar/ocultar os concluídos.** Com “Ocultar itens concluídos” ligado, ao marcar a última checkbox a bolha mostra **✓ Lista completa!** e mantém o botão **Mostrar lista**/**Ocultar lista** para ver os itens escondidos sem desligar a configuração. O aviso só aparece quando todas as checkboxes da nota estão concluídas.
+- **O assistente agora edita notas e marca checkboxes, sempre com confirmação.** Peça “marque o leite na lista de compras” ou “troque o título da nota X”; a IA mostra o plano na própria bolha (“Você confirma que quer …?”) com os botões **Cancelar** e **Confirmar**. A ação só roda depois do Confirmar e acontece no app, sem uma segunda chamada à IA. Funciona para criar, editar e marcar/desmarcar checkboxes (inclusive todas as de uma nota). O contexto agora identifica cada nota com `[nota:ID]` para a IA acertar a origem.
+
+### Corrigido
+- **Puxar para atualizar não apaga mais as mensagens.** O gesto reiniciava a paginação sem limpar o cursor antigo, então a conversa ficava vazia até ser reaberta. O cursor e o timestamp agora são resetados junto com a lista, e a primeira página volta a ser carregada.
+- **No celular, ficar sem conversa aberta volta para os cadernos.** Ao excluir a conversa ativa, apagar tudo ou sair da IA sem nenhuma thread selecionada, o canvas mostrava o placeholder "Nenhuma conversa selecionada". Agora o app volta para a lista de cadernos, onde a próxima conversa pode ser escolhida; o placeholder continua no desktop, onde o canvas tem espaço.
+
 ## [1.25.0] — 2026-10-20
 ### Adicionado
 - **O assistente agora lê as transcrições das mensagens de voz.** As notas recentes enviadas como contexto incluem o texto guardado em `audio.transcript`, marcado com `[áudio transcrito]`. Assim, pedir um resumo ou uma informação de um áudio transcrito funciona como pedir sobre uma nota escrita. O limite continua sendo as notas recentes (15 conversas × últimas 10 notas).

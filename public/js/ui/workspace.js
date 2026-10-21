@@ -77,6 +77,14 @@ export const WorkspaceMethods = {
       aiPrompt.addEventListener('input', () => { this._growAiPrompt(aiPrompt); this._updateAiSendAudioState(aiPrompt, aiSend); });
     }
     this._updateAiSendAudioState(aiPrompt, aiSend);
+    // Confirmação de ações propostas pela IA: delegação no container, porque
+    // renderAiMessages() recria as bolhas a cada atualização.
+    document.getElementById('ai-messages')?.addEventListener('click', (event) => {
+      const btn = event.target.closest('[data-ai-confirm]');
+      if (!btn) return;
+      event.preventDefault();
+      this.resolveAiPending(btn.dataset.aiMsg, btn.dataset.aiConfirm);
+    });
     // ----- Diária (rotina que se renova) -----
     // Criação/edição passa pelo modal (texto + horário + switch de notificação);
     // o antigo input rápido da página foi removido.
@@ -166,8 +174,11 @@ export const WorkspaceMethods = {
     if (tab === 'ai') this.prepareAiPage();
     if (tab === 'reminders') this.renderRemindersList();
     if (tab === 'daily') this.renderDailyPage();
-    // no mobile as páginas vivem no canvas: desliza para frente
-    if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.add('show-chat');
+    // No mobile as páginas vivem no canvas: desliza para frente. Em Conversas
+    // sem thread selecionada, o destino é o explorador (cadernos), não o
+    // placeholder de canvas vazio.
+    if (app && window.matchMedia('(max-width: 760px)').matches
+      && (tab !== 'conversations' || this.activeThread)) app.classList.add('show-chat');
     if (updateUrl) history.replaceState(null, '', location.pathname);
     this._workspaceTab = tab;
     this.syncExplorerChrome(); // botão de Lembretes acende só na aba Lembretes

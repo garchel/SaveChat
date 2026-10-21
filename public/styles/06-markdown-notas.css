@@ -34,6 +34,7 @@
 
 /* Checklist nas notas ([ ] / [x]) */
 .md-checklist { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 2px; }
+.bubble .md-checklist:empty { display: none; }
 .md-check {
   display: flex; align-items: flex-start; gap: 8px; cursor: default; line-height: 1.45;
 }

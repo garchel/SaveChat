@@ -22,7 +22,7 @@ const CONTRATO = [
   '_readableTextColor', 'dedupeBubblesDom', '_bindEmptyCta',
   // bolha
   'bubbleEl', 'daySepEl', 'toggleNoteCheckbox', '_checkListComplete',
-  'openLightbox', '_applyCozyEmptyCopy',
+  'toggleChecklistReveal', 'openLightbox', '_applyCozyEmptyCopy',
   // reações e popover
   'toggleReaction', '_quickReactions', '_bumpReactionUse', '_reactionsHtml',
   'bindMsgPopover', '_syncReactionButtons', '_showRpView',

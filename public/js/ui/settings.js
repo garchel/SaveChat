@@ -75,6 +75,7 @@ bindSettings() {
         hd.addEventListener('change', () => {
           Store.data.ui = Store.data.ui || {};
           Store.data.ui.hideDoneChecks = hd.checked; Store.save();
+          this._revealedChecklists = new Set();
           if (this.activeThread) { this.renderedClientIds = new Set(); this.renderMessages(true); }
         });
       }
