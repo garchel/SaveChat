@@ -1,6 +1,6 @@
 # SaveChat — Progresso (snapshot histórico)
 
-> **⚠️ Este arquivo é histórico.** O checklist atual de lançamento está em **[ROADMAP_ESTAVEL.md](ROADMAP_ESTAVEL.md)** — use-o como fonte da verdade para web+mobile estável.
+> **⚠️ Este arquivo é histórico.** O checklist de lançamento está em **[ROADMAP_ESTAVEL.md](ROADMAP_ESTAVEL.md)** e o inventário do que existe hoje (com evidência por feature) está em **[ESTADO_ATUAL.md](ESTADO_ATUAL.md)** — use estes dois como fonte da verdade.
 > Atualizado em 24/08/2026 para refletir a arquitetura atual (Vercel + Supabase; backend Node próprio removido).
 
 ## 1. Origem

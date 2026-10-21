@@ -28,6 +28,8 @@
               <div class="tip-title">Busca avançada</div>
               <code>#tag</code> filtra por tag<br/>
               <code>in:conversa</code> busca numa conversa<br/>
+              <code>depois:data</code> · <code>antes:data</code><br/>
+              <code>rx:🔥</code> filtra por reação<br/>
               Texto livre busca em todas as notas
             </span></span>
             <input id="search-input" type="search" placeholder="Buscar notas…  #tag · in:conversa" autocomplete="off" />

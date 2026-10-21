@@ -1,7 +1,7 @@
 # Auditoria Mobile — SaveChat (detalhe técnico)
 
-> **Companion do roadmap.** O checklist priorizado está em **[ROADMAP_ESTAVEL.md](ROADMAP_ESTAVEL.md) Fase 3**. Este arquivo mantém a evidência viewport `375×812` (iPhone X via Playwright).
-> Re-auditado em 24/08/2026 contra `styles.css`, `js/ui/*.js` e `index.html` atuais.
+> **Companion do roadmap.** O checklist priorizado está em **[ROADMAP_ESTAVEL.md](ROADMAP_ESTAVEL.md) Fase 3**; o inventário completo de features/limites está em **[ESTADO_ATUAL.md](ESTADO_ATUAL.md)**. Este arquivo mantém a evidência viewport `375×812` (iPhone X via Playwright).
+> Re-auditado em **20/10/2026** contra `public/styles/`, `public/js/` e `public/partials/`.
 
 ## ✅ O que JÁ FUNCIONA bem
 
@@ -39,9 +39,9 @@
 
 | # | Task | Evidência | Estado |
 |---|------|-----------|--------|
-| 3 | Search results `max-height: 40vh` — testar em iPhone SE | `16-explorer-busca-paginas.css` | ⏳ **aberto**: precisa de device real, não dá para auditar em CI |
+| 3 | Search results `max-height`: 40vh na sidebar e 45vh no painel novo — testar em iPhone SE | `03a-sidebar-explorer.css:233`; `16-explorer-busca-paginas.css:33` | ⏳ **aberto**: precisa de device real, não dá para auditar em CI |
 | 4 | ~~Toast sem `safe-area-inset-top` e sem animação de saída~~ | `14-animacoes.css` | ✅ **RESOLVIDO** (v73): medido agora — `.app-toast { top: calc(14px + env(safe-area-inset-top)) }` e a classe `.leaving` faz a saída animada (150ms ease-in, remoção em 180ms, guard `_leaving`). O doc antigo afirmava ausência; o código já tem |
-| 5 | `.bubble .del` hover-only (touch usa menu ▾ como única alternativa) | `03b-chat-bolhas.css` | ⏳ **aberto — decisão de produto**: `.bubble .del` tem `position:absolute` e só fica `opacity: 1` em `.bubble:hover`. Em touch não há hover, então o botão fica invisível e o menu ▾ é a única via. Ou se torna visível discreto, ou se remove |
+| 5 | `.bubble .del` hover-only | `03b-chat-bolhas.css:952-954` | ✅ **OBSOLETO**: o botão não é renderizado em nenhum módulo/partial — são duas regras de CSS morto. A exclusão já é feita pelo menu ▾. Não é decisão de produto; basta remover o CSS (B2) |
 
 > Re-auditado em 29/09/2026 contra o código. Os dois itens do bloco 🟠 ALTO
 > continuam resolvidos desde a v71 e foram confirmados no código atual.

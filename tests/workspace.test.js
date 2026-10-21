@@ -19,7 +19,9 @@ const CONTRATO = {
   ],
   'public/js/ui/workspace-ai.js': [
     'prepareAiPage', 'renderAiMessages', '_buildAiContext', '_aiSystemInstruction',
-    'sendAiMessage', '_aiFetch', '_execCreateNote', '_updateAiSendAudioState',
+    'sendAiMessage', '_aiTools', '_aiPlanActions', 'resolveAiPending',
+    '_executeAiAction', '_aiFetch', '_execCreateNote', '_execEditNote',
+    '_execToggleCheckbox', '_aiUpdatePersistedTurn', '_updateAiSendAudioState',
     '_growAiPrompt', '_toggleAiRecording', '_finishAiRecording',
     '_transcribeAudio', '_setRecUI', '_setRecStatus',
   ],

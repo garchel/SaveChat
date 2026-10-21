@@ -3,7 +3,7 @@ export const PAGE_SIZE = 25;
 
 // helper para feedback tátil (mobile)
 export function haptic(type) {
-  if (!navigator.vibrate) return;
+  if (typeof navigator === 'undefined' || !navigator.vibrate) return;
   const patterns = {
     light: [10],
     medium: [20],

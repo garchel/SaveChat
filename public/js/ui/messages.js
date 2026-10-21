@@ -121,6 +121,13 @@ export const MessagesMethods = {
       const el = $('#chat-active-ui');
       if (!el) return;
       el.classList.toggle('visible', show);
+      // No celular, "nenhuma conversa" não é uma tela: o destino é a lista de
+      // cadernos, onde o usuário escolhe a conversa. O canvas só aparece com
+      // conversa aberta (ou com uma página do workspace, que passa show=true).
+      if (!show) {
+        const app = $('#app');
+        if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+      }
       // placeholder "nenhuma conversa selecionada": visível exatamente quando
       // a UI de conversa está oculta (boot, excluir conversa, apagar tudo)
       document.getElementById('no-thread')?.classList.toggle('hidden', !!show);
@@ -306,6 +313,11 @@ export const MessagesMethods = {
       const box = $('#messages');
       const empty = $('#empty-state');
       const notes = Store.notesFor(this.activeThread);
+      // Reset = voltar para a ÚLTIMA página. Se `oldestKey` ficasse no topo
+      // (depois de o usuário carregar todas as páginas e puxar para
+      // atualizar), `pageNotes` devolveria zero itens e o reset apagaria
+      // todas as bolhas do DOM — a conversa "sumia" no pull-to-refresh.
+      if (reset) { this.oldestKey = null; this.oldestTs = null; }
       if (!notes.length) {
         empty.classList.remove('hidden');
         this._hideLoadSkeleton();
@@ -342,14 +354,13 @@ export const MessagesMethods = {
         // #empty-state como null e morria antes de pintar a conversa nova —
         // o que devolvia o sintoma original (a anterior ficava na tela).
         box.querySelectorAll('.bubble, .day-sep-wrap, .day-sep').forEach((el) => el.remove());
-        // A âncora NÃO é gravada aqui de propósito.
-        //
+        // A âncora já voltou para `null` acima. NÃO gravamos `cursor` aqui:
         // `pageNotes` devolve `cursor` = a chave da primeira nota desta
         // página, e o corte da próxima chamada é `>=` — ou seja, o cursor
         // aponta para a PRIMEIRA nota, que o `findIndex` reencontra como
-        // início da página seguinte. Deixar `oldestKey` em `null` faz o
-        // primeiro scroll do usuário paginar a partir do fim da lista, que é
-        // exatamente o que ainda não foi pintado.
+        // início da página seguinte. Com `oldestKey` em `null`, o primeiro
+        // scroll do usuário pagina a partir do fim da lista, que é exatamente
+        // o que ainda não foi pintado.
         //
         // Gravar aqui consumia essa página duas vezes: o boot pintava 25
         // notas e deixava a âncora no início delas, então o primeiro scroll

@@ -1345,13 +1345,23 @@
 [data-theme="dark"] .bubble.editing, [data-theme="midnight"] .bubble.editing {
   background: var(--bg-elev); color: var(--text); caret-color: var(--accent);
 }
-/* badge "lista completa" dentro da bolha */
+/* aviso "lista completa" dentro da bolha; com "ocultar concluídos" ligado,
+   ganha o botão para revelar/ocultar os itens escondidos */
 .chk-complete {
-  margin-top: 6px; padding: 4px 10px; border-radius: 8px;
+  margin-top: 6px; padding: 4px 10px; border-radius: 999px;
   background: rgba(70, 201, 138, .15); color: #46c98a;
-  font-size: 12px; font-weight: 800; display: inline-block;
+  font-size: 12px; font-weight: 800; display: inline-flex; flex-wrap: wrap;
+  align-items: center; gap: 8px;
   animation: pop .18s ease both;
 }
+.chk-complete-text { white-space: nowrap; }
+.chk-reveal-toggle {
+  min-height: 28px; padding: 2px 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(70, 201, 138, .5); background: rgba(70, 201, 138, .1);
+  color: inherit; font: inherit; font-size: 12px; font-weight: 800;
+}
+.chk-reveal-toggle:hover { background: rgba(70, 201, 138, .22); }
+.chk-reveal-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .bubble.remote.editing { background: var(--bubble-sys); color: var(--text); }
 .bubble.editing:empty::before { content: "Escreva sua nota…"; opacity: .5; }
 
