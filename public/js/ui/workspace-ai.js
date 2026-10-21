@@ -1,6 +1,7 @@
-// Pagina da IA: assistente que lê as notas recentes como contexto e
-// pode criar mensagens (function calling). Inclui o áudio
-// (grava -> transcreve pelo Groq Whisper -> campo para revisão).
+// Pagina da IA: assistente que lê as notas recentes como contexto e pode
+// propor criar/editar notas e marcar checkboxes (function calling). Nada é
+// executado até o usuário confirmar; a execução é local, sem 2ª chamada à IA.
+// Inclui o áudio (grava -> transcreve pelo Groq Whisper -> campo para revisão).
 
 import { Store } from '../store.js';
 import { Sync, getSupa, USE_SUPABASE, SUPABASE_ANON_KEY } from '../sync-supabase.js';
@@ -40,7 +41,10 @@ export const WorkspaceAiMethods = {
       : '';
     list.innerHTML = history.map((item) => {
       const chips = (item.actions || []).map((a) => `<div class="ai-action-chip">${esc(a)}</div>`).join('');
-      return `<article class="ai-message ${item.role === 'user' ? 'user' : 'model'}"><div class="ai-message-label">${item.role === 'user' ? 'Você' : 'IA'}</div>${chips}<div class="ai-message-body">${renderMarkdown(item.text || '')}</div></article>`;
+      const article = `<article class="ai-message ${item.role === 'user' ? 'user' : 'model'}"><div class="ai-message-label">${item.role === 'user' ? 'Você' : 'IA'}</div>${chips}<div class="ai-message-body">${renderMarkdown(item.text || '')}</div></article>`;
+      if (!item.pending || item.pending.status !== 'pending') return article;
+      const msgId = esc(item.id || item.ts || '');
+      return `<div class="ai-message-group">${article}<div class="ai-confirm-actions" role="group" aria-label="Confirmação da ação"><button type="button" class="ai-confirm-btn cancel" data-ai-confirm="cancel" data-ai-msg="${msgId}">Cancelar</button><button type="button" class="ai-confirm-btn confirm" data-ai-confirm="confirm" data-ai-msg="${msgId}">Confirmar</button></div></div>`;
     }).join('') + thinking;
     list.scrollTop = list.scrollHeight;
   },
@@ -62,8 +66,10 @@ export const WorkspaceAiMethods = {
         // a transcrição do áudio vive em `audio.transcript` (sincronizada na
         // coluna jsonb `audio`); sem esta linha a IA não "ouve" a mensagem de voz
         const transcript = String((n.audio && n.audio.transcript) || '').replace(/\s+/g, ' ').trim().slice(0, 600);
-        if (text) lines.push(`- ${text}`);
-        if (transcript) lines.push(`- [áudio transcrito] ${transcript}`);
+        const id = n.clientId || n.id;
+        const tag = id ? `[nota:${id}] ` : '';
+        if (text) lines.push(`- ${tag}${text}`);
+        if (transcript) lines.push(`- ${tag}[áudio transcrito] ${transcript}`);
       });
     });
     return lines.join('\n').slice(0, 24000);
@@ -73,9 +79,151 @@ export const WorkspaceAiMethods = {
     const context = this._buildAiContext();
     let text = 'Você é o assistente de IA do SaveChat, um app de notas em conversas. Responda em português brasileiro, com clareza e simpatia, usando markdown quando ajudar. ' +
       'Você RECEBE como contexto as notas recentes das conversas do usuário — incluindo a transcrição das mensagens de voz, marcada com [áudio transcrito] — use esse conteúdo para responder resumos, planejamentos e perguntas sobre as notas. Se algo não estiver nas notas, diga que não encontrou. ' +
-      'Você PODE CRIAR NOTAS: sempre que o usuário pedir para registrar/anotar/criar algo numa conversa, chame a função criar_nota com o nome EXATO da conversa e o conteúdo em markdown. Depois de criar, confirme em uma frase curta.';
+      'Você PODE CRIAR, EDITAR E MARCAR CHECKBOXES EM NOTAS. Use as funções quando o usuário pedir para registrar, anotar, criar, alterar, corrigir, marcar ou desmarcar algo. ' +
+      'Para editar ou marcar uma nota existente, use o [nota:ID] que aparece no contexto; se não houver ID, mande um trecho do texto atual em “nota”. Nunca invente IDs. ' +
+      'Chame TODAS as funções necessárias para cumprir o pedido, em ordem. Não execute nem diga que executou: o app mostra a confirmação e só age depois que o usuário aceitar. ' +
+      'Depois do pedido, não responda “feito” nem peça nova confirmação em texto; a pergunta de confirmação é montada pelo app.';
     if (context) text += `\n\n=== Notas recentes do usuário (contexto — não repita no chat) ===\n${context}`;
     return { parts: [{ text }] };
+  },
+
+  // Ferramentas que a IA pode pedir. Elas NÃO executam nada sozinhas: a
+  // resposta vira uma proposta e o app só age depois do "Confirmar".
+  _aiTools() {
+    return [{
+      functionDeclarations: [
+        {
+          name: 'criar_nota',
+          description: 'Cria uma nova nota (mensagem) numa conversa existente do SaveChat. Use quando o usuário pedir para registrar, anotar, planejar ou criar conteúdo novo.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              conversa: { type: 'STRING', description: 'Nome exato da conversa onde criar a nota (veja o contexto enviado)' },
+              texto: { type: 'STRING', description: 'Conteúdo completo da nota, em markdown' },
+            },
+            required: ['conversa', 'texto'],
+          },
+        },
+        {
+          name: 'editar_nota',
+          description: 'Substitui o texto completo de uma nota existente. Use quando o usuário pedir para editar, corrigir, completar ou reescrever uma nota. Prefira nota_id; use nota (trecho do texto atual) se não tiver o id.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              conversa: { type: 'STRING', description: 'Nome exato da conversa da nota' },
+              nota_id: { type: 'STRING', description: 'ID da nota no contexto, no formato [nota:ID]' },
+              nota: { type: 'STRING', description: 'Trecho do texto atual da nota, para localizá-la quando não houver nota_id' },
+              novo_texto: { type: 'STRING', description: 'Novo conteúdo completo da nota, em markdown' },
+            },
+            required: ['conversa', 'novo_texto'],
+          },
+        },
+        {
+          name: 'marcar_checkbox',
+          description: 'Marca ou desmarca uma checkbox de uma nota existente. Se item for omitido, aplica a todas as checkboxes da nota. Use marcado=false para desmarcar.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              conversa: { type: 'STRING', description: 'Nome exato da conversa da nota' },
+              nota_id: { type: 'STRING', description: 'ID da nota no contexto, no formato [nota:ID]' },
+              nota: { type: 'STRING', description: 'Trecho do texto atual da nota, para localizá-la quando não houver nota_id' },
+              item: { type: 'STRING', description: 'Texto da checkbox a marcar/desmarcar; omita para todas' },
+              marcado: { type: 'BOOLEAN', description: 'true para marcar; false para desmarcar (padrão: true)' },
+            },
+            required: ['conversa'],
+          },
+        },
+      ],
+    }];
+  },
+
+  _aiShortText(value, max = 64) {
+    const s = String(value || '').replace(/\s+/g, ' ').trim();
+    return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+  },
+
+  _aiActionText(action) {
+    const q = (s) => `“${this._aiShortText(s)}”`;
+    const conversa = q(action && action.conversa ? action.conversa : 'conversa não identificada');
+    if (!action) return 'executar uma ação';
+    if (action.type === 'create_note') return `criar uma nota em ${conversa}`;
+    if (action.type === 'edit_note') {
+      const resumo = action.notaResumo || action.nota;
+      const alvo = resumo ? `a nota ${q(resumo)}` : 'a nota selecionada';
+      return `editar ${alvo} em ${conversa}`;
+    }
+    if (action.type === 'toggle_checkbox') {
+      const verbo = action.marcado ? 'marcar' : 'desmarcar';
+      const alvo = action.item ? q(action.item) : 'todas as caixas';
+      const resumo = action.notaResumo || action.nota;
+      const nota = resumo ? ` na nota ${q(resumo)}` : '';
+      return `${verbo} ${alvo}${nota} em ${conversa}`;
+    }
+    return `executar a ação ${q(action.name || 'desconhecida')}`;
+  },
+
+  _aiConfirmationText(actions) {
+    const parts = (actions || []).map((a) => this._aiActionText(a)).filter(Boolean);
+    if (!parts.length) return '';
+    const joined = parts.length === 1
+      ? parts[0]
+      : `${parts.slice(0, -1).join(', ')} e ${parts[parts.length - 1]}`;
+    return `Você confirma que quer ${joined}?`;
+  },
+
+  _aiNoteId(value) {
+    return String(value || '').trim().replace(/^\[?\s*nota:\s*/i, '').replace(/\]$/, '').trim();
+  },
+
+  _aiPlanActions(callParts) {
+    return (callParts || []).map((part) => {
+      const call = part && part.functionCall;
+      if (!call) return null;
+      const args = call.args || {};
+      if (call.name === 'criar_nota') {
+        return {
+          type: 'create_note',
+          conversa: String(args.conversa || '').trim(),
+          texto: String(args.texto || '').trim(),
+        };
+      }
+      if (call.name === 'editar_nota') {
+        const conversa = String(args.conversa || '').trim();
+        const notaId = this._aiNoteId(args.nota_id || args.notaId);
+        const nota = String(args.nota || '').trim();
+        const target = this._findAiThread(conversa);
+        const found = target ? this._findAiNote(target, { notaId, nota }) : null;
+        return {
+          type: 'edit_note',
+          conversa,
+          notaId: (found && found.clientId) || notaId,
+          nota,
+          notaResumo: String((found && found.text) || '').slice(0, 300),
+          novoTexto: String(args.novo_texto || args.novoTexto || args.texto || '').trim(),
+        };
+      }
+      if (call.name === 'marcar_checkbox') {
+        const conversa = String(args.conversa || '').trim();
+        const notaId = this._aiNoteId(args.nota_id || args.notaId);
+        const nota = String(args.nota || '').trim();
+        const target = this._findAiThread(conversa);
+        const found = target ? this._findAiNote(target, { notaId, nota }) : null;
+        return {
+          type: 'toggle_checkbox',
+          conversa,
+          notaId: (found && found.clientId) || notaId,
+          nota,
+          notaResumo: String((found && found.text) || '').slice(0, 300),
+          item: String(args.item || '').trim(),
+          marcado: !(args.marcado === false || args.marcado === 'false'),
+        };
+      }
+      return {
+        type: 'unknown',
+        conversa: String(args.conversa || '').trim(),
+        name: call.name,
+      };
+    }).filter(Boolean);
   },
 
   async sendAiMessage() {
@@ -94,121 +242,118 @@ export const WorkspaceAiMethods = {
     Store.data.ui.aiKey = key;
     Store.data.ui.aiModel = (modelField && modelField.value.trim()) || DEFAULT_MODEL;
     const history = Store.data.ui.aiChat || (Store.data.ui.aiChat = []);
-    history.push({ role: 'user', text: prompt, ts: Date.now() });
+    const userMsg = { id: uid(), role: 'user', text: prompt, ts: Date.now() };
+    history.push(userMsg);
     Store.save();
     // A thread da IA é conversa permanente na árvore (ai-thread.js): o
     // histórico também vira nota ali, para persistir como qualquer outra
     // conversa — mas a thread é `localOnly`, então o conteúdo não sai do
     // aparelho. `role` fica gravado em `aiRole` para o render saber de
     // quem é a fala.
-    this._aiPersistTurn('user', prompt);
+    this._aiPersistTurn('user', prompt, userMsg.id);
     input.value = '';
     this._growAiPrompt(input);
     input.disabled = true; button.disabled = true;
     this._aiBusy = true;
     this.renderAiMessages();
+    const start = history.length;
     const prior = history.slice(-21, -1).map(({ role, text }) => ({
       role: role === 'model' ? 'model' : 'user',
       parts: [{ text: String(text).slice(0, 12000) }],
     }));
     const contents = [...prior, { role: 'user', parts: [{ text: prompt.slice(0, 12000) }] }];
-    const tools = [{
-      functionDeclarations: [{
-        name: 'criar_nota',
-        description: 'Cria uma nova nota (mensagem) numa conversa existente do SaveChat. Use sempre que o usuário pedir para registrar, anotar, planejar ou criar conteúdo.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {
-            conversa: { type: 'STRING', description: 'Nome exato da conversa onde criar a nota (veja o contexto enviado)' },
-            texto: { type: 'STRING', description: 'Conteúdo completo da nota, em markdown' },
-          },
-          required: ['conversa', 'texto'],
-        },
-      }],
-    }];
-    let actions = [];
-    let acted = false;
     try {
-      const first = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents, tools });
+      const first = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents, tools: this._aiTools() });
       const cand = (first.candidates || [])[0] || {};
       const parts = (cand.content && cand.content.parts) || [];
       const callParts = parts.filter((p) => p.functionCall);
-      const calls = callParts.map((p) => p.functionCall);
       let answer = parts.filter((p) => p.text).map((p) => p.text).join('').trim();
-      let finalContents = contents;
-      if (calls.length) {
-        // executa as ferramentas e faz a 2ª chamada com os resultados
-        acted = true;
-        // Manda as parts de volta EXATAMENTE como o modelo respondeu. O
-        // Gemini 3 exige o `thoughtSignature` que vem junto do functionCall;
-        // remontar `{ functionCall: call }` jogava a assinatura fora e a 2ª
-        // chamada falhava com "missing thought_signature" DEPOIS de a nota já
-        // ter sido criada — o usuário via erro de function call e a nota
-        // aparecia mesmo assim.
-        const modelParts = parts.slice();
-        const responses = [];
-        callParts.forEach((part) => {
-          const call = part.functionCall;
-          if (call.name === 'criar_nota') {
-            const res = this._execCreateNote({ conversa: call.args && call.args.conversa, texto: call.args && call.args.texto });
-            responses.push({ functionResponse: { name: 'criar_nota', response: res } });
-            actions.push(res.ok ? `📝 Nota criada em “${res.conversa}”` : `⚠️ Não consegui criar a nota: ${res.erro}`);
-          } else {
-            responses.push({ functionResponse: { name: call.name, response: { ok: false, erro: 'Função desconhecida' } } });
-            actions.push(`⚠️ Função desconhecida: ${call.name}`);
-          }
-        });
-        finalContents = [...contents,
-          { role: 'model', parts: modelParts },
-          { role: 'user', parts: responses },
-        ];
-        try {
-          const second = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents: finalContents, tools });
-          const cand2 = (second.candidates || [])[0] || {};
-          answer = ((cand2.content && cand2.content.parts) || []).filter((p) => p.text).map((p) => p.text).join('').trim();
-        } catch (err) {
-          // A ferramenta JÁ rodou: a falha aqui é só da confirmação textual.
-          // Não desfaz a nota nem a pergunta do usuário; usa o resultado da
-          // ação como resposta.
-          console.warn('[ai] confirmação após function call falhou', err);
-          answer = actions.join('\n');
-        }
+      const actions = callParts.length ? this._aiPlanActions(callParts) : [];
+      let pending = null;
+      if (actions.length) {
+        // Nada é executado aqui. Guardamos o plano na mensagem e deixamos o
+        // usuário decidir; o "Confirmar" roda as ações localmente, sem uma
+        // segunda chamada à IA.
+        answer = this._aiConfirmationText(actions);
+        pending = { status: 'pending', actions };
       }
-      if (!answer && !actions.length) throw new Error('A IA não retornou uma resposta. Tente novamente.');
-      if (!answer) answer = actions.join('\n');
-      history.push({ role: 'model', text: answer, actions, ts: Date.now() });
+      if (!answer) throw new Error('A IA não retornou uma resposta. Tente novamente.');
+      const modelMsg = { id: uid(), role: 'model', text: answer, actions: [], ts: Date.now() };
+      if (pending) modelMsg.pending = pending;
+      history.push(modelMsg);
       if (history.length > 40) history.splice(0, history.length - 40);
       Store.save();
-      // espelha a resposta na thread da IA (a pergunta já foi espelhada
-      // antes da chamada; em falha, o catch desfaz só o ui.aiChat — ver
-      // o comentário de _aiPersistTurn)
-      this._aiPersistTurn('model', answer);
+      this._aiPersistTurn('model', answer, modelMsg.id);
       this._aiBusy = false;
       this.renderAiMessages();
       haptic('success');
     } catch (error) {
-      if (!acted) {
-        history.pop();
-        Store.save();
-      } else {
-        // A ação já teve efeito (a nota foi criada): preserva a pergunta e
-        // registra o resultado em vez de sumir com o turno do usuário.
-        const fallback = actions.join('\n') || 'A ação foi executada, mas não consegui gerar a resposta.';
-        history.push({ role: 'model', text: fallback, actions, ts: Date.now() });
-        Store.save();
-        this._aiPersistTurn('model', fallback);
-      }
+      // Sem execução antes da confirmação, uma falha pode desfazer o turno
+      // inteiro (o usuário vê o toast e tenta de novo).
+      while (history.length > start - 1) history.pop();
+      Store.save();
       this._aiBusy = false;
       this.renderAiMessages();
-      const message = acted
-        ? 'A ação foi executada, mas a IA não conseguiu confirmar.'
-        : (error.message || 'Falha ao falar com a API Gemini');
-      this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: acted ? 'info' : 'error', duration: 5000 });
+      const message = error.message || 'Falha ao falar com a API Gemini';
+      this.toast(message.length > 130 ? `${message.slice(0, 127)}…` : message, { kind: 'error', duration: 5000 });
     } finally {
       input.disabled = false;
       button.disabled = false;
       input.focus();
     }
+  },
+
+  resolveAiPending(msgId, decision) {
+    const history = (Store.data.ui && Store.data.ui.aiChat) || [];
+    const msg = history.find((m) => m.pending && m.pending.status === 'pending'
+      && ((m.id && m.id === msgId) || String(m.ts) === String(msgId)));
+    if (!msg) return;
+    if (decision !== 'confirm') {
+      msg.pending.status = 'cancelled';
+      msg.text = 'Ação cancelada.';
+      msg.actions = [];
+      Store.save();
+      this._aiUpdatePersistedTurn(msg.id, msg.text);
+      this.renderAiMessages();
+      haptic('light');
+      this.toast('Ação cancelada', { kind: 'info', duration: 2500 });
+      return;
+    }
+    const actions = Array.isArray(msg.pending.actions) ? msg.pending.actions : [];
+    const results = actions.map((action) => {
+      try {
+        return this._executeAiAction(action);
+      } catch (err) {
+        return { ok: false, erro: (err && err.message) || 'Falha ao executar a ação' };
+      }
+    });
+    const okCount = results.filter((r) => r.ok).length;
+    msg.pending.status = 'done';
+    msg.pending.results = results;
+    msg.actions = results.map((r) => (r.ok ? r.message : `⚠️ ${r.erro || 'Não consegui concluir a ação'}`));
+    msg.text = msg.actions.join('\n') || 'Nenhuma ação pendente.';
+    Store.save();
+    this._aiUpdatePersistedTurn(msg.id, msg.text);
+    this.renderAiMessages();
+    const allOk = actions.length > 0 && okCount === actions.length;
+    haptic(allOk ? 'success' : 'error');
+    this.toast(allOk
+      ? (actions.length === 1 ? 'Ação confirmada' : 'Ações confirmadas')
+      : (okCount ? 'Ação concluída com avisos' : 'Não consegui concluir a ação'),
+    { kind: allOk ? 'success' : 'info', duration: 3500 });
+  },
+
+  _executeAiAction(action) {
+    if (!action || !action.type) return { ok: false, erro: 'Ação inválida' };
+    if (action.type === 'create_note') {
+      const res = this._execCreateNote({ conversa: action.conversa, texto: action.texto });
+      return res.ok
+        ? { ok: true, message: `📝 Nota criada em “${res.conversa}”` }
+        : { ok: false, erro: res.erro };
+    }
+    if (action.type === 'edit_note') return this._execEditNote(action);
+    if (action.type === 'toggle_checkbox') return this._execToggleCheckbox(action);
+    return { ok: false, erro: `Função desconhecida: ${action.name || action.type}` };
   },
 
   // Espelha um turno da conversa com a IA na thread permanente
@@ -224,7 +369,7 @@ export const WorkspaceAiMethods = {
   // `ui.aiChat` mas NÃO desfaz a nota da pergunta — aceitável: a pergunta
   // existiu e fica registrada como tentativa, o que é mais honesto do que
   // sumir com ela.
-  _aiPersistTurn(role, text) {
+  _aiPersistTurn(role, text, aiMsgId) {
     const ai = window.NoteThread && window.NoteThread.AiThread;
     if (!ai || !text) return;
     ai.ensureAiThread();
@@ -237,9 +382,31 @@ export const WorkspaceAiMethods = {
       images: [],
       aiRole: role === 'model' ? 'model' : 'user',
       localOnly: true,
+      aiMsgId: aiMsgId || undefined,
     };
     Store.upsertNote(note);
     if (typeof this.renderTree === 'function') this.queueRenderTree();
+  },
+
+  // Atualiza o espelho na thread da IA quando uma proposta pendente é
+  // confirmada ou cancelada. Sem isso, a árvore mostraria a pergunta de
+  // confirmação para sempre, enquanto a página da IA já mostra o resultado.
+  _aiUpdatePersistedTurn(aiMsgId, text) {
+    if (!aiMsgId) return;
+    const ai = window.NoteThread && window.NoteThread.AiThread;
+    if (!ai) return;
+    const notes = Store.notesFor(ai.AI_THREAD_ID) || [];
+    const n = notes.find((x) => x.aiMsgId === aiMsgId);
+    if (!n) return;
+    n.text = text;
+    n.editedAt = now();
+    n.rev = (n.rev || 0) + 1;
+    Store.save();
+    if (this.activeThread === ai.AI_THREAD_ID && typeof this._replaceBubble === 'function') {
+      if (this.renderedClientIds) this.renderedClientIds.delete(n.clientId);
+      this._replaceBubble(n.clientId, n);
+    }
+    if (typeof this.queueRenderTree === 'function') this.queueRenderTree();
   },
 
   // Token do Supabase para o proxy (api/ai.js). Sem sessão não há como
@@ -289,13 +456,59 @@ export const WorkspaceAiMethods = {
     return data;
   },
 
-  // executa criar_nota: escreve no Store e envia pelo sync (mesmo caminho do composer)
-
-  _execCreateNote({ conversa, texto }) {
+  // Localiza a conversa e a nota que a IA apontou. A IA recebe o clientId
+  // como [nota:ID]; quando ela não manda o ID, procuramos pelo trecho do
+  // texto. A nota mais recente ganha em caso de empate (o contexto manda as
+  // últimas notas de cada conversa).
+  _findAiThread(conversa) {
     const name = normName(conversa);
+    if (!name) return null;
     const threads = Store.threadList();
-    const target = threads.find((t) => normName(t.name) === name)
-      || threads.find((t) => normName(t.name).includes(name));
+    return threads.find((t) => normName(t.name) === name)
+      || threads.find((t) => normName(t.name).includes(name))
+      || null;
+  },
+
+  _findAiNote(target, { notaId, nota } = {}) {
+    if (!target) return null;
+    const notes = Store.notesFor(target.id) || [];
+    const id = this._aiNoteId(notaId);
+    if (id) {
+      const byId = notes.find((n) => n.clientId === id || n.id === id);
+      if (byId) return byId;
+    }
+    const q = normName(nota).replace(/\s+/g, ' ').trim();
+    if (!q) return null;
+    const textOf = (n) => normName(n.text).replace(/\s+/g, ' ').trim();
+    const recent = notes.slice().reverse();
+    return recent.find((n) => textOf(n) === q)
+      || recent.find((n) => textOf(n).includes(q))
+      || recent.find((n) => textOf(n) && q.includes(textOf(n)))
+      || null;
+  },
+
+  // Mesmo caminho de persistência das edições feitas no composer: Store
+  // primeiro, sync depois; se a conversa estiver aberta, a bolha é trocada.
+  _afterAiNoteEdit(target, n) {
+    Sync.send('note:edit', {
+      threadId: target.id,
+      clientId: n.clientId,
+      text: n.text,
+      edited: !!n.edited,
+      editedAt: n.editedAt,
+      rev: n.rev,
+    });
+    if (this.activeThread === target.id && typeof this._replaceBubble === 'function') {
+      if (this.renderedClientIds) this.renderedClientIds.delete(n.clientId);
+      this._replaceBubble(n.clientId, n);
+      if (typeof this._syncScrollMetrics === 'function') this._syncScrollMetrics();
+    }
+    if (typeof this.queueRenderTree === 'function') this.queueRenderTree();
+  },
+
+  // executa criar_nota: escreve no Store e envia pelo sync (mesmo caminho do composer)
+  _execCreateNote({ conversa, texto }) {
+    const target = this._findAiThread(conversa);
     if (!target) return { ok: false, erro: `Conversa "${conversa}" não encontrada` };
     const clean = String(texto || '').trim();
     if (!clean) return { ok: false, erro: 'Texto da nota vazio' };
@@ -311,7 +524,61 @@ export const WorkspaceAiMethods = {
       this.appendNoteRealtime(stored || eff);
       this.updateNoteCount && this.updateNoteCount();
     }
+    if (typeof this.queueRenderTree === 'function') this.queueRenderTree();
     return { ok: true, conversa: target.name };
+  },
+
+  _execEditNote({ conversa, notaId, nota, novoTexto } = {}) {
+    const target = this._findAiThread(conversa);
+    if (!target) return { ok: false, erro: `Conversa "${conversa}" não encontrada` };
+    const n = this._findAiNote(target, { notaId, nota });
+    if (!n) return { ok: false, erro: 'Nota não encontrada para editar' };
+    const clean = String(novoTexto || '').trim();
+    if (!clean) return { ok: false, erro: 'Texto novo da nota vazio' };
+    if (clean === n.text) return { ok: true, message: `✓ A nota em “${target.name}” já estava assim` };
+    const updated = Store.editNote(target.id, n.clientId, clean.slice(0, 8000));
+    if (!updated) return { ok: false, erro: 'Não consegui atualizar a nota' };
+    this._afterAiNoteEdit(target, updated);
+    return { ok: true, message: `✏️ Nota editada em “${target.name}”` };
+  },
+
+  _execToggleCheckbox({ conversa, notaId, nota, item, marcado } = {}) {
+    const target = this._findAiThread(conversa);
+    if (!target) return { ok: false, erro: `Conversa "${conversa}" não encontrada` };
+    const n = this._findAiNote(target, { notaId, nota });
+    if (!n) return { ok: false, erro: 'Nota não encontrada para marcar a checkbox' };
+    const checked = marcado !== false;
+    const q = normName(item).replace(/\s+/g, ' ').trim();
+    const lines = String(n.text || '').split('\n');
+    const boxes = [];
+    lines.forEach((line, index) => {
+      const m = line.match(/^(\s*)\[([ xX])\]\s*(.*)$/);
+      if (m) boxes.push({ index, m, label: m[3] });
+    });
+    if (!boxes.length) return { ok: false, erro: 'Esta nota não tem checkboxes' };
+    let chosen = boxes;
+    if (q) {
+      const matches = boxes.filter(({ label }) => {
+        const l = normName(label).replace(/\s+/g, ' ').trim();
+        return l === q || l.includes(q) || q.includes(l);
+      });
+      if (!matches.length) return { ok: false, erro: `Checkbox “${item}” não encontrada` };
+      chosen = [matches[0]];
+    }
+    let changed = false;
+    chosen.forEach(({ index, m }) => {
+      if ((m[2].toLowerCase() === 'x') === checked) return;
+      lines[index] = `${m[1]}[${checked ? 'x' : ' '}] ${m[3]}`;
+      changed = true;
+    });
+    const alvo = q ? `“${this._aiShortText(item)}”` : 'todas as caixas';
+    if (!changed) return { ok: true, message: `✓ ${alvo} já estava${chosen.length > 1 ? 'm' : ''} ${checked ? 'marcada' : 'desmarcada'}${chosen.length > 1 ? 's' : ''}` };
+    n.text = lines.join('\n');
+    n.editedAt = now();
+    n.rev = (n.rev || 0) + 1;
+    Store.save();
+    this._afterAiNoteEdit(target, n);
+    return { ok: true, message: `${checked ? '☑️' : '☐'} ${alvo} ${checked ? 'marcada' : 'desmarcada'} em “${target.name}”` };
   },
 
   // Botão único da IA: vazio = microfone (estilo accent-soft, igual o

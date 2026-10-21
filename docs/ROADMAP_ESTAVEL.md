@@ -146,7 +146,7 @@ Tudo que dependia do repositório está resolvido e validado (`check` + 18 unit 
 | W2.2 | `theme_color` dinâmico por tema | `js/ui/settings.js` atualiza `<meta name="theme-color">`; manifest fixo `#E28D42` | Status bar muda com tema | ✅ meta dinâmico (manifest continua fixo — aceitável) |
 | W2.3 | SW bump + offline | `sw.js` v166, CSS/JS network-first, `updateViaCache:none` | Funciona avião | ✅ (bump pareado com teste a cada deploy) |
 | W2.4 | CI/CD | `.github/workflows/ci.yml` | PR bloqueia se teste falha | ✅ check + test + e2e |
-| W2.5 | Testes | `tests/sync.test.js` (node:test) + Playwright e2e | Verde local e CI | ✅ 158 unit + 21 specs e2e (86 testes, 21/10/2026) |
+| W2.5 | Testes | `tests/sync.test.js` (node:test) + Playwright e2e | Verde local e CI | ✅ 160 unit + 24 specs e2e (89 testes, 21/10/2026) |
 | W2.6 | Performance | `vercel.json` cache-control p/ sw.js; compress nativo Vercel | Lighthouse ≥90 | 🟡 parcial — medir Lighthouse |
 | W2.7 | Legal: privacy + terms | `public/privacy.html`, `public/terms.html` | URLs válidas | ✅ existem |
 | W2.8 | Versionamento semver + CHANGELOG | `package.json` 1.25.0 + `CHANGELOG.md` | Tag por release | 🟡 package e changelog em 1.25.0; última tag v1.4.1 |

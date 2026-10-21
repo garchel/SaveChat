@@ -28,8 +28,8 @@ O inventário completo do que existe (com evidência por arquivo) está em **[do
 npm install        # playwright, sharp e serve (testes/assets)
 npm run dev        # servidor local (:3001 — ou a próxima porta livre)
 npm run check      # node --check em todo JS público e nas funções
-npm test           # 158 testes unit (node:test)
-npm run e2e        # 21 specs Playwright (fluxo crítico, mobile, áudio, tarefas…)
+npm test           # 160 testes unit (node:test)
+npm run e2e        # 24 specs Playwright (fluxo crítico, mobile, áudio, ações da IA, checklists…)
 npm run build      # minifica para dist/ (preview de prod)
 npm run preview    # build + serve dist/ em :3002 — teste local de staging
 ```

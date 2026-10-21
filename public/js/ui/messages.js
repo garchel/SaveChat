@@ -121,6 +121,13 @@ export const MessagesMethods = {
       const el = $('#chat-active-ui');
       if (!el) return;
       el.classList.toggle('visible', show);
+      // No celular, "nenhuma conversa" não é uma tela: o destino é a lista de
+      // cadernos, onde o usuário escolhe a conversa. O canvas só aparece com
+      // conversa aberta (ou com uma página do workspace, que passa show=true).
+      if (!show) {
+        const app = $('#app');
+        if (app && window.matchMedia('(max-width: 760px)').matches) app.classList.remove('show-chat');
+      }
       // placeholder "nenhuma conversa selecionada": visível exatamente quando
       // a UI de conversa está oculta (boot, excluir conversa, apagar tudo)
       document.getElementById('no-thread')?.classList.toggle('hidden', !!show);

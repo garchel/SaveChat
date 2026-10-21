@@ -71,7 +71,7 @@ describe('contexto da IA', () => {
       const ctx = WorkspaceAiMethods._buildAiContext();
       assert.match(ctx, /\[áudio transcrito\] comprar leite amanhã/,
         'a transcrição precisa entrar no contexto da IA');
-      assert.match(ctx, /- nota escrita/, 'as notas de texto continuam no contexto');
+      assert.match(ctx, /\[nota:b\] nota escrita/, 'as notas de texto continuam no contexto, agora com o ID');
     } finally {
       Store.data = prev;
     }

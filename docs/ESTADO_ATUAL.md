@@ -21,7 +21,7 @@
 | Deploy | Vercel estático (`public/`) + 2 funções (`api/ai.js`, `api/transcribe.js`) |
 | Dados | Supabase: Postgres + RLS + Auth + Storage + Realtime |
 | PWA | Manifest completo, service worker, instalável |
-| Testes | 158 unit (`node:test`) + 21 specs Playwright (86 testes) |
+| Testes | 160 unit (`node:test`) + 24 specs Playwright (89 testes) |
 | Tamanho | ~18 mil linhas de JS/HTML em `public/` + `api/` + `scripts/` + `tests/` (sem CSS) |
 
 ## Mapa de telas
@@ -71,7 +71,7 @@
 |---|---|---|
 | Markdown (negrito, itálico, código, listas, títulos, links) | ✅ | `js/markdown.js`; `ui/composer-markdown.js` |
 | Checklists interativos `[ ]` / `[x]` | ✅ | `ui/messages*.js`; `ui/composer-lists.js` |
-| Ocultar itens concluídos | ✅ | `menus.txt`; `ui/settings.js` |
+| Ocultar itens concluídos | ✅ com aviso persistente de lista completa e botão Mostrar/Ocultar lista | `menus.txt`; `ui/settings.js`; `ui/messages-bubble.js` |
 | Tags por nota + filtro `#tag` | ✅ | `ui/messages-edit.js`; `ui/navigation.js` |
 | Reações por emoji (mapa por usuário) | ✅ | `ui/messages-reactions.js`; `note:reactions` |
 | Editar com controle de revisão (`rev`/`editedAt`) | ✅ | `ui/sync-events.js:65` |
@@ -130,7 +130,7 @@
 | BYOK (chave pessoal do Gemini) | ✅ opcional | `ui/workspace-ai.js`; `ui.aiKey` |
 | Seletor de modelo | ✅ `gemini-*` validado no servidor | `api/ai.js` |
 | Contexto das notas | 🟡 15 conversas × 10 notas, 300 chars (600 na transcrição), teto de 24.000 chars | `ui/workspace-ai.js:50-68` |
-| Criar nota por function calling | ✅ `criar_nota` | `ui/workspace-ai.js:115-209,294` |
+| Criar/editar nota e marcar checkbox por function calling | ✅ `criar_nota`, `editar_nota`, `marcar_checkbox`; confirmação local antes de executar, sem 2ª chamada à IA | `ui/workspace-ai.js` |
 | Histórico do chat | ✅ persistente no bucket local da conta (não vai ao servidor) | `ui.aiChat`; `store.js` `SCOPE_KEYS` |
 | Histórico enviado ao modelo | últimas 20 mensagens | `ui/workspace-ai.js:110` |
 | Thread da IA fora do sync/servidor | ✅ `localOnly` | `js/ai-thread.js`; `sync-supabase.js:260-261` |
@@ -294,7 +294,7 @@
 | `README.md` | 7 temas; sem IA/Diária/Tarefas/áudio/mascote | 8 temas e todas essas features existem |
 | `public/help.html` | “Messages”; temas Pêssego/Lavanda/…; chave de IA obrigatória; busca só com 2 operadores; “Ambiente” = chave Gemini | ver correções aplicadas em 20/10/2026 |
 | `docs/PROGRESSO.md` | snapshot de 24/08: 18 módulos, 7 temas, SW v70 | histórico; não usar como estado |
-| `docs/ROADMAP_ESTAVEL.md` | Q6.10 contraste ✅; testes “8 unit + 2 e2e” | parcial (B1b); 158 + 21 |
+| `docs/ROADMAP_ESTAVEL.md` | Q6.10 contraste ✅; testes “8 unit + 2 e2e” | parcial (B1b); 160 + 24 |
 | `docs/MOBILE_TASKS.md` | `.bubble .del` pendente de decisão | CSS morto, sem botão renderizado |
 | `docs/STORE_LISTING.md` | “7 temas” | 8 |
 | `docs/BACKLOG.md` | B1/B2 resolvidos | B1 parcial; B2 obsoleto |

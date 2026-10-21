@@ -11,6 +11,9 @@ import { audioHtml, bindAudioPlayer } from '../audio.js';
 import { transcribeAudio } from '../transcribe.js';
 
 export const MessagesBubbleMethods = {
+    // notas cuja lista completa foi revelada temporariamente (por sessão)
+    _revealedChecklists: new Set(),
+
     bubbleEl(n, opts) {
       const div = document.createElement('div');
       const clientId = n.clientId; // escopo p/ os handlers abaixo
@@ -59,9 +62,18 @@ export const MessagesBubbleMethods = {
       // mensagem de voz: player com waveform + avatar do remetente (v1.13.7)
       const vaudio = n.audio && n.audio.url ? audioHtml(n) : '';
 
-      const hideDone = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
+      const hideSetting = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
+      const checklist = this._checklistInfo(n.text);
+      if (!checklist.allDone) this._revealedChecklists.delete(clientId);
+      const revealed = checklist.allDone && this._revealedChecklists.has(clientId);
+      const hideDone = hideSetting && !revealed;
       const rxRow = this._reactionsHtml(n);
       div.innerHTML = `${pinBadge}${vaudio}${imgs}${renderMarkdown(n.text, hideDone)}${tags}${rxRow}${meta}${toggle}`;
+      if (hideSetting && checklist.allDone) {
+        const notice = this._checklistNoticeEl(clientId, revealed);
+        const metaEl = div.querySelector('.meta');
+        if (metaEl) div.insertBefore(notice, metaEl); else div.appendChild(notice);
+      }
 
       // Seta ▾ → popover
       div.querySelector('.msg-toggle').addEventListener('click', (e) => { e.stopPropagation(); this.openMsgPopover(div, n); });
@@ -122,6 +134,37 @@ export const MessagesBubbleMethods = {
       });
 
       return div;
+    },
+
+    _checklistInfo(text) {
+      const lines = String(text || '').split('\n').filter((l) => /^\s*\[( |x)\]/i.test(l));
+      return {
+        total: lines.length,
+        allDone: lines.length > 0 && lines.every((l) => /\[\s*x\s*\]/i.test(l)),
+      };
+    },
+
+    // Aviso persistente de lista completa (só quando "ocultar concluídos"
+    // está ligado): o botão alterna os itens escondidos desta nota.
+    _checklistNoticeEl(clientId, revealed) {
+      const box = document.createElement('div');
+      box.className = 'chk-complete';
+      const label = revealed ? 'Ocultar lista' : 'Mostrar lista';
+      box.innerHTML = `<span class="chk-complete-text">✓ Lista completa!</span><button type="button" class="chk-reveal-toggle" aria-expanded="${revealed ? 'true' : 'false'}">${label}</button>`;
+      box.querySelector('.chk-reveal-toggle').addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleChecklistReveal(clientId);
+      });
+      return box;
+    },
+
+    toggleChecklistReveal(clientId) {
+      const note = (Store.notesFor(this.activeThread) || []).find((n) => n.clientId === clientId);
+      if (!note || !this._checklistInfo(note.text).allDone) return;
+      if (this._revealedChecklists.has(clientId)) this._revealedChecklists.delete(clientId);
+      else this._revealedChecklists.add(clientId);
+      if (typeof this._replaceBubble === 'function') this._replaceBubble(clientId, note);
+      if (typeof this._syncScrollMetrics === 'function') this._syncScrollMetrics();
     },
 
     // ---------- Transcrição da mensagem de voz ----------
@@ -213,6 +256,7 @@ export const MessagesBubbleMethods = {
       });
       if (i < index) return; // índice inválido
       n.text = newLines.join('\n'); n.editedAt = now(); n.rev = (n.rev || 0) + 1; Store.save();
+      if (!this._checklistInfo(n.text).allDone) this._revealedChecklists.delete(clientId);
       Sync.send('note:edit', { threadId: this.activeThread, clientId, text: n.text, edited: !!n.edited, editedAt: n.editedAt, rev: n.rev });
       const hideDone = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
       if (hideDone && checked) {
@@ -245,21 +289,27 @@ export const MessagesBubbleMethods = {
     // marcadas" ligado a última caixa sai do DOM, mas o aviso (badge na
     // bolha + toast + confete) ainda tem que aparecer.
     _checkListComplete(clientId, n) {
-      const lines = (n.text || '').split('\n').filter((l) => /^\s*\[( |x)\]/i.test(l));
-      if (!lines.length) return;
-      const allDone = lines.every((l) => /\[\s*x\s*\]/i.test(l));
-      if (!allDone) return;
+      const info = this._checklistInfo(n.text);
+      if (!info.total) return;
+      if (!info.allDone) { this._revealedChecklists.delete(clientId); return; }
       // não repete confete/toast a cada re-render da mesma transição
       const key = clientId + ':' + (n.rev || 0);
       if (this._chkDoneFor === key) return;
       this._chkDoneFor = key;
       const el = document.querySelector(`.bubble[data-client-id="${clientId}"]`);
+      const hideDone = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
       if (el && !el.querySelector('.chk-complete')) {
-        const badge = document.createElement('div');
-        badge.className = 'chk-complete';
-        badge.textContent = '✓ Lista completa!';
-        el.appendChild(badge);
-        setTimeout(() => badge.remove(), 3000);
+        let notice;
+        if (hideDone) {
+          notice = this._checklistNoticeEl(clientId, this._revealedChecklists.has(clientId));
+        } else {
+          notice = document.createElement('div');
+          notice.className = 'chk-complete';
+          notice.textContent = '✓ Lista completa!';
+          setTimeout(() => notice.remove(), 3000);
+        }
+        const meta = el.querySelector('.meta');
+        if (meta) el.insertBefore(notice, meta); else el.appendChild(notice);
       }
       burstConfetti(el || document.body); // estrelinhas e pétalas ao concluir
       Sound.playName('sparkle');
