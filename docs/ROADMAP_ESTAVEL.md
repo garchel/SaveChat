@@ -1,9 +1,25 @@
 # Roadmap — SaveChat v1 Estável (Web + Mobile)
 
 > **Checklist único de lançamento.** Consolida `PROGRESSO.md` + `MOBILE_TASKS.md` e adiciona tasks faltantes para uma versão estável.
-> Última atualização: 24/08/2026 · Fonte técnica: `README.md`, `public/app.js`, `public/js/**`, `vercel.json`, `.github/workflows/ci.yml`, `supabase.sql`
+> Última atualização: 24/08/2026 · Revisão de status: **20/10/2026** (v1.25.0 — achados medidos em [BACKLOG.md](BACKLOG.md))
+> Fonte técnica: `README.md`, `public/app.js`, `public/js/**`, `vercel.json`, `.github/workflows/ci.yml`, `supabase.sql`
+> **Inventário do que já existe:** [ESTADO_ATUAL.md](ESTADO_ATUAL.md) (features, limites e lacunas, com evidência por arquivo).
 
 > **⚠️ Nota de arquitetura (24/08):** o backend Node próprio (`server/*`) foi **removido** (`17cdd5d`). Deploy é estático na **Vercel** (`vercel.json`: headers CSP/X-Frame, cache-control do SW) + **Supabase** para auth (Google OAuth), Postgres com RLS e Storage. As Fases 0–1 abaixo foram absorvidas por essa pilha — mantidas como histórico.
+
+### Atualização 20/10/2026 — auditoria de código (v1.25.0)
+
+Status re-medido contra o código; detalhes e evidências em [BACKLOG.md](BACKLOG.md)
+e no inventário [ESTADO_ATUAL.md](ESTADO_ATUAL.md).
+
+- 🟡 **Q6.10 (contraste AA) não está fechado:** bolhas normais e `.explorer-label` passam, mas `.bubble-idea` falha em 6 temas (2,36–3,89:1), a meta do `midnight` fica em 4,11:1 e o `--text-dim` do sakura sobre a sidebar em 4,02:1.
+- 🟡 **Piso de 12px parcial:** 13 regras abaixo do piso; 4 são texto corrido (`.update-chip`, `.sr-count`, `.tag-chip`, `.daily-counter small`) e o teste de regressão as isenta por nome de seletor.
+- ✅ **B2 (`.bubble .del`) era CSS morto** — o botão não é renderizado; decisão de produto não é necessária.
+- ✅ **Motion design auditado** (B5): fases 1–4 existem no código (tokens, `hideWithExit`, `.leaving`, `incoming-note`).
+- 🔴 **Novos itens funcionais:** busca limitada ao cache de 200 notas e sem acento (B6); contexto da IA limitado a 15×10 notas (B7); falha silenciosa de `localStorage` (B8); conflito de edição last-write-wins (B9).
+- 🟡 **Confiabilidade:** `supabase-js` ainda vem de `esm.sh` em runtime, fora do SW (B10); Sentry segue sem DSN (B11).
+- 🔴 **Limites de dados:** o snapshot corta conversas/cadernos em 100 (B13), lembretes só disparam com o app aberto (B15), `/api/ai` e `/api/transcribe` não têm cota por conta (B16) e os buckets de mídia são públicos por URL (B17).
+- ⛔ **Compartilhamento entre pessoas** não existe (B14): RLS é `user_id`-only e o menu Convidar só informa a ausência.
 
 ---
 
@@ -42,7 +58,7 @@
 |---|------|---------|
 | IMP-1 | **Import de backup ausente** (export JSON existe, import não) — usuário perde dados sem recovery path | Suporte/churn | ✅ Import em Configurações→Dados: merge por id, validação de shape, toasts de erro/sucesso (v72) |
 | IMP-2 | **Sem baseline Lighthouse** — W2.6 pede PWA ≥90, nunca medido em prod. Medir ANTES de submeter à loja | Risco de reprovação | ✅ baseline registrado em `docs/LIGHTHOUSE_BASELINE.md` (A11y 100, BP 100, Perf 82 local) |
-| IMP-3 | **Versionamento dessincronizado** — package.json `1.0.0` vs CHANGELOG `[1.2.0]`, zero git tags | Higiene de release | ✅ sincronizado a cada release — v1.4.0 (01/09/2026) |
+| IMP-3 | **Versionamento dessincronizado** — package.json `1.0.0` vs CHANGELOG `[1.2.0]`, sem tag da versão | Higiene de release | 🟡 package/changelog em 1.25.0; última tag v1.4.1 (W2.8) |
 | IMP-4 | **Focus trap ausente no modal** — Tab escapa pro fundo; teclado-only trava | Acessibilidade | ✅ trap + Esc + foco devolvido ao gatilho (v71) |
 | IMP-5 | **Sem observabilidade** — `/health` morreu com o server; zero error tracking. Crash silencioso = usuários perdidos sem saber | Operação | ✅ `js/error-tracking.js` + loader Sentry em index.html (inert até preencher `SENTRY_DSN`) — **resta criar conta free e colar o DSN** |
 | IMP-6 | CHANGELOG não era servido pelo site — toast "what's new" dava 404 em prod (Vercel serve só `public/`) | Funcionalidade quebrada | ✅ movido para `public/CHANGELOG.md` + precache no SW (v1.4.0) |
@@ -126,14 +142,14 @@ Tudo que dependia do repositório está resolvido e validado (`check` + 18 unit 
 
 | # | Task | Arquivo | Aceite | Status |
 |---|------|---------|--------|--------|
-| W2.1 | Ícones finais | `icon-192/512/1024.png` maskable + `icon.svg` | PWABuilder score 100 | ✅ 1024px existe (58KB), purpose `any maskable` |
-| W2.2 | `theme_color` dinâmico por tema | `js/ui/settings.js` atualiza `<meta name="theme-color">`; manifest fixo `#7c5cff` | Status bar muda com tema | ✅ meta dinâmico (manifest continua fixo — aceitável) |
-| W2.3 | SW bump + offline | `sw.js` v70, CSS/JS network-first, `updateViaCache:none` | Funciona avião | ✅ (bump pareado com teste a cada deploy) |
+| W2.1 | Ícones finais | `icons/icon-192/512.png` + `icons/icon-maskable-*` + SVG | PWABuilder score 100 | 🟡 1024px existe (83KB), mas fora do manifest; 192/512 e maskable referenciados |
+| W2.2 | `theme_color` dinâmico por tema | `js/ui/settings.js` atualiza `<meta name="theme-color">`; manifest fixo `#E28D42` | Status bar muda com tema | ✅ meta dinâmico (manifest continua fixo — aceitável) |
+| W2.3 | SW bump + offline | `sw.js` v166, CSS/JS network-first, `updateViaCache:none` | Funciona avião | ✅ (bump pareado com teste a cada deploy) |
 | W2.4 | CI/CD | `.github/workflows/ci.yml` | PR bloqueia se teste falha | ✅ check + test + e2e |
-| W2.5 | Testes | `tests/sync.test.js` (node:test) + Playwright e2e | Verde local e CI | ✅ 8 unit + 2 e2e specs |
+| W2.5 | Testes | `tests/sync.test.js` (node:test) + Playwright e2e | Verde local e CI | ✅ 158 unit + 21 specs e2e (86 testes, 21/10/2026) |
 | W2.6 | Performance | `vercel.json` cache-control p/ sw.js; compress nativo Vercel | Lighthouse ≥90 | 🟡 parcial — medir Lighthouse |
 | W2.7 | Legal: privacy + terms | `public/privacy.html`, `public/terms.html` | URLs válidas | ✅ existem |
-| W2.8 | Versionamento semver + CHANGELOG | `package.json` 1.0.0 + `CHANGELOG.md` | Tag v1.0.0 | 🟡 arquivos existem; tag pendente |
+| W2.8 | Versionamento semver + CHANGELOG | `package.json` 1.25.0 + `CHANGELOG.md` | Tag por release | 🟡 package e changelog em 1.25.0; última tag v1.4.1 |
 
 ## FASE 3 — Mobile estável — detalhes em `MOBILE_TASKS.md`
 
@@ -187,7 +203,7 @@ Long-press bolha ✅ · long-press tnode/pasta ✅ · navegação sidebar↔chat
 |---|------|---------|--------|
 | P6.1 | ✅ Busca com filtros | `in:` `#tag` `depois:` `antes:` + chips | ✅ |
 | P6.2 | ✅ Backlinks/menções | `@[Nome](t:id)` + dropdown "Mencionado em" no nome da nota (popover dedicado) | ✅ evoluiu: agora fica no menu do título |
-| P6.3 | ✅ Lembretes/notifications | datetime + scheduler + Notification API + badge + clique na notificação abre a thread (SW `notificationclick`) | ✅ push com app fechado segue v2 |
+| P6.3 | 🟡 Lembretes/notifications | datetime + scheduler + Notification API + badge + clique na notificação abre a thread (SW `notificationclick`) | 🟡 in-app ✅; push com app fechado ⛔ (B15) |
 
 ### Arquitetura
 
@@ -209,7 +225,7 @@ Long-press bolha ✅ · long-press tnode/pasta ✅ · navegação sidebar↔chat
 
 | # | Task | Detalhe | Status |
 |---|------|---------|--------|
-| Q6.10 | ✅ Acessibilidade HIGH | Contraste ≥4.5:1 nos 7 temas, zoom habilitado, aria-labels icon-only, labels login — commit `0fd7230` | ✅ |
+| Q6.10 | 🟡 Acessibilidade HIGH | Contraste ≥4.5:1 nos 8 temas, zoom habilitado, aria-labels icon-only, labels login — commit `0fd7230` | 🟡 parcial: `.bubble-idea` (6 temas), meta do `midnight` e dim do sakura ainda falham — ver B1b |
 | Q6.11 | ✅ Motion design | Identidade "playful contido" implementada (Fases 1–4, v73/v74) — ver `docs/MOTION_DESIGN.md` | ✅ |
 | Q6.12 | ✅ UI polish restante | Botões unificados (`.btn` v73), touch targets ≥44px (v71), focus trap (v71), skeleton + CTA empty state (v73) | ✅ |
 

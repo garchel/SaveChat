@@ -101,7 +101,7 @@
       <li><a href="#ia">IA</a></li>
       <li><a href="#diaria">Diária</a></li>
       <li><a href="#lembretes">Lembretes</a></li>
-      <li><a href="#pendencias">Pendências</a></li>
+      <li><a href="#tarefas">Tarefas</a></li>
       <li><a href="#busca">Busca</a></li>
       <li><a href="#sincronizacao">Sincronização</a></li>
       <li><a href="#atalhos">Atalhos &amp; gestos</a></li>
@@ -156,8 +156,8 @@
     </section>
 
     <section id="mensagens">
-      <h2>Messages</h2>
-      <p class="lead">Dentro de cada conversa, cada mensagem é uma nota. E uma nota aceita formatação, checklist e mencionar outras conversas.</p>
+      <h2>Mensagens</h2>
+      <p class="lead">Dentro de cada conversa, cada mensagem é uma nota. E uma nota aceita formatação, checklist, imagem, áudio, etiquetas e menções a outras conversas.</p>
 
       <h3>Formatar</h3>
       <p>Os botões da barra do campo de envio aplicam formatação. <strong>Negrito</strong> e <em>itálico</em> funcionam como interruptor: ligue, digite, desligue. Com texto selecionado, envolve o trecho.</p>
@@ -178,6 +178,12 @@
 
       <h3>Mencionar outra conversa</h3>
       <p>Digite <code>@</code> e escolha da lista, ou escreva <code>@[Nome da conversa](t:id)</code> à mão. A menção vira um link: <strong>um clique</strong> mostra um cartão de pré-visualização, <strong>dois cliques</strong> abrem a conversa.</p>
+
+      <h3>Mensagem de voz</h3>
+      <p>Toque no microfone do campo de envio para gravar. A mensagem vira áudio com waveform, duração e play/pause, e toca em qualquer aparelho da conta. A seta discreta no rodapé da bolha transcreve a fala e guarda o texto junto da nota.</p>
+
+      <h3>Reagir, etiquetar e fixar</h3>
+      <p>O botão <code>▾</code> no topo da mensagem abre reações, <strong>Etiquetas</strong>, <strong>Pinar mensagem</strong>, <strong>Lembrar-me</strong>, copiar e excluir. A mensagem fixada fica no topo da conversa, com atalho para voltar a ela.</p>
     </section>
 
     <section id="ia">
@@ -193,8 +199,9 @@
           <li>A resposta aparece no histórico da própria página.</li>
         </ol>
       </div>
-      <p>Na primeira vez você precisa cadastrar sua chave do Gemini em <strong>Configurações → Ambiente</strong>. Sem a chave, o app pede que você informe em vez de chamar a API.</p>
-      <p>O botão de <strong>mic</strong> no campo da IA grava um áudio: o app transcreve o que você falou e coloca o texto no campo para você revisar antes de enviar.</p>
+      <p>Com o provedor compartilhado ativo, basta estar logado. Se ele não estiver disponível — ou se você quiser usar a própria cota —, cole uma chave do Google AI Studio no bloco <strong>Configurar IA</strong>, na própria página; ela fica só neste dispositivo e não é sincronizada.</p>
+      <p>A IA lê as <strong>notas recentes</strong> (15 conversas × últimas 10 mensagens) e consegue <strong>criar notas de verdade</strong>: peça “crie uma nota na conversa Compras com a lista do churrasco” e ela cria na conversa certa, com confirmação.</p>
+      <p>O botão de <strong>mic</strong> no campo da IA grava um áudio, transcreve e coloca o texto no campo para você revisar antes de enviar.</p>
     </section>
 
     <section id="diaria">
@@ -223,21 +230,21 @@
           <li>O app guarda o item e te avisa quando chegar.</li>
         </ol>
       </div>
-      <p>O sino na barra lateral (<strong>Notificações</strong>) abre a lista do que está agendado; <kbd>Esc</kbd> fecha.</p>
+      <p>O sino na barra lateral (<strong>Notificações</strong>) abre a lista do que está agendado; <kbd>Esc</kbd> fecha. O aviso do sistema chega com o app aberto ou ao reabri-lo — ainda não há push com o app fechado.</p>
     </section>
 
-    <section id="pendencias">
-      <h2>Pendências</h2>
-      <p class="lead">Pendências reúne, num lugar só, todas as caixas de tarefa (<code>[ ]</code>) em aberto de todas as conversas — inclusive as que você esqueceu em conversas antigas.</p>
+    <section id="tarefas">
+      <h2>Tarefas</h2>
+      <p class="lead">A página Tarefas tem duas listas: as suas tarefas, criadas ali mesmo, e os checklists (<code>[ ]</code>) em aberto de todas as conversas.</p>
       <div class="howto">
         <div class="do">Como usar</div>
         <ol>
-          <li>Crie um item de checklist numa mensagem usando <code>[ ]</code> no início da linha.</li>
-          <li>Abra <strong>Pendências</strong> no seletor de páginas (ou o botão de lista na barra lateral).</li>
-          <li>Marque a caixa para concluir, ou clique na linha para ir direto à mensagem original.</li>
+          <li>Abra <strong>Tarefas</strong> no seletor de páginas.</li>
+          <li>Em <strong>Minhas tarefas</strong>, escreva no campo e toque em <code>+</code>.</li>
+          <li>Em <strong>Tarefas das conversas</strong>, marque a caixa para concluir ou toque na linha para ir à mensagem original.</li>
         </ol>
       </div>
-      <p>Cada linha mostra a qual conversa o item pertence e quando ele foi criado. Concluir aqui também marca na conversaoriginal.</p>
+      <p>As tarefas próprias ficam neste aparelho e não sincronizam. Concluir um item de conversa aqui edita a nota de origem e sincroniza como qualquer edição.</p>
     </section>
 
     <section id="busca">
@@ -256,6 +263,8 @@
         <tbody>
           <tr><td><code>#tag</code></td><td>Só notas com aquela tag</td></tr>
           <tr><td><code>in:conversa</code></td><td>Só dentro daquela conversa</td></tr>
+          <tr><td><code>depois:2026-10-01</code> / <code>antes:…</code></td><td>Recorte por data</td></tr>
+          <tr><td><code>rx:🔥</code></td><td>Só notas com aquela reação (aceita <code>rx:fogo</code>)</td></tr>
           <tr><td>texto livre</td><td>Busca em todas as notas</td></tr>
         </tbody>
       </table>
@@ -298,15 +307,16 @@
       <table>
         <thead><tr><th>Seção</th><th>O que você muda</th></tr></thead>
         <tbody>
-          <tr><td><strong>Tema</strong></td><td>Pêssego, Escuro, Lavanda, Hortelã, Oceano, Meia-noite</td></tr>
+          <tr><td><strong>Tema</strong></td><td>Terracota (padrão), Escuro, Lavanda, Hortelã, Oceano, Meia-noite, Sakura e Napolitano</td></tr>
           <tr><td><strong>Ordenar conversas</strong></td><td>Recentes, Nome (alfabética) ou Manual (arraste para reordenar)</td></tr>
           <tr><td><strong>Densidade</strong></td><td>Espaçamento das linhas e itens</td></tr>
           <tr><td><strong>Checklists</strong></td><td>Esconder concluídos; esconder a caixa</td></tr>
-          <tr><td><strong>Aparência do cabeçalho</strong></td><td>Botões visíveis no topo</td></tr>
-          <tr><td><strong>Ambiente</strong></td><td>Chave do Gemini e modelo da IA</td></tr>
+          <tr><td><strong>Aparência do cabeçalho</strong></td><td>Usar a cor do caderno no cabeçalho</td></tr>
+          <tr><td><strong>Ambiente</strong></td><td>Pétalas flutuantes (ligar/desligar)</td></tr>
+          <tr><td><strong>Mascote</strong></td><td>Nome, cores, silhueta, olhos, boca, acessórios e sortear</td></tr>
           <tr><td><strong>Fonte</strong></td><td>Tipografia do app</td></tr>
           <tr><td><strong>Fundo da área principal</strong></td><td>O padrão decorativo do fundo</td></tr>
-          <tr><td><strong>Sons</strong></td><td>Som ao enviar e ao receber</td></tr>
+          <tr><td><strong>Sons</strong></td><td>Ligar/desligar, volume e um som por ação (enviar, fixar, favoritar, excluir, criar, erro, abrir)</td></tr>
           <tr><td><strong>Dados</strong></td><td>Exportar (JSON/Markdown), importar backup, apagar tudo</td></tr>
           <tr><td><strong>Sincronização</strong></td><td>Reconectar, limpar cache do app</td></tr>
         </tbody>
