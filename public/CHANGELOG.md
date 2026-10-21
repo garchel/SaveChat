@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
-## Não publicado
+## [1.26.0] — 2026-10-21
 ### Adicionado
 - **Lista completa ganhou um aviso persistente e um botão para revelar/ocultar os concluídos.** Com “Ocultar itens concluídos” ligado, ao marcar a última checkbox a bolha mostra **✓ Lista completa!** e mantém o botão **Mostrar lista**/**Ocultar lista** para ver os itens escondidos sem desligar a configuração. O aviso só aparece quando todas as checkboxes da nota estão concluídas.
 - **O assistente agora edita notas e marca checkboxes, sempre com confirmação.** Peça “marque o leite na lista de compras” ou “troque o título da nota X”; a IA mostra o plano na própria bolha (“Você confirma que quer …?”) com os botões **Cancelar** e **Confirmar**. A ação só roda depois do Confirmar e acontece no app, sem uma segunda chamada à IA. Funciona para criar, editar e marcar/desmarcar checkboxes (inclusive todas as de uma nota). O contexto agora identifica cada nota com `[nota:ID]` para a IA acertar a origem.
