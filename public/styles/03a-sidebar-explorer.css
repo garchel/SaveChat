@@ -97,7 +97,7 @@
 }
 
 /* Grade de padrões de fundo da área principal */
-.bg-patterns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bg-patterns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .bg-pat {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   background: none; border: 1.5px solid var(--border); border-radius: 10px;
@@ -172,9 +172,9 @@
   .petal-bit { animation: none; opacity: 0; }
   #petals-layer { display: none; }
 }
-.pat-size-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pat-size-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .pat-size-row .settings-label { margin-bottom: 0; flex-shrink: 0; }
-#pat-size { flex: 1; accent-color: var(--accent); cursor: pointer; }
+#pat-size { flex: 1 1 70px; min-width: 60px; accent-color: var(--accent); cursor: pointer; }
 .pat-reset {
   padding: 4px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; flex-shrink: 0;
 }

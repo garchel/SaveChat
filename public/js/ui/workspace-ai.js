@@ -20,10 +20,6 @@ const SEND_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" st
 
 export const WorkspaceAiMethods = {
   prepareAiPage() {
-    const key = document.getElementById('ai-key');
-    const model = document.getElementById('ai-model');
-    if (key) key.value = (Store.data.ui && Store.data.ui.aiKey) || '';
-    if (model) model.value = (Store.data.ui && Store.data.ui.aiModel) || DEFAULT_MODEL;
     this.renderAiMessages();
   },
 
@@ -229,18 +225,17 @@ export const WorkspaceAiMethods = {
   async sendAiMessage() {
     const input = document.getElementById('ai-prompt');
     const button = document.getElementById('ai-send');
-    const keyField = document.getElementById('ai-key');
-    const modelField = document.getElementById('ai-model');
     const prompt = input && input.value.trim();
-    const key = keyField && keyField.value.trim();
     if (!prompt) return;
+    Store.data.ui = Store.data.ui || {};
     // Sem chave própria, o app usa o provedor do servidor (api/ai.js). A
     // chave só é obrigatória quando não há Supabase (dev local), porque nesse
-    // caso não existe sessão para o proxy autenticar.
-    if (!key && !USE_SUPABASE) { this.toast('Adicione sua chave da API Gemini para começar', { kind: 'info' }); keyField?.focus(); return; }
-    Store.data.ui = Store.data.ui || {};
-    Store.data.ui.aiKey = key;
-    Store.data.ui.aiModel = (modelField && modelField.value.trim()) || DEFAULT_MODEL;
+    // caso não existe sessão para o proxy autenticar. Chaves salvas por
+    // versões anteriores continuam valendo mesmo sem a interface de config.
+    const key = Store.data.ui.aiKey || '';
+    const model = Store.data.ui.aiModel || DEFAULT_MODEL;
+    if (!key && !USE_SUPABASE) { this.toast('A IA precisa de uma sessão ou de uma chave da API configurada', { kind: 'info' }); return; }
+    Store.data.ui.aiModel = model;
     const history = Store.data.ui.aiChat || (Store.data.ui.aiChat = []);
     const userMsg = { id: uid(), role: 'user', text: prompt, ts: Date.now() };
     history.push(userMsg);
@@ -263,7 +258,7 @@ export const WorkspaceAiMethods = {
     }));
     const contents = [...prior, { role: 'user', parts: [{ text: prompt.slice(0, 12000) }] }];
     try {
-      const first = await this._aiFetch(Store.data.ui.aiModel, key, { systemInstruction: this._aiSystemInstruction(), contents, tools: this._aiTools() });
+      const first = await this._aiFetch(model, key, { systemInstruction: this._aiSystemInstruction(), contents, tools: this._aiTools() });
       const cand = (first.candidates || [])[0] || {};
       const parts = (cand.content && cand.content.parts) || [];
       const callParts = parts.filter((p) => p.functionCall);

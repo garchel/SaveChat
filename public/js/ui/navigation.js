@@ -366,6 +366,7 @@ export const NavigationMethods = {
         return true;
       }
       if (hide('chat-title-menu')) { this.syncExplorerChrome(); return true; }
+      if (hide('backlinks-popover')) return true;
       if (hide('note-preview')) return true;
       if (hide('lightbox')) return true;
       if (hide('pin-popover')) return true;
@@ -374,6 +375,8 @@ export const NavigationMethods = {
       if (hide('notif-popover')) { this.syncExplorerChrome(); return true; }
       if (hide('rem-popover')) { this.syncExplorerChrome(); return true; }
       if (hide('settings-popover')) return true;
+      if (hide('mascot-popover')) return true;
+      if (hide('profile-popover')) return true;
       return false;
     },
 
