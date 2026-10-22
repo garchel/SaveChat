@@ -49,20 +49,6 @@
   border: none; padding: 0; margin: 0;
 }
 .ai-page .ai-messages { padding-bottom: calc(16px + 92px + env(safe-area-inset-bottom, 0px)); }
-.ai-settings { font-size: 12.5px; color: var(--text-dim); }
-.ai-settings summary { cursor: pointer; font-weight: 700; color: var(--text-dim); user-select: none; padding: 4px 8px; }
-.ai-settings label { display: block; margin: 8px 0 4px; font-weight: 600; }
-.ai-settings input, .ai-settings select {
-  width: 100%; background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
-  border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 13px;
-}
-.ai-settings small { display: block; margin-top: 4px; opacity: .8; }
-/* o <details> de configuração vira um card flutuante sobre a pílula */
-.ai-page .ai-settings {
-  background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
-  padding: 4px 12px 10px; box-shadow: var(--shadow-sm);
-}
-.ai-page .ai-settings:not([open]) { padding-bottom: 4px; }
 /* botões: o da esquerda (microfone) e o da direita (enviar) usam exatamente as
    classes cozy do composer da conversa */
 .ai-input-row .cozy-input-wrap textarea {

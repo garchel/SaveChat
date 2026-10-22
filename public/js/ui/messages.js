@@ -99,12 +99,24 @@ export const MessagesMethods = {
         pop.setAttribute('role', 'dialog');
         document.body.appendChild(pop);
       }
+      // clique fora fecha. O item do menu que abre o popover fica de fora da
+      // guarda: o clique dele borbulha até aqui depois de abrir.
+      if (!this._backlinksOutsideBound) {
+        this._backlinksOutsideBound = true;
+        document.addEventListener('click', (e) => {
+          const el = document.getElementById('backlinks-popover');
+          if (!el || el.classList.contains('hidden')) return;
+          if (el.contains(e.target) || e.target.closest?.('#menu-backlinks')) return;
+          el.classList.add('hidden');
+        });
+      }
       // toggle: se aberto, fecha
       if (!pop.classList.contains('hidden')) { pop.classList.add('hidden'); return; }
       pop.innerHTML = `<div class="bl-title">Mencionado em ${backlinks.length} nota${backlinks.length !== 1 ? 's' : ''}</div>` +
         backlinks.map(b => `<div class="bl-item" data-tid="${b.tid}" data-cid="${b.n.clientId}"><span class="backlink-thread">${esc(b.th ? b.th.name : 'Conversa')}</span><span class="backlink-snippet">${esc(b.n.text.slice(0, 60))}</span></div>`).join('');
       pop.classList.remove('hidden');
-      const anchor = document.getElementById('backlinks-badge').getBoundingClientRect();
+      const badge = document.getElementById('backlinks-badge');
+      const anchor = badge ? badge.getBoundingClientRect() : { right: 8, left: 8, top: 8 };
       const pw = Math.min(320, window.innerWidth - 24);
       pop.style.width = pw + 'px';
       let left = anchor.right + 10;
