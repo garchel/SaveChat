@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
-## Não publicado
+## [1.26.1] — 2026-10-22
 ### Corrigido
 - **O menu de configurações não corta mais a grade de fundos nem o botão de restaurar.** As colunas da grade de padrões usavam `1fr` (que não encolhe abaixo do texto) e os botões herdavam `width:100%` + padding grande da regra genérica da seção; com o `overflow-x:hidden` do popover, os rótulos e o botão ↺ apareciam cortados. A grade agora usa `minmax(0, 1fr)` e os dois controles têm regras próprias.
 - **Os menus agora fecham no voltar e no clique fora.** O menu do perfil, o painel do mascote e o popover de menções entraram na mesma hierarquia de "voltar" (botão do aparelho, gesto e botão ‹) dos outros menus, e o popover de menções também fecha ao clicar fora dele.
