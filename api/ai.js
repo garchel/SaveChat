@@ -120,7 +120,7 @@ module.exports = async function handler(req, res) {
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return fail(res, 503, 'O assistente ainda não foi configurado neste servidor. Adicione sua chave em Configurar IA ou avise o administrador.');
+    return fail(res, 503, 'O assistente ainda não foi configurado neste servidor. Avise o administrador.');
   }
 
   const auth = String(req.headers.authorization || '');

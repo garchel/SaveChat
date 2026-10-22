@@ -45,10 +45,6 @@ test('a IA propõe criar/editar/marcar, espera o Confirmar e executa sem 2ª cha
   await page.waitForTimeout(1500);
   await page.click('.ai-thread-node');
   await expect(page.locator('#ai-page')).toBeVisible();
-  await page.evaluate(() => {
-    const key = document.getElementById('ai-key');
-    if (key) { key.value = 'chave-teste'; key.dispatchEvent(new Event('change', { bubbles: true })); }
-  });
   await page.fill('#ai-prompt', 'crie a nota do churrasco, edite a lista e marque o leite');
   await page.click('#ai-send');
 

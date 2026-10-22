@@ -6,7 +6,6 @@ import { Store } from '../store.js';
 import { ICON, wrapSvg } from '../icons.js';
 import { esc, haptic, now } from '../utils.js';
 import { mascotFromStore } from '../mascot.js';
-const DEFAULT_MODEL = 'gemini-3.6-flash';
 // TABS: as páginas do workspace. 'reminders' não tem mais aba própria
 // (v1.12.0) — a lista é a mesma das Pendências e o header troca entre
 // elas, então a entrada continua existindo só para o toggle do explorer.
@@ -53,14 +52,6 @@ export const WorkspaceMethods = {
       }
     });
     // ----- IA -----
-    document.getElementById('ai-key')?.addEventListener('change', (event) => {
-      Store.data.ui = Store.data.ui || {};
-      Store.data.ui.aiKey = event.target.value.trim(); Store.save();
-    });
-    document.getElementById('ai-model')?.addEventListener('change', (event) => {
-      Store.data.ui = Store.data.ui || {};
-      Store.data.ui.aiModel = event.target.value.trim() || DEFAULT_MODEL; Store.save();
-    });
     const aiSend = document.getElementById('ai-send');
     aiSend?.addEventListener('click', () => {
       // vazio => grava áudio; com texto => envia. Mesma regra do composer.

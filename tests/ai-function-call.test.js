@@ -22,14 +22,15 @@ async function setup(fetchImpl) {
   const els = {
     'ai-prompt': { value: 'crie uma nota na conversa Compras com Leite', disabled: false, focus() {} },
     'ai-send': { disabled: false },
-    'ai-key': { value: 'chave-teste', focus() {} },
-    'ai-model': { value: 'gemini-3.6-flash' },
   };
   global.document = { getElementById: (id) => els[id] || null };
 
   const prevData = Store.data;
   const prevSave = Store.save;
-  Store.data = { user: { mail: 'tester@example.com' }, threads: {}, folders: {}, notes: {}, ui: { aiChat: [] } };
+  Store.data = {
+    user: { mail: 'tester@example.com' }, threads: {}, folders: {}, notes: {},
+    ui: { aiChat: [], aiKey: 'chave-teste', aiModel: 'gemini-3.6-flash' },
+  };
   Store.save = () => {};
 
   const calls = [];
