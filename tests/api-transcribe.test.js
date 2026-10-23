@@ -10,6 +10,7 @@ const handler = require('../api/transcribe.js');
 
 const realFetch = global.fetch;
 const AUDIO_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co/storage/v1/object/public/note-audio/fala.webm';
+const SIGNED_AUDIO_URL = 'https://dcttsnttbtsvpnfwtoaj.supabase.co/storage/v1/object/sign/note-audio/fala.webm?token=abc';
 
 function mockRes() {
   return {
@@ -96,7 +97,7 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
     assert.match(JSON.parse(res.body).error.message, /sess/i);
   });
 
-  it('recusa URL de áudio fora do storage público do projeto (SSRF)', async () => {
+  it('recusa URL de áudio fora do bucket note-audio do projeto (SSRF)', async () => {
     let outside = false;
     global.fetch = async (url) => {
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
@@ -108,6 +109,12 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
     assert.equal(res.statusCode, 400);
     assert.equal(outside, false);
     assert.match(JSON.parse(res.body).error.message, /Endereço de áudio inválido/);
+
+    const otherBucket = 'https://dcttsnttbtsvpnfwtoaj.supabase.co/storage/v1/object/public/note-images/fala.webm';
+    const res2 = mockRes();
+    await handler(mockReq({ body: { audioUrl: otherBucket } }), res2);
+    assert.equal(res2.statusCode, 400);
+    assert.equal(outside, false);
   });
 
   it('manda o áudio em base64 ao Whisper com a chave só no servidor', async () => {
@@ -136,22 +143,24 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
     assert.deepEqual(Buffer.from(await file.arrayBuffer()), Buffer.from([1, 2, 3, 4]));
   });
 
-  it('baixa a URL pública do Supabase e repassa ao Whisper', async () => {
-    let call = null;
-    global.fetch = async (url, opts) => {
-      const u = String(url);
-      if (u.includes('/auth/v1/user')) return supabaseOk();
-      if (u === AUDIO_URL) return audioOk([5, 6, 7, 8]);
-      call = { url: u, opts };
-      return groqOk('fala do bucket');
-    };
-    const res = mockRes();
-    await handler(mockReq({ body: { audioUrl: AUDIO_URL, mime: 'audio/webm' } }), res);
+  it('baixa a URL pública ou assinada do Supabase e repassa ao Whisper', async () => {
+    for (const audioUrl of [AUDIO_URL, SIGNED_AUDIO_URL]) {
+      let call = null;
+      global.fetch = async (url, opts) => {
+        const u = String(url);
+        if (u.includes('/auth/v1/user')) return supabaseOk();
+        if (u === audioUrl) return audioOk([5, 6, 7, 8]);
+        call = { url: u, opts };
+        return groqOk('fala do bucket');
+      };
+      const res = mockRes();
+      await handler(mockReq({ body: { audioUrl, mime: 'audio/webm' } }), res);
 
-    assert.equal(res.statusCode, 200);
-    assert.deepEqual(JSON.parse(res.body), { text: 'fala do bucket' });
-    const file = call.opts.body.get('file');
-    assert.deepEqual(Buffer.from(await file.arrayBuffer()), Buffer.from([5, 6, 7, 8]));
+      assert.equal(res.statusCode, 200);
+      assert.deepEqual(JSON.parse(res.body), { text: 'fala do bucket' });
+      const file = call.opts.body.get('file');
+      assert.deepEqual(Buffer.from(await file.arrayBuffer()), Buffer.from([5, 6, 7, 8]));
+    }
   });
 
   it('429 da Groq vira mensagem de limite para o cliente', async () => {

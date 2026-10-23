@@ -9,6 +9,7 @@ import { ICON, wrapSvg } from '../icons.js';
 import { burstConfetti } from '../confetti.js';
 import { audioHtml, bindAudioPlayer } from '../audio.js';
 import { transcribeAudio } from '../transcribe.js';
+import { hydrateMedia, mediaUrl } from '../media.js';
 
 export const MessagesBubbleMethods = {
     // notas cuja lista completa foi revelada temporariamente (por sessão)
@@ -58,9 +59,9 @@ export const MessagesBubbleMethods = {
       const pinBadge = isPinned ? `<span class="pin-badge" title="Mensagem fixada">${wrapSvg(ICON.pin, 12)}</span>` : '';
       const toggle = `<button class="msg-toggle" title="Ações" aria-label="Ações">${wrapSvg(ICON.chevron, 12)}</button>`;
       const tags = (n.tags && n.tags.length) ? `<div class="bubble-tags">${n.tags.map((t) => `<span class="tag-chip">#${esc(t)}</span>`).join('')}</div>` : '';
-      const imgs = (n.images && n.images.length) ? `<div class="bubble-images">${n.images.map((src) => `<img class="bubble-img" src="${src}" alt="anexo" loading="lazy"/>`).join('')}</div>` : '';
+      const imgs = (n.images && n.images.length) ? `<div class="bubble-images">${n.images.map((src) => `<img class="bubble-img" data-media-ref="${esc(src)}" data-media-bucket="note-images" alt="anexo" loading="lazy"/>`).join('')}</div>` : '';
       // mensagem de voz: player com waveform + avatar do remetente (v1.13.7)
-      const vaudio = n.audio && n.audio.url ? audioHtml(n) : '';
+      const vaudio = n.audio && (n.audio.url || n.audio.path) ? audioHtml(n) : '';
 
       const hideSetting = !!(Store.data.ui && Store.data.ui.hideDoneChecks);
       const checklist = this._checklistInfo(n.text);
@@ -69,6 +70,7 @@ export const MessagesBubbleMethods = {
       const hideDone = hideSetting && !revealed;
       const rxRow = this._reactionsHtml(n);
       div.innerHTML = `${pinBadge}${vaudio}${imgs}${renderMarkdown(n.text, hideDone)}${tags}${rxRow}${meta}${toggle}`;
+      hydrateMedia(div, 'note-images').catch((e) => console.warn('[storage] imagem da bolha falhou', e));
       if (hideSetting && checklist.allDone) {
         const notice = this._checklistNoticeEl(clientId, revealed);
         const metaEl = div.querySelector('.meta');
@@ -95,11 +97,18 @@ export const MessagesBubbleMethods = {
       div.addEventListener('drop', (e) => this.onDrop(e, n));
       div.addEventListener('dragend', () => this.onDragEnd());
       // player de audio (um <audio> compartilhado, play/pause sem recriar o elemento)
-      if (vaudio) bindAudioPlayer(div, n, { onTranscript: (box, note) => this.toggleVoiceTranscript(box, note) });
+      if (vaudio) bindAudioPlayer(div, n, {
+        onTranscript: (box, note) => this.toggleVoiceTranscript(box, note),
+        resolveSrc: (ref) => mediaUrl(ref, 'note-audio'),
+      });
       // Lightbox: clicar na imagem abre em tela cheia
       div.querySelectorAll('.bubble-img').forEach((img) => {
         img.style.cursor = 'zoom-in';
-        img.addEventListener('click', (e) => { e.stopPropagation(); this.openLightbox(img.src); });
+        img.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const src = img.currentSrc || img.src;
+          if (src) this.openLightbox(src);
+        });
       });
       // Checkboxes clicáveis: marcar/desmarcar persiste no texto da nota
       div.querySelectorAll('.md-check input[type="checkbox"]').forEach((cb) => {
@@ -188,7 +197,7 @@ export const MessagesBubbleMethods = {
       btn.disabled = true;
       tr.hidden = false; tr.textContent = 'Transcrevendo…';
       try {
-        const text = await transcribeAudio(latest.audio.url, { mime: latest.audio.mime });
+        const text = await transcribeAudio(latest.audio.path || latest.audio.url, { mime: latest.audio.mime });
         latest.audio = Object.assign({}, latest.audio, { transcript: text });
         Store.upsertNote(latest);
         // evento próprio: atualiza só a coluna `audio`, sem reescrever a nota
