@@ -23,6 +23,22 @@ describe('bolha de áudio com transcrição', () => {
       'a transcrição nasce vazia e escondida (só aparece no clique)');
   });
 
+  it('extensão do arquivo segue o mime gravado', async () => {
+    const { audioExtension } = await import('../public/js/audio.js');
+    assert.equal(audioExtension('audio/webm;codecs=opus'), 'webm');
+    assert.equal(audioExtension('audio/mp4'), 'm4a');
+    assert.equal(audioExtension('audio/mp4;codecs=mp4a.40.2'), 'm4a');
+    assert.equal(audioExtension('audio/ogg;codecs=opus'), 'ogg');
+    assert.equal(audioExtension(''), 'webm');
+  });
+
+  it('composer usa extensão e content-type reais no upload', () => {
+    const src = readFileSync('public/js/ui/composer-audio.js', 'utf8');
+    assert.match(src, /audioExtension\(mime\)/);
+    assert.match(src, /options\.contentType = blob\.type/);
+    assert.ok(!src.includes('}.webm`'), 'o nome do upload não pode fixar .webm');
+  });
+
   it('messages-bubble liga o toggle e salva em audio.transcript', () => {
     const src = readFileSync('public/js/ui/messages-bubble.js', 'utf8');
     assert.match(src, /onTranscript: \(box, note\) => this\.toggleVoiceTranscript\(box, note\)/);

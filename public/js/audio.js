@@ -22,6 +22,16 @@ const PEAK_TARGET = 120;       // resolução do waveform guardado no banco
 // não muda, só a densidade de detalhes.
 const WAVE_MAX_BARS = 34;
 
+export function audioExtension(mime) {
+  const m = String(mime || '').split(';')[0].trim().toLowerCase();
+  if (m.includes('mpeg') || m.includes('mp3')) return 'mp3';
+  if (m.includes('mp4') || m.includes('m4a') || m.includes('aac')) return 'm4a';
+  if (m.includes('ogg')) return 'ogg';
+  if (m.includes('wav')) return 'wav';
+  if (m.includes('flac')) return 'flac';
+  return 'webm';
+}
+
 function reamostrar(peaks, max) {
   if (!Array.isArray(peaks) || peaks.length <= max) return peaks;
   const out = [];
@@ -131,11 +141,31 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
   if (!box || box._bound) return;
   box._bound = true;
   const a = note.audio || {};
+  const ref = a.path || a.url || '';
   const btn = box.querySelector('.va-play');
   const wave = box.querySelector('.va-wave');
   const elapsed = box.querySelector('.va-elapsed');
   const trBtn = box.querySelector('.va-tr-toggle');
   const audio = sharedAudio();
+  const resolveSrc = typeof opts.resolveSrc === 'function' ? opts.resolveSrc : (value) => Promise.resolve(value);
+  let src = '';
+  let srcUntil = 0;
+  let resolving = null;
+  const ensureSrc = () => {
+    if (src && Date.now() < srcUntil) return Promise.resolve(src);
+    if (!ref) return Promise.resolve('');
+    if (!resolving) {
+      resolving = resolveSrc(ref)
+        .catch(() => (/^(https?:|blob:|data:)/i.test(ref) ? ref : ''))
+        .then((url) => {
+          src = url || '';
+          srcUntil = Date.now() + 55 * 60 * 1000;
+          resolving = null;
+          return src;
+        });
+    }
+    return resolving;
+  };
 
   // Foto do Google pode falhar (CSP, URL expirada, offline): em vez de deixar
   // um círculo vazio/quebrado, cai para a inicial do remetente.
@@ -156,9 +186,10 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
 
   // peaks ausentes: calcula na hora (nota antiga, ou o waveform ainda não foi
   // guardado) e repinta as barrinhas. Silencioso se falhar (URL morta/offline).
-  if (!(Array.isArray(a.peaks) && a.peaks.length) && a.url) {
-    fetch(a.url)
-      .then((r) => r.blob())
+  if (!(Array.isArray(a.peaks) && a.peaks.length) && ref) {
+    ensureSrc()
+      .then((url) => (url ? fetch(url) : null))
+      .then((r) => (r ? r.blob() : null))
       .then((b) => computePeaks(b))
       .then((peaks) => {
         if (!peaks || !peaks.length || !wave.isConnected) return;
@@ -193,9 +224,11 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
     setIcon(false);
   };
 
-  btn.addEventListener('click', (e) => {
+  btn.addEventListener('click', async (e) => {
     e.stopPropagation();
-    if (!a.url) { box.classList.add('failed'); return; }
+    if (!ref) { box.classList.add('failed'); return; }
+    const url = await ensureSrc();
+    if (!url) { box.classList.add('failed'); return; }
     if (shared._owner === box && !audio.paused) {
       // pausa o próprio áudio; o próximo clique retoma de onde parou
       audio.pause();
@@ -209,9 +242,9 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
       shared._owner = null;
     }
     // mesma URL: retoma/repete sem recarregar o arquivo
-    if (shared._src !== a.url) {
-      shared._src = a.url;
-      audio.src = a.url;
+    if (shared._src !== url) {
+      shared._src = url;
+      audio.src = url;
       try { audio.currentTime = 0; } catch {}
     } else if (audio.ended) {
       try { audio.currentTime = 0; } catch {}
@@ -233,7 +266,7 @@ export function bindAudioPlayer(rootEl, note, opts = {}) {
   audio.addEventListener('ended', () => { if (shared._owner === box) { reset(); shared._owner = null; } });
   audio.addEventListener('pause', () => { if (shared._owner === box) setIcon(false); });
   audio.addEventListener('play', () => { if (shared._owner === box) setIcon(true); });
-  audio.addEventListener('error', () => { if (shared._owner === box || audio.src === a.url) box.classList.add('failed'); });
+  audio.addEventListener('error', () => { if (shared._owner === box || audio.src === src) box.classList.add('failed'); });
 
   // clique numa barra pula para aquele ponto — o player é "seekable" como o
   // WhatsApp, sem um <input type=range> por cima (quebraria o visual das barras).

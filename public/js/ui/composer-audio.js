@@ -4,7 +4,7 @@ import { Store } from '../store.js';
 import { Sync, getSupa, USE_SUPABASE } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
 import { uid, now, haptic, $ } from '../utils.js';
-import { computePeaks } from '../audio.js';
+import { computePeaks, audioExtension } from '../audio.js';
 
 // Glifos do botão único. MESMOS paths de composer.js/_updateSendAudioState, para
 // que voltar do modo gravação para o modo enviar não troque o desenho do ícone.
@@ -41,9 +41,11 @@ export const ComposerAudioMethods = {
         const uid = session && session.user ? session.user.id : null;
         if (!uid) return null;
         const path = `${uid}/${Date.now()}-${name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-        const { error } = await supa.storage.from('note-audio').upload(path, blob, { cacheControl: '3600', upsert: false });
+        const options = { cacheControl: '3600', upsert: false };
+        if (blob.type) options.contentType = blob.type;
+        const { error } = await supa.storage.from('note-audio').upload(path, blob, options);
         if (error) throw error;
-        return supa.storage.from('note-audio').getPublicUrl(path).data.publicUrl;
+        return path;
       } catch (e) {
         console.warn('[audio] upload falhou, segue só local', e);
         return null;
@@ -72,7 +74,7 @@ export const ComposerAudioMethods = {
         rec.ondataavailable = (e) => chunks.push(e.data);
         rec.onstop = async () => {
           stream.getTracks().forEach((t) => t.stop());
-          const mime = rec.mimeType || 'audio/webm';
+          const mime = rec.mimeType || (chunks[0] && chunks[0].type) || 'audio/webm';
           const blob = new Blob(chunks, { type: mime });
           const duration = Math.round((Date.now() - this._recStart) / 1000);
           this._recording = false;
@@ -83,12 +85,13 @@ export const ComposerAudioMethods = {
 
           const peaks = await computePeaks(blob);
           send.classList.add('busy');
-          const url = await this._uploadAudio(blob, `audio-${Date.now()}.webm`);
+          const path = await this._uploadAudio(blob, `audio-${Date.now()}.${audioExtension(mime)}`);
           send.classList.remove('busy');
           this._pendingAudio = {
-            url: url || URL.createObjectURL(blob),
+            path: path || null,
+            url: path ? '' : URL.createObjectURL(blob),
             mime, dur: duration, peaks: peaks || [], sender: this._audioSender(),
-            local: !url,
+            local: !path,
           };
           this.toast(`Áudio de ${duration}s — mandando…`, { kind: 'success' });
           this._sendVoiceNote();
