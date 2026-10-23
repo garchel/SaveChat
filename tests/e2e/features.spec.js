@@ -68,6 +68,24 @@ test('botões do cabeçalho acendem quando a página está aberta e apagam ao fe
   await expect.poll(() => isOn('btn-notifications')).toBe(false);
 });
 
+test('conversa selecionada: cantos esquerdos retos e sem segunda cor', async ({ page }) => {
+  await openApp(page);
+  const item = page.locator('.tnode[data-tid="t1"]').first();
+  await item.click();
+  await expect(item).toHaveClass(/\bactive\b/);
+  const style = await item.evaluate((el) => {
+    const cs = getComputedStyle(el);
+    return {
+      bg: cs.backgroundColor,
+      tl: cs.borderTopLeftRadius,
+      bl: cs.borderBottomLeftRadius,
+      tr: cs.borderTopRightRadius,
+      br: cs.borderBottomRightRadius,
+    };
+  });
+  expect(style).toEqual({ bg: 'rgba(0, 0, 0, 0)', tl: '0px', bl: '0px', tr: '12px', br: '12px' });
+});
+
 test('logos acompanham a cor do tema (placeholder, sidebar, login e favicon)', async ({ page }) => {
   await openApp(page);
   await expect(page.locator('#no-thread .nt-logo')).toBeVisible();
