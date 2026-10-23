@@ -2,6 +2,16 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## Não publicado
+### Corrigido
+- **O áudio gravado no Safari agora é enviado com a extensão e o `Content-Type` corretos.** A gravação saía como `audio/mp4`, mas o arquivo era sempre nomeado `.webm`; agora o nome acompanha o formato real (`m4a` no Safari, `webm` no Chrome/Firefox) e o upload declara o tipo do blob.
+
+### Alterado
+- **A conversa selecionada no explorador perdeu o preenchimento colorido.** Ela agora fica com os cantos esquerdos retos, encostada na borda da barra lateral, mantendo só a faixa de destaque à esquerda em vez de trocar o fundo por uma segunda cor do tema.
+
+### Segurança
+- **Imagens e áudios agora ficam em buckets privados.** O app guarda o caminho do arquivo e gera uma URL assinada de curta duração para exibir/tocar; quem tiver apenas um link antigo não consegue mais abrir o conteúdo. A transcrição também aceita apenas URLs assinadas do próprio projeto.
+
 ## [1.26.1] — 2026-10-22
 ### Corrigido
 - **O menu de configurações não corta mais a grade de fundos nem o botão de restaurar.** As colunas da grade de padrões usavam `1fr` (que não encolhe abaixo do texto) e os botões herdavam `width:100%` + padding grande da regra genérica da seção; com o `overflow-x:hidden` do popover, os rótulos e o botão ↺ apareciam cortados. A grade agora usa `minmax(0, 1fr)` e os dois controles têm regras próprias.
