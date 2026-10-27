@@ -76,6 +76,12 @@ export const WorkspaceMethods = {
       event.preventDefault();
       this.resolveAiPending(btn.dataset.aiMsg, btn.dataset.aiConfirm);
     });
+    // Consentimento da IA por conversa: delegação no painel (ele é recriado).
+    document.getElementById('ai-consent')?.addEventListener('change', (event) => {
+      const input = event.target.closest('[data-ai-consent]');
+      if (!input) return;
+      this.toggleAiConsent(input.dataset.aiConsent, input.checked);
+    });
     // ----- Diária (rotina que se renova) -----
     // Criação/edição passa pelo modal (texto + horário + switch de notificação);
     // o antigo input rápido da página foi removido.
