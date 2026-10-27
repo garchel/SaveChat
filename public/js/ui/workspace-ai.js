@@ -20,7 +20,43 @@ const SEND_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" st
 
 export const WorkspaceAiMethods = {
   prepareAiPage() {
+    this.renderAiConsent();
     this.renderAiMessages();
+  },
+
+  // Consentimento da IA por conversa (Fase 1). O padrão é NADA liberado: a IA
+  // não recebe contexto de conversa nenhuma até o usuário marcar. A decisão é
+  // local (`thread.aiShared`) e não é enviada ao servidor.
+  renderAiConsent() {
+    const box = document.getElementById('ai-consent');
+    if (!box) return;
+    const threads = Store.threadList()
+      .filter((t) => t && !t.localOnly && !t.aiThread)
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    const shared = threads.filter((t) => t.aiShared === true).length;
+    const items = threads.map((t) => `<label class="ai-consent-item"><input type="checkbox" data-ai-consent="${esc(t.id)}"${t.aiShared === true ? ' checked' : ''} /><span>${esc(t.name || 'Sem título')}</span></label>`).join('');
+    box.innerHTML = `<details class="ai-consent">
+      <summary id="ai-consent-summary">Privacidade: ${shared} de ${threads.length} conversas liberadas para a IA</summary>
+      <p class="ai-consent-hint">A IA só lê as conversas marcadas. Sem nenhuma marcada, ela responde sem conhecer suas notas.</p>
+      <div class="ai-consent-list">${items || '<span class="ai-consent-empty">Nenhuma conversa ainda.</span>'}</div>
+    </details>`;
+  },
+
+  _updateAiConsentSummary() {
+    const summary = document.getElementById('ai-consent-summary');
+    if (!summary) return;
+    const threads = Store.threadList().filter((t) => t && !t.localOnly && !t.aiThread);
+    const shared = threads.filter((t) => t.aiShared === true).length;
+    summary.textContent = `Privacidade: ${shared} de ${threads.length} conversas liberadas para a IA`;
+  },
+
+  toggleAiConsent(threadId, shared) {
+    if (!threadId) return;
+    const t = Store.getThread(threadId);
+    if (!t) return;
+    Store.upsertThread({ id: threadId, aiShared: !!shared });
+    this._updateAiConsentSummary();
+    haptic('light');
   },
 
   renderAiMessages() {
@@ -28,7 +64,7 @@ export const WorkspaceAiMethods = {
     if (!list) return;
     const history = (Store.data.ui && Store.data.ui.aiChat) || [];
     if (!history.length) {
-      list.innerHTML = `<div class="workspace-empty">${mascotAvatarHtml('idle')}<span class="ai-mascot-name">${esc(mascotFromStore().name)}</span><strong>Peça à IA — ela conhece suas notas</strong><span>Resuma uma conversa, planeje seu dia ou peça: <em>“crie uma nota na conversa Compras com a lista do churrasco”</em>.</span></div>`;
+      list.innerHTML = `<div class="workspace-empty">${mascotAvatarHtml('idle')}<span class="ai-mascot-name">${esc(mascotFromStore().name)}</span><strong>Peça à IA — ela conhece as conversas que você liberar</strong><span>Resuma uma conversa, planeje seu dia ou peça: <em>“crie uma nota na conversa Compras com a lista do churrasco”</em>.</span><span class="ai-consent-note">Para ela ler suas notas, abra <strong>Privacidade</strong> acima e marque as conversas.</span></div>`;
       return;
     }
     // Enquanto a resposta não chega, o avatar mostra "pensando" no fim da lista.
@@ -49,6 +85,7 @@ export const WorkspaceAiMethods = {
 
   _buildAiContext() {
     const threads = Store.threadList()
+      .filter((t) => t && t.aiShared === true && !t.localOnly && !t.aiThread)
       .slice()
       .sort((a, b) => (b.created || 0) - (a.created || 0))
       .slice(0, 15);
@@ -80,6 +117,7 @@ export const WorkspaceAiMethods = {
       'Chame TODAS as funções necessárias para cumprir o pedido, em ordem. Não execute nem diga que executou: o app mostra a confirmação e só age depois que o usuário aceitar. ' +
       'Depois do pedido, não responda “feito” nem peça nova confirmação em texto; a pergunta de confirmação é montada pelo app.';
     if (context) text += `\n\n=== Notas recentes do usuário (contexto — não repita no chat) ===\n${context}`;
+    else text += '\n\nNenhuma conversa foi liberada para a IA ler. Se o pedido depender do conteúdo das notas, diga que o usuário precisa liberar a conversa em “Privacidade” na página da IA.';
     return { parts: [{ text }] };
   },
 

@@ -23,6 +23,10 @@ import { WorkspaceDailyMethods } from './js/ui/workspace-daily.js';
 import { SettingsMethods } from './js/ui/settings.js';
 import { MascotPanelMethods } from './js/ui/mascot-panel.js';
 import { AuthMethods } from './js/ui/auth.js';
+import { CryptoGate } from './js/crypto-gate.js';
+import { lockKeys } from './js/keyring.js';
+import { OfflineQueue } from './js/offline-queue.js';
+import { PrivacyMethods } from './js/ui/privacy.js';
 import { TreeMethods } from './js/ui/tree.js';
 import { ComposerMethods } from './js/ui/composer.js';
 import { ComposerAudioMethods } from './js/ui/composer-audio.js';
@@ -215,7 +219,14 @@ async init() {
         document.getElementById('profile-logout')?.addEventListener('click', async () => {
           const supa = this._getSupa && this._getSupa();
           if (supa) try { await supa.auth.signOut(); } catch {}
-          Store.setUser(null); this.renderAuthOrApp();
+          // grava o bucket cifrado da conta que sai ANTES de soltar a DEK
+          Store.setUser(null);
+          await Store.flush();
+          lockKeys();
+          Store.clearCipher();
+          OfflineQueue.setCipher(null);
+          CryptoGate.close();
+          this.renderAuthOrApp();
           profilePop.classList.add('hidden');
         });
       }
@@ -403,7 +414,7 @@ showModal(title, bodyHtml, onOk) {
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
     MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods,
-    WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods);
+    WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods, PrivacyMethods);
 
   // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do
   // markup. Em producao o build ja os inlineou e isto sai em seguida sem

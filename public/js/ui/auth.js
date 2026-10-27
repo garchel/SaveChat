@@ -4,6 +4,10 @@ import { USE_SUPABASE, getSupa, Sync } from '../sync-supabase.js';
 import { setPetals } from '../petals.js';
 import { mascotNameUnset } from '../mascot.js';
 import { clearMediaCache } from '../media.js';
+import { CryptoGate } from '../crypto-gate.js';
+import { getDek, lockKeys } from '../keyring.js';
+import { makeCacheCipher, makeQueueCipher } from '../crypto-session.js';
+import { OfflineQueue } from '../offline-queue.js';
 
 export const AuthMethods = {
 _getSupa() {
@@ -327,7 +331,15 @@ _clearAuthMsg() { const el = $('#auth-msg'); if (el) { el.textContent = ''; el.c
         const supa = this._getSupa();
         if (supa) try { await supa.auth.signOut(); } catch {}
         clearMediaCache();
-        Store.setUser(null); this.renderAuthOrApp();
+        // 1) grava o bucket da conta que sai (cifrado) ANTES de soltar a DEK;
+        //    2) só então zera chave, fila e cache em memória.
+        Store.setUser(null);
+        await Store.flush();
+        lockKeys();
+        Store.clearCipher();
+        OfflineQueue.setCipher(null);
+        CryptoGate.close();
+        this.renderAuthOrApp();
         if (passField) passField.classList.add('hidden');
         if (links) links.classList.add('hidden');
         if (passInput) { passInput.value = ''; passInput.required = false; }
@@ -370,8 +382,13 @@ _clearAuthMsg() { const el = $('#auth-msg'); if (el) { el.textContent = ''; el.c
       const cur = Store.user;
       const changed = !cur || cur.id !== next.id || cur.mail !== next.mail;
       if (changed) {
-        // conta diferente: zera o estado de UI que é por-conta (thread aberta,
-        // pins, diário, chat da IA) antes de o Store trocar o bucket
+        // conta diferente: grava o bucket antigo com a chave AINDA em memória
+        // (o cipher guarda a CryptoKey), depois zera chave e estado por-conta
+        Store.setUser(next);
+        lockKeys();
+        Store.clearCipher();
+        OfflineQueue.setCipher(null);
+        CryptoGate.close();
         this.activeThread = null;
         this.renderedClientIds = new Set();
         this.oldestTs = null;
@@ -383,12 +400,13 @@ _clearAuthMsg() { const el = $('#auth-msg'); if (el) { el.textContent = ''; el.c
         const aiList = document.getElementById('ai-messages');
         if (aiList) aiList.innerHTML = '';
         this.dom && this.dom.btnPin && this.dom.btnPin.classList.add('hidden');
+      } else {
+        Store.setUser(next);
       }
-      Store.setUser(next);
       return changed;
     },
 
-renderAuthOrApp() {
+async renderAuthOrApp() {
       // Popup sobrevivente (navegador bloqueou o fechamento): mostra recado,
       // NUNCA o app — evita "app dentro do popup".
       try {
@@ -406,6 +424,40 @@ renderAuthOrApp() {
         return;
       }
       if (Store.user) {
+        if (USE_SUPABASE && Store.user.id) {
+          const attempt = (this._renderAttempt = (this._renderAttempt || 0) + 1);
+          let supa = null;
+          try { supa = await this._ensureSupa(); } catch {}
+          if (attempt !== this._renderAttempt || !Store.user) return;
+          if (!supa) {
+            CryptoGate.fail('Sem conexão com o servidor. Conecte-se para desbloquear suas notas.', Store.user);
+            return;
+          }
+          try {
+            const unlocked = await CryptoGate.ensure(supa, Store.user);
+            if (!unlocked) return;
+          } catch (err) {
+            console.error('[crypto] não foi possível carregar as chaves', err);
+            CryptoGate.fail('Não foi possível carregar sua chave agora. Verifique a conexão e recarregue.');
+            return;
+          }
+          if (attempt !== this._renderAttempt || !Store.user) return;
+          // A partir daqui o cache local grava CIFRADO: a DEK fica capturada
+          // no cipher (o keyring pode ser travado no logout sem derrubar uma
+          // gravação em voo) e a fila offline também passa a cifrar.
+          const dek = getDek();
+          Store.setCipher(makeCacheCipher(Store.user.id, dek));
+          OfflineQueue.setCipher(makeQueueCipher(Store.user.id, dek));
+          try {
+            await Store.hydrate();
+          } catch (err) {
+            console.error('[crypto] não foi possível abrir o cache local', err);
+            CryptoGate.fail('Não foi possível abrir suas notas neste dispositivo. Recarregue e tente de novo.');
+            return;
+          }
+          if (attempt !== this._renderAttempt || !Store.user) return;
+        }
+        $('#crypto-gate')?.classList.add('hidden');
         $('#auth-screen').classList.add('hidden');
         $('#app').classList.remove('hidden');
         setPetals(!!(Store.data.ui && Store.data.ui.petals)); // ambiente cozy

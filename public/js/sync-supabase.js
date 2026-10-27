@@ -1,6 +1,16 @@
 import { $ } from './utils.js';
 import { Store } from './store.js';
 import { OfflineQueue } from './offline-queue.js';
+import { getDek } from './keyring.js';
+import { encryptNoteText, decryptNoteText, encryptThreadPreview, decryptThreadPreview } from './note-crypto.js';
+
+// O trigger do "corte" (supabase.sql) recusa INSERT/UPDATE com texto claro.
+// Reenfileirar esse erro não resolve nada: o app precisa ser atualizado.
+const CUTOVER_RE = /plaintext|texto claro|criptografia obrigat/i;
+function isCutoverError(err) {
+  if (!err) return false;
+  return CUTOVER_RE.test(err.message || '') || (err.code === 'P0001' && /notethread/i.test(err.message || ''));
+}
 
 // CONFIGURAÇÃO DE SINCRONIZAÇÃO (Supabase — definido em index.html)
   // ---------------------------------------------------------------------
@@ -130,7 +140,44 @@ import { OfflineQueue } from './offline-queue.js';
           await this.loadSnapshot();
         }
         if (this.connected) this.subscribe();
+        // pós-conexão: migra o que ainda está em claro e checa o corte do
+        // servidor. Guardado dentro do UI para não acoplar sync e backfill.
+        const uiHooks = window.NoteThread && window.NoteThread.UI;
+        if (uiHooks && typeof uiHooks.checkEncryptionCutover === 'function') uiHooks.checkEncryptionCutover();
+        if (uiHooks && typeof uiHooks.startBackfill === 'function') uiHooks.startBackfill();
       } catch (e) { clearTimeout(t); this._connecting = false; console.warn('[supabase] connect fail', e); this.setStatus('offline'); }
+    },
+    async _plainText(row, uid) {
+      if (!row || !row.text_enc) return row ? row.text : '';
+      try {
+        return await decryptNoteText(row, getDek(), uid);
+      } catch (e) {
+        console.warn('[supabase] texto cifrado ilegível', row.client_id, e);
+        return '';
+      }
+    },
+    async _threadFromRow(t, uid) {
+      let lastPreview = t.last_preview || '';
+      if (t.last_preview_enc) {
+        try { lastPreview = await decryptThreadPreview(t, getDek(), uid); }
+        catch (e) { console.warn('[supabase] prévia cifrada ilegível', t.id, e); lastPreview = ''; }
+      }
+      return {
+        id: t.id, name: t.name, emoji: t.emoji, color: t.color || undefined,
+        folderId: t.folder_id, favorite: t.favorite, pinnedId: t.pinned_id,
+        createdAt: new Date(t.created_at).getTime(), updatedAt: new Date(t.updated_at).getTime(),
+        lastPreview,
+      };
+    },
+    async _noteFromRow(n, uid) {
+      return {
+        clientId: n.client_id, threadId: n.thread_id, text: await this._plainText(n, uid),
+        images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: Number(n.ts),
+        sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev,
+        remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired,
+        ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}),
+        userId: Store.user ? Store.user.mail : 'anon',
+      };
     },
     async loadSnapshot() {
       // captura a conta ANTES do fetch: se ela mudar enquanto a rede responde,
@@ -149,10 +196,16 @@ import { OfflineQueue } from './offline-queue.js';
       // sem sessão, não aplica nada (RLS já devolveria vazio, mas o cache do
       // cliente do supabase-js pode responder com a última consulta)
       if (!uidNow) return;
+      const threads = {};
+      for (const t of th.data || []) threads[t.id] = await this._threadFromRow(t, uidNow);
+      const notes = {};
+      for (const n of no.data || []) {
+        (notes[n.thread_id] = notes[n.thread_id] || []).push(await this._noteFromRow(n, uidNow));
+      }
       const payload = {
-        threads: Object.fromEntries((th.data || []).map(t => [t.id, { id: t.id, name: t.name, emoji: t.emoji, color: t.color || undefined, folderId: t.folder_id, favorite: t.favorite, pinnedId: t.pinned_id, createdAt: new Date(t.created_at).getTime(), updatedAt: new Date(t.updated_at).getTime(), lastPreview: t.last_preview }])),
+        threads,
         folders: Object.fromEntries((fo.data || []).map(f => [f.id, { id: f.id, name: f.name, emoji: f.emoji, color: f.color || undefined, parentId: f.parent_id, createdAt: new Date(f.created_at).getTime() }])),
-        notes: (() => { const m = {}; (no.data || []).forEach(n => { (m[n.thread_id] = m[n.thread_id] || []).push({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }); }); return m; })()
+        notes,
       };
       this.emit('snapshot', payload);
     },
@@ -170,11 +223,12 @@ import { OfflineQueue } from './offline-queue.js';
         this._subscribedUid = uid;
         const filt = `user_id=eq.${uid}`;
         const ch = this.supa.channel('notethread')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', ...(filt?{filter:filt}:{}) }, (p) => {
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'notes', ...(filt?{filter:filt}:{}) }, async (p) => {
             const r = p.new || p.old; if (!r) return;
             if (p.eventType === 'DELETE') this.emit('note:delete', { threadId: r.thread_id, clientId: r.client_id });
             else {
-              const payload = { clientId: r.client_id, threadId: r.thread_id, text: r.text, images: (r.images||[]).slice(0,2), audio: r.audio || null, tags: r.tags || [], ts: Number(r.ts), sortOrder: r.sort_order, edited: r.edited, editedAt: r.edited_at, rev: r.rev, ...(r.reactions && Object.keys(r.reactions).length ? { reactions: r.reactions } : {}), userId: r.user_id };
+              const payload = await this._noteFromRow(r, uid);
+              payload.userId = r.user_id || payload.userId;
               this.emit('note:upsert', payload);
               // A6: evento separado APENAS para nota de OUTRO usuário (tint de chegada).
               // Antes disparava também no eco da própria nota → a bolha piscava azul
@@ -182,10 +236,10 @@ import { OfflineQueue } from './offline-queue.js';
               if (uid && r.user_id && r.user_id !== uid) this.emit('note:remote', payload);
             }
           })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'threads', ...(filt?{filter:filt}:{}) }, (p) => {
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'threads', ...(filt?{filter:filt}:{}) }, async (p) => {
             const r = p.new || p.old; if (!r) return;
             if (p.eventType === 'DELETE') this.emit('thread:delete', { id: r.id });
-            else this.emit('thread:upsert', { id: r.id, name: r.name, emoji: r.emoji, color: r.color || undefined, folderId: r.folder_id, favorite: r.favorite, pinnedId: r.pinned_id, createdAt: new Date(r.created_at).getTime(), updatedAt: new Date(r.updated_at).getTime(), lastPreview: r.last_preview });
+            else this.emit('thread:upsert', await this._threadFromRow(r, uid));
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'folders', ...(filt?{filter:filt}:{}) }, (p) => {
             const r = p.new || p.old; if (!r) return;
@@ -207,6 +261,8 @@ import { OfflineQueue } from './offline-queue.js';
     },
     async flushQueue() {
       if (!this.supa) return;
+      // Itens cifrados só são entregues por `getAll()` quando a chave da
+      // PRÓPRIA conta está em memória; app bloqueado não drena (nem em claro).
       const curUid = await this._uid();
       if (!curUid) return;
       const all = await OfflineQueue.getAll();
@@ -228,6 +284,12 @@ import { OfflineQueue } from './offline-queue.js';
           await this._doSend(item.type, item.payload);
           await OfflineQueue.remove(item.id);
         } catch (e) {
+          if (isCutoverError(e)) {
+            if (window.NoteThread && window.NoteThread.UI && window.NoteThread.UI.showEncryptionUpdate) {
+              window.NoteThread.UI.showEncryptionUpdate('O servidor passou a exigir notas cifradas e esta versão do app não consegue gravar.');
+            }
+            return; // mantém a fila intacta para a versão nova
+          }
           await OfflineQueue.bump(item.id);
         }
       }
@@ -263,6 +325,15 @@ import { OfflineQueue } from './offline-queue.js';
       try {
         await this._doSend(type, payload);
       } catch (e) {
+        if (isCutoverError(e)) {
+          // corte do servidor: a versão deste cliente não pode mais gravar.
+          // Não enfileira (retry infinito) e avisa para atualizar.
+          console.warn('[supabase] gravação bloqueada pelo corte de criptografia', e);
+          if (window.NoteThread && window.NoteThread.UI && window.NoteThread.UI.showEncryptionUpdate) {
+            window.NoteThread.UI.showEncryptionUpdate('O servidor passou a exigir notas cifradas e esta versão do app não consegue gravar.');
+          }
+          return;
+        }
         console.warn('[supabase] send fail', type, e);
         await this._enqueue(type, payload);
         if (!this._warnedFail && window.NoteThread && window.NoteThread.UI) {
@@ -277,15 +348,29 @@ import { OfflineQueue } from './offline-queue.js';
       if (beforeTs != null) q = q.lt('ts', beforeTs);
       const { data, error } = await q;
       if (error) throw error;
-      return (data || []).reverse().map(n => ({ clientId: n.client_id, threadId: n.thread_id, text: n.text, images: n.images||[], audio: n.audio || null, tags: n.tags||[], ts: Number(n.ts), sortOrder: n.sort_order, edited: n.edited, editedAt: n.edited_at, rev: n.rev, remindAt: n.remind_at ? Number(n.remind_at) : null, remindFired: !!n.remind_fired, ...(n.reactions && Object.keys(n.reactions).length ? { reactions: n.reactions } : {}), userId: Store.user ? Store.user.mail : 'anon' }));
+      const uid = (Store.user && Store.user.id) || null;
+      const out = [];
+      for (const n of (data || []).reverse()) out.push(await this._noteFromRow(n, uid));
+      return out;
     },
     async _doSend(type, payload) {
       const uid = await this._uid(); if (!uid) throw new Error('sem sessão');
       if (type === 'note:upsert') {
         const n = payload;
-        const row = { client_id: n.clientId, thread_id: n.threadId, text: n.text, images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, reactions: n.reactions || {}, user_id: uid };
+        const dek = getDek();
+        if (!dek) throw new Error('Criptografia bloqueada.');
+        const enc = await encryptNoteText(n, dek, uid);
+        const row = { client_id: n.clientId, thread_id: n.threadId, text: null, text_enc: enc.text_enc, enc_version: enc.enc_version, images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, reactions: n.reactions || {}, user_id: uid };
         // (supabase-js devolve { error } em vez de lançar — checar o resultado)
         let res = await this.supa.from('notes').upsert(row, { onConflict: 'client_id' });
+        // banco sem a migração da Fase 1: NÃO cair para texto claro (seria
+        // exatamente o vazamento que a cifragem fecha). Falha alto e avisa.
+        if (res.error && res.error.code === '42703' && /text_enc|enc_version/i.test(res.error.message || '')) {
+          if (window.NoteThread && window.NoteThread.UI) {
+            window.NoteThread.UI.toast('Banco sem a migração de criptografia — rode o supabase.sql atualizado', { kind: 'error', duration: 10000 });
+          }
+          throw res.error;
+        }
         // servidor sem a migração reactions (v1.8.0, erro 42703): reenvia SEM a
         // coluna para não derrubar o sync de notas como um todo
         // servidor SEM a migração da coluna → erro 42703 (undefined_column).
@@ -312,7 +397,12 @@ import { OfflineQueue } from './offline-queue.js';
       } else if (type === 'note:remind') {
         await this.supa.from('notes').update({ remind_at: payload.remindAt || null, remind_fired: !!payload.remindFired }).eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'thread:upsert') {
-        const t = payload; await this.supa.from('threads').upsert({ id: t.id, name: t.name, emoji: t.emoji, color: t.color || null, folder_id: t.folderId || null, favorite: !!t.favorite, pinned_id: t.pinnedId || null, updated_at: new Date().toISOString(), last_preview: t.lastPreview || '', user_id: uid }, { onConflict: 'id' });
+        const t = payload;
+        const dek = getDek();
+        if (!dek) throw new Error('Criptografia bloqueada.');
+        const previewEnc = await encryptThreadPreview(t.lastPreview || '', dek, uid, t.id);
+        const res = await this.supa.from('threads').upsert({ id: t.id, name: t.name, emoji: t.emoji, color: t.color || null, folder_id: t.folderId || null, favorite: !!t.favorite, pinned_id: t.pinnedId || null, updated_at: new Date().toISOString(), last_preview: '', last_preview_enc: previewEnc, user_id: uid }, { onConflict: 'id' });
+        if (res.error) throw res.error;
       } else if (type === 'thread:delete') {
         await this.supa.from('threads').delete().eq('id', payload.id).eq('user_id', uid);
       } else if (type === 'folder:upsert') {
@@ -322,7 +412,11 @@ import { OfflineQueue } from './offline-queue.js';
       } else if (type === 'note:delete') {
         await this.supa.from('notes').delete().eq('client_id', payload.clientId).eq('user_id', uid);
       } else if (type === 'note:edit') {
-        await this.supa.from('notes').update({ text: payload.text, edited: payload.edited !== undefined ? !!payload.edited : true, edited_at: payload.editedAt, rev: payload.rev }).eq('client_id', payload.clientId).eq('user_id', uid);
+        const dek = getDek();
+        if (!dek) throw new Error('Criptografia bloqueada.');
+        const enc = await encryptNoteText(payload, dek, uid);
+        const res = await this.supa.from('notes').update({ text: null, text_enc: enc.text_enc, enc_version: enc.enc_version, edited: payload.edited !== undefined ? !!payload.edited : true, edited_at: payload.editedAt, rev: payload.rev }).eq('client_id', payload.clientId).eq('user_id', uid);
+        if (res.error) throw res.error;
       } else if (type === 'note:transcript') {
         // atualiza só a coluna audio (a transcrição vive dentro do JSON da nota);
         // não reescreve texto/tags/rev — evita corrida com uma edição concorrente

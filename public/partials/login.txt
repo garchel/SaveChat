@@ -39,3 +39,45 @@
       <p class="auth-note">Cross-platform · Offline-first · Real-time sync</p>
     </div>
   </div>
+
+  <!-- ===== CRYPTO GATE (obrigatório) ===== -->
+  <div id="crypto-gate" class="auth-screen hidden">
+    <div class="auth-card crypto-card">
+      <div class="brand">
+        <div class="crypto-lock" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg>
+        </div>
+        <h1 id="crypto-title">Desbloqueie suas notas</h1>
+        <p class="tagline" id="crypto-desc">Digite a senha de criptografia desta conta para abrir suas notas neste dispositivo.</p>
+      </div>
+      <form id="crypto-form" class="email-form" novalidate>
+        <div id="crypto-setup-fields" class="hidden">
+          <label class="crypto-label" for="crypto-pass">Senha de criptografia</label>
+          <input id="crypto-pass" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres" />
+          <label class="crypto-label" for="crypto-pass2">Repita a senha</label>
+          <input id="crypto-pass2" type="password" autocomplete="new-password" minlength="8" placeholder="Repita para confirmar" />
+        </div>
+        <div id="crypto-unlock-fields">
+          <label class="crypto-label" for="crypto-pass-unlock">Senha de criptografia</label>
+          <input id="crypto-pass-unlock" type="password" autocomplete="current-password" placeholder="Sua senha de criptografia" />
+        </div>
+        <div id="crypto-recovery-fields" class="hidden">
+          <label class="crypto-label" for="crypto-recovery-input">Código de recuperação</label>
+          <input id="crypto-recovery-input" type="text" autocomplete="off" spellcheck="false" placeholder="Cole o código que você guardou" />
+        </div>
+        <button id="crypto-submit" class="btn primary" type="submit">Desbloquear</button>
+        <button id="crypto-switch" class="btn-link-sm" type="button">Usar código de recuperação</button>
+        <p id="crypto-msg" class="auth-msg hidden" role="status" aria-live="polite"></p>
+      </form>
+      <div id="crypto-recovery-card" class="hidden">
+        <p class="crypto-warn"><strong>Guarde este código agora.</strong> Ele é a única forma de recuperar suas notas se você esquecer a senha. Não mostramos de novo.</p>
+        <code id="crypto-code" class="crypto-code"></code>
+        <button id="crypto-recovery-copy" class="btn" type="button">Copiar código</button>
+        <label class="remember-row crypto-check">
+          <input type="checkbox" id="crypto-recovery-saved" />
+          <span>Guardei o código em um lugar seguro</span>
+        </label>
+        <button id="crypto-recovery-done" class="btn primary" type="button" disabled>Continuar</button>
+      </div>
+    </div>
+  </div>

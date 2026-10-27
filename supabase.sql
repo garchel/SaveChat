@@ -9,6 +9,20 @@ create table if not exists profiles (
   created_at timestamptz default now()
 );
 
+-- Chaves E2E: a senha nunca chega ao servidor. A DEK só existe embrulhada
+-- pela senha (wrapped_dek) e pelo código de recuperação (recovery_wrapped_dek).
+create table if not exists user_keys (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  version integer not null default 1,
+  salt text not null,
+  kdf text not null default 'PBKDF2-SHA256',
+  kdf_iterations integer not null default 600000,
+  wrapped_dek jsonb not null,
+  recovery_wrapped_dek jsonb not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 create table if not exists folders (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -65,14 +79,25 @@ alter table folders add column if not exists color text;
 -- sem a coluna não podem zerar as reações locais (merge só sobrescreve se o campo veio)
 alter table notes add column if not exists reactions jsonb default '{}'::jsonb;
 
+-- Fase 1 (E2E): colunas de ciphertext convivem com as antigas durante a
+-- migração. O cliente lê a cifrada quando existir e limpa a clara ao salvar.
+alter table notes add column if not exists text_enc jsonb;
+alter table notes add column if not exists enc_version integer;
+alter table threads add column if not exists name_enc jsonb;
+alter table threads add column if not exists last_preview_enc jsonb;
+
 -- 2. RLS
 alter table profiles enable row level security;
+alter table user_keys enable row level security;
 alter table folders enable row level security;
 alter table threads enable row level security;
 alter table notes enable row level security;
 
 drop policy if exists "own profiles" on profiles;
 create policy "own profiles" on profiles for all using (auth.uid() = id) with check (auth.uid() = id);
+
+drop policy if exists "own keys" on user_keys;
+create policy "own keys" on user_keys for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "own folders" on folders;
 create policy "own folders" on folders for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -133,3 +158,56 @@ drop policy if exists "public read audio" on storage.objects;
 -- 6. Hardening (v1.4.0): o event trigger de auto-RLS não precisa ser
 -- executável via PostgREST/RPC — revoga acesso público (advisors Supabase).
 revoke execute on function public.rls_auto_enable() from anon, authenticated, public;
+
+-- 7. Corte da Fase 1 (1c): rejeita texto claro DEPOIS que o backfill de todos
+-- os usuários terminar. A flag nasce desligada de propósito — ligar antes da
+-- hora faz clientes antigos perderem gravações.
+create table if not exists app_config (
+  id boolean primary key default true,
+  encryption_enforced boolean not null default false,
+  min_client_version text,
+  updated_at timestamptz default now(),
+  constraint app_config_singleton check (id)
+);
+
+insert into app_config (id) values (true) on conflict (id) do nothing;
+
+alter table app_config enable row level security;
+
+-- leitura pública: o cliente precisa saber que o corte está ligado e qual a
+-- versão mínima. Escrita NÃO tem policy — só service_role/dashboard altera.
+drop policy if exists "config read" on app_config;
+create policy "config read" on app_config for select using (true);
+
+create or replace function public.notethread_reject_plaintext() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce((select encryption_enforced from app_config where id), false) then
+    if tg_table_name = 'notes' and new.text is not null then
+      raise exception 'notethread: plaintext rejected (encryption enforced)'
+        using errcode = 'P0001', hint = 'Grave o conteúdo em text_enc e deixe text nulo.';
+    end if;
+    if tg_table_name = 'threads' and coalesce(new.last_preview, '') <> '' then
+      raise exception 'notethread: plaintext rejected (encryption enforced)'
+        using errcode = 'P0001', hint = 'Grave a prévia em last_preview_enc e deixe last_preview vazio.';
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists notes_no_plaintext on notes;
+create trigger notes_no_plaintext
+  before insert or update on notes
+  for each row execute function public.notethread_reject_plaintext();
+
+drop trigger if exists threads_no_plaintext on threads;
+create trigger threads_no_plaintext
+  before insert or update on threads
+  for each row execute function public.notethread_reject_plaintext();
+
+revoke execute on function public.notethread_reject_plaintext() from anon, authenticated, public;
+
+-- Ligar o corte (só quando o backfill do usuário tiver terminado):
+--   update app_config set encryption_enforced = true, min_client_version = '1.27.0' where id;
+-- Desligar (emergência):
+--   update app_config set encryption_enforced = false where id;

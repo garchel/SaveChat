@@ -1,5 +1,6 @@
 
 import { now } from './utils.js';
+import { isEncryptedPayload } from './crypto-session.js';
 // A constante do id da thread da IA é DUPLICADA aqui de propósito (não
 // importada): ai-thread.js lê `window.NoteThread.Store` para evitar
 // dependência circular com este módulo, e o repo tem a regra de replicar
@@ -29,6 +30,15 @@ const AI_THREAD_ID = 'ai-assistant';
     SCOPE_KEYS: ['aiKey', 'aiModel', 'aiChat', 'dailyRoutine'],
     data: null,
     _uid: null,
+    // --- Criptografia do cache local (Fase 1) ---
+    // cipher: { uid, encrypt(payload), decrypt(envelope) } — ver crypto-session.js
+    // locked: bucket cifrado no disco e chave ainda não disponível em memória
+    // _encrypted: esta conta JÁ teve dados cifrados; nunca mais gravar claro
+    cipher: null,
+    locked: false,
+    _encrypted: false,
+    _encryptedBucket: null,
+    _writes: Promise.resolve(),
 
     // id estável da conta ativa (id do Supabase > e-mail > 'anon')
     _accountId(user) {
@@ -75,13 +85,22 @@ const AI_THREAD_ID = 'ai-assistant';
       // `ui` = preferências do dispositivo + o escopo da conta re-injetado, para
       // que o código existente leia Store.data.ui.dailyRoutine sem mudar.
       const ui = Object.assign({}, root.ui || {});
-      Object.assign(ui, bucket.scope || {});
+
+      // Cache cifrado (Fase 1): sem a DEK em memória não há como abrir o
+      // bucket. O app sobe bloqueado e o CryptoGate pede a senha; o conteúdo
+      // só entra em memória em `hydrate()`, depois do unlock. Preferências do
+      // DISPOSITIVO (tema, som…) continuam disponíveis porque moram na raiz.
+      const encrypted = isEncryptedPayload(bucket);
+      this._encrypted = encrypted;
+      this._encryptedBucket = encrypted ? bucket : null;
+      this.locked = encrypted;
+      if (!encrypted) Object.assign(ui, bucket.scope || {});
 
       const d = {
         user: root.user || null,
-        threads: bucket.threads || {},
-        folders: bucket.folders || {},
-        notes: bucket.notes || {},
+        threads: encrypted ? {} : (bucket.threads || {}),
+        folders: encrypted ? {} : (bucket.folders || {}),
+        notes: encrypted ? {} : (bucket.notes || {}),
         ui,
       };
       // A thread da IA é do dispositivo, não da conta: sai do bucket dela
@@ -145,6 +164,11 @@ const AI_THREAD_ID = 'ai-assistant';
       });
       root.ui = ui;
       this._write(this.KEY, root);
+
+      // Ainda bloqueado: o conteúdo no disco é ciphertext e não existe em
+      // memória. Gravar aqui apagaria o cache da conta.
+      if (this.locked) return;
+
       // A thread da IA é do DISPOSITIVO, não da conta: não vai para o
       // bucket. Sem este filtro ela era gravada lá e aparecia na conta
       // seguinte — medido como 3 threads onde o contrato de isolamento
@@ -162,13 +186,101 @@ const AI_THREAD_ID = 'ai-assistant';
         if (id === AI_THREAD_ID) return;
         notesSemIa[id] = this.data.notes[id];
       });
-      this._write(this._bucketKey(this._uid || this._accountId(this.data.user)), {
+      const uid = this._uid || this._accountId(this.data.user);
+      const payload = {
         threads: threadsSemIa,
         folders: this.data.folders,
         notes: notesSemIa,
         scope,
-      });
+      };
+      // só cifra com a chave da PRÓPRIA conta: depois de um logout/troca, a
+      // DEK antiga ainda pode estar em memória por alguns instantes
+      const cipher = (this.cipher && this.cipher.uid === uid) ? this.cipher : null;
+      if (!cipher) {
+        // Conta que já teve cache cifrado NUNCA volta a gravar texto claro.
+        // Uma gravação sem chave é descartada (o `flush()` do logout garante
+        // que a última alteração chegue ao disco antes de soltar a DEK).
+        if (this._encrypted) return;
+        this._write(this._bucketKey(uid), payload);
+        return;
+      }
+      this._queueEncryptedWrite(uid, payload, cipher);
     },
+
+    // Grava o bucket cifrado em série (uma cifragem por save, na ordem das
+    // chamadas). `flush()` espera a fila antes de a chave sair de memória.
+    _queueEncryptedWrite(uid, payload, cipher) {
+      this._writes = this._writes
+        .then(() => cipher.encrypt(payload))
+        .then((envelope) => this._write(this._bucketKey(uid), envelope))
+        .catch((e) => { console.warn('[store] falha ao cifrar o cache local', e); });
+      return this._writes;
+    },
+
+    async flush() {
+      // Duas rodadas: uma gravação pode ser enfileirada enquanto a primeira
+      // termina.
+      await this._writes;
+      await this._writes;
+    },
+
+    // Liga a criptografia do cache à conta ativa. Sem argumento, desliga
+    // (logout/troca de conta). Trocar a chave não reescreve o bucket antigo.
+    setCipher(cipher) {
+      const same = cipher && this.cipher && this.cipher.uid === cipher.uid;
+      this.cipher = cipher || null;
+      if (!cipher) return;
+      this._encrypted = true;
+      // conta legada (bucket claro) passa a gravar cifrado já no próximo save
+      if (!this.locked && !same) this.save();
+    },
+
+    clearCipher() { this.cipher = null; },
+
+    // Abre o bucket cifrado depois do unlock. Devolve true quando havia algo
+    // para decifrar. A thread e as notas da IA são do dispositivo e ficam.
+    async hydrate() {
+      if (!this.locked) return false;
+      if (!this._encryptedBucket) { this.locked = false; return false; }
+      if (!this.cipher) throw new Error('Criptografia bloqueada.');
+      const bucket = await this.cipher.decrypt(this._encryptedBucket);
+      const aiThread = this.data.threads[AI_THREAD_ID];
+      const aiNotes = this.data.notes[AI_THREAD_ID];
+      this.data.threads = (bucket && bucket.threads) || {};
+      this.data.folders = (bucket && bucket.folders) || {};
+      this.data.notes = (bucket && bucket.notes) || {};
+      if (aiThread) this.data.threads[AI_THREAD_ID] = aiThread;
+      if (aiNotes) this.data.notes[AI_THREAD_ID] = aiNotes;
+      this.data.ui = Object.assign({}, this.data.ui, (bucket && bucket.scope) || {});
+      this.data.ui.expanded = this.data.ui.expanded || {};
+      this._encryptedBucket = null;
+      this.locked = false;
+      this.save();
+      return true;
+    },
+
+    // Aplica o bucket da conta informada (claro ou cifrado). Usado no boot
+    // (load) e na troca de conta (setUser).
+    _loadBucketInto(uid) {
+      const bucket = this._read(this._bucketKey(uid)) || {};
+      if (isEncryptedPayload(bucket)) {
+        this._encryptedBucket = bucket;
+        this._encrypted = true;
+        // Sempre bloqueado: só o `hydrate()`, depois do unlock, troca o
+        // ciphertext pelo conteúdo em memória. Se abrisse "destravado" aqui,
+        // o próximo save gravaria um bucket vazio por cima do cache.
+        this.locked = true;
+        return;
+      }
+      this._encryptedBucket = null;
+      this._encrypted = false;
+      this.locked = false;
+      this.data.threads = bucket.threads || {};
+      this.data.folders = bucket.folders || {};
+      this.data.notes = bucket.notes || {};
+      Object.assign(this.data.ui, bucket.scope || {});
+    },
+
 
     // TROCA DE CONTA: descarrega o conteúdo da conta anterior no bucket dela e
     // carrega o da nova. Sem isso, logar com outro e-mail no mesmo navegador
@@ -196,14 +308,9 @@ const AI_THREAD_ID = 'ai-assistant';
       this.data.notes = {};
       this.data.ui = Object.assign({ expanded: {} }, devicePrefs);
 
-      // 3) carrega o bucket da nova conta
+      // 3) carrega o bucket da nova conta (claro ou cifrado)
       this._uid = nextUid;
-      const bucket = this._read(this._bucketKey(nextUid)) || {};
-      this.data.threads = bucket.threads || {};
-      this.data.folders = bucket.folders || {};
-      this.data.notes = bucket.notes || {};
-      // o escopo da conta tem precedência; o resto vem das prefs do dispositivo
-      this.data.ui = Object.assign({}, devicePrefs, bucket.scope || {});
+      this._loadBucketInto(nextUid);
       this.data.ui.expanded = this.data.ui.expanded || {};
       this.save();
     },

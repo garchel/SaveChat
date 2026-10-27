@@ -1,6 +1,6 @@
 // NoteThread Service Worker — app shell offline + cache-first para assets.
 // Bump CACHE (vN) a cada deploy para invalidar versões anteriores.
-const CACHE = 'notethread-v168';
+const CACHE = 'notethread-v169';
 const ASSETS = [
   './', './index.html', './app.js', './styles.css', './CHANGELOG.md',
   './styles/00-tokens-base.css',
@@ -26,8 +26,8 @@ const ASSETS = [
   './styles/18-boot-splash.css',
   './styles/19-ai-avatar.css',
   './assets/logo.svg', './assets/logo.png',
-  './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js', './js/audio.js', './js/media.js', './js/crypto.js', './js/transcribe.js', './js/keyboard-viewport.js',
-  './js/mascot.js', './js/store.js', './js/sound.js', './js/sync-supabase.js', './js/offline-queue.js', './js/confetti.js',
+  './js/utils.js', './js/icons.js', './js/emojis.js', './js/emojis-data.js', './js/markdown.js', './js/petals.js', './js/audio.js', './js/media.js', './js/crypto.js', './js/keys.js', './js/keyring.js', './js/note-crypto.js', './js/crypto-gate.js', './js/transcribe.js', './js/keyboard-viewport.js',
+  './js/mascot.js', './js/store.js', './js/sound.js', './js/sync-supabase.js', './js/offline-queue.js', './js/crypto-session.js', './js/backfill.js', './js/confetti.js',
   './js/bg-patterns.js', './js/friendly-names.js', './js/error-tracking.js', './js/updater.js',
   './js/partials.js',
   './js/ui/picker.js', './js/ui/navigation.js', './js/ui/messages.js',
@@ -36,7 +36,7 @@ const ASSETS = [
   './js/ui/settings.js', './js/ui/auth.js', './js/ui/tree.js', './js/ui/tasks.js',
   './js/ui/composer.js', './js/ui/composer-audio.js', './js/ui/composer-markdown.js',
   './js/ui/composer-lists.js', './js/ui/sync-events.js', './js/ui/mascot-panel.js', './js/ui/workspace.js',
-  './js/ui/workspace-ai.js', './js/ui/workspace-daily.js', './js/ai-thread.js',
+  './js/ui/workspace-ai.js', './js/ui/workspace-daily.js', './js/ui/privacy.js', './js/ai-thread.js',
   './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './icon-1024.png', './favicon-32.png',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-192.png', './icons/icon-maskable-512.png',
   './icons/icon-src.svg', './icons/icon-maskable-src.svg',

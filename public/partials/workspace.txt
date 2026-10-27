@@ -45,6 +45,7 @@
           </div>
         </div>
         <section id="ai-page" class="workspace-page ai-page hidden" role="tabpanel" aria-labelledby="tab-ai">
+          <div id="ai-consent" class="ai-consent-host"></div>
           <div id="ai-messages" class="ai-messages" role="log" aria-live="polite" aria-label="Conversa com a inteligência artificial"></div>
           <div class="ai-controls">
             <div id="ai-rec-status" class="ai-rec-status hidden" aria-live="polite">
