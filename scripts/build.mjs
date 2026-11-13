@@ -218,9 +218,33 @@ function limparOut(dir) {
   }
 }
 
+// O código importa o Supabase por URL (esm.sh) para o dev funcionar sem build.
+// Em produção trocamos essa URL pelo pacote LOCAL, empacotado junto: eram ~20
+// módulos de terceiro no caminho de boot (DNS + TLS + RTT do CDN + 20 requests).
+//
+// `alias` do esbuild não aceita URL como chave ("Invalid alias name"), então
+// resolvemos num plugin. E resolvemos a entrada **ESM** (`dist/index.mjs`), não
+// a que `require.resolve` devolve (CJS): empacotada como CJS, o namespace do
+// `import()` dinâmico fica em `default` e `m.createClient` deixa de existir.
+function supabaseLocalPlugin() {
+  return {
+    name: 'supabase-local',
+    setup(b) {
+      b.onResolve({ filter: /^https:\/\/esm\.sh\/@supabase\/supabase-js@/ }, () => {
+        const pkgJson = resolvePath('node_modules/@supabase/supabase-js/package.json');
+        const pkg = JSON.parse(readFileSync(pkgJson, 'utf8'));
+        const rel = (pkg.exports && pkg.exports['.'] && pkg.exports['.'].import && pkg.exports['.'].import.default)
+          || pkg.module
+          || pkg.main;
+        return { path: resolvePath('node_modules/@supabase/supabase-js', rel) };
+      });
+    },
+  };
+}
+
 // Empacota o app. `splitting` mantém o import() dinâmico (catálogo de emojis)
 // como chunk separado — e ele só é baixado quando o picker abre.
-// URLs absolutas (esm.sh) são carregadas em runtime, nunca empacotadas.
+// URLs absolutas (esm.sh/cuelume) são carregadas em runtime, nunca empacotadas.
 async function bundleApp(outDir) {
   const res = await esbuild({
     entryPoints: [join(SRC, 'app.js')],
@@ -232,6 +256,7 @@ async function bundleApp(outDir) {
     target: 'es2020',
     entryNames: 'app.[hash]',
     chunkNames: 'js/[name].[hash]',
+    plugins: [supabaseLocalPlugin()],
     external: ['https://*', 'http://*'],
     metafile: true,
     logLevel: 'silent',

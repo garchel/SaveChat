@@ -64,7 +64,9 @@ bindSettings() {
       }
 
       // ---- Sons (cuelume) ----
-      Sound.load();
+      // Não carrega no boot: a lib são ~4 módulos remotos e nenhum som toca
+      // antes do primeiro gesto. Carrega no primeiro gesto, se o usuário usa som.
+      Sound.loadWhenNeeded();
       const s = (Store.data.ui && Store.data.ui.sounds) || { enabled: false, volume: 0.6, map: {} };
       const en = $('#sound-enabled'); if (en) en.checked = !!s.enabled;
       const vol = $('#sound-volume'); if (vol) vol.value = (typeof s.volume === 'number' ? s.volume : 0.6);
@@ -218,7 +220,7 @@ bindSettings() {
       });
       if (en) en.addEventListener('change', () => {
         Store.data.ui.sounds = Store.data.ui.sounds || {};
-        Store.data.ui.sounds.enabled = en.checked; Store.save(); Sound.apply();
+        Store.data.ui.sounds.enabled = en.checked; Store.save(); Sound.load(); Sound.apply();
         if (en.checked) Sound.play('create');
       });
       if (vol) vol.addEventListener('input', () => {
