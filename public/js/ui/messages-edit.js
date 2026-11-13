@@ -185,9 +185,12 @@ export const MessagesEditMethods = {
     updatePinButton() {
       const th = Store.getThread(this.activeThread);
       const pinned = th ? Store.getPinned(this.activeThread) : null;
-      this.dom.btnPin.classList.toggle('hidden', !th);
+      // O botão só existe na tela quando HÁ mensagem fixada: antes ele
+      // aparecia esmaecido (`no-pin`) em toda conversa, ocupando espaço no
+      // cabeçalho para abrir um popover vazio (o clique só mostrava um
+      // toast explicando que não havia nada). Sem pin, nada na tela.
+      this.dom.btnPin.classList.toggle('hidden', !pinned);
       this.dom.btnPin.classList.toggle('has-pin', !!pinned);
-      // sem pin: botão fica esmaecido (indisponível), mas clicável p/ mostrar aviso no mobile
       this.dom.btnPin.classList.toggle('no-pin', !pinned);
       // tooltip nativo no desktop; no mobile o aviso vem via toast no clique
       this.dom.btnPin.title = pinned

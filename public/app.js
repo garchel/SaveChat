@@ -340,6 +340,20 @@ toast(msg, opts) {
         t.appendChild(btn);
       }
       document.body.appendChild(t);
+      // Aviso ABAIXO do cabeçalho visível, com respiro. O toast nasce em
+      // `position: fixed; top: 14px`, exatamente onde fica o cabeçalho:
+      // "Atualizado"/"Excluído" apareciam POR CIMA do título.
+      //
+      // Medir o cabeçalho de verdade (e não fixar uma altura) mantém o respiro
+      // certo em qualquer fonte/safe-area. A varredura pega o cabeçalho da
+      // página ATIVA — Tarefas, Busca e Lembretes têm o seu próprio, e olhar
+      // só o `#chat-header` deixava o aviso caindo sobre o primeiro cartão
+      // nessas páginas.
+      const heads = [...document.querySelectorAll('#chat-header, .cozy-banner')]
+        .map((el) => ({ el, cs: getComputedStyle(el), r: el.getBoundingClientRect() }))
+        .filter((x) => x.cs.display !== 'none' && x.cs.visibility !== 'hidden' && x.r.height > 0 && x.r.top >= 0)
+        .sort((a, b) => a.r.top - b.r.top);
+      if (heads.length) t.style.top = Math.round(heads[0].r.bottom + 10) + 'px';
       requestAnimationFrame(() => { t.classList.add('show'); });
       hideTimer = setTimeout(hide, opts.duration || 2600);
     },    bindModal() {
