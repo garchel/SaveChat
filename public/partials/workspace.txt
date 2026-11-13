@@ -37,6 +37,13 @@
               </button>
               <div class="task-acc-body" id="task-body-threads">
                 <div class="task-acc-inner">
+                <!-- filtro por conversa: só aparece quando há mais de uma
+                     conversa com tarefas abertas (com uma só, filtrar não
+                     teria o que fazer e só ocuparia espaço) -->
+                <div class="task-filter hidden" id="tasks-threads-filter-wrap">
+                  <select id="tasks-threads-filter" class="task-filter-select" aria-label="Filtrar tarefas por conversa"></select>
+                  <svg class="task-filter-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
                 <div id="tasks-threads-list" class="task-list"></div>
                 <p class="task-acc-empty" id="tasks-threads-empty">Nada pendente nas conversas 🎉<br /><span class="task-acc-empty-sub">Itens de checklist (<code>[ ]</code>) escritos nas notas aparecem aqui.</span></p>
                 </div>

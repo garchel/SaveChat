@@ -110,7 +110,7 @@ export const ComposerMethods = {
         else if (e.key === 'Enter' && !e.shiftKey) {
           // mobile: Enter também continua listas (desktop usa Shift+Enter p/ enviar)
           const isTouch = window.matchMedia('(hover: none)').matches;
-          if (isTouch && this._listContinuation(ta)) { e.preventDefault(); return; }
+          if (isTouch && this._listContinuation(ta)) { e.preventDefault(); resize(); return; }
           e.preventDefault(); this.sendNote();
         }
         else if (e.key === 'Enter' && e.shiftKey) {
@@ -118,6 +118,10 @@ export const ComposerMethods = {
           // ou lista numerada, continua a lista na próxima linha
           e.preventDefault();
           this._listContinuation(ta);
+          // A continuação mexe no DOM por código (sem evento `input`), então o
+          // auto-resize não rodava: o editor ganhava uma linha e a altura
+          // ficava a anterior — o texto novo aparecia cortado até digitar algo.
+          resize();
         }
       });
       // barra de formatação

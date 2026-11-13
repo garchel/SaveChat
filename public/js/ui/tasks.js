@@ -111,6 +111,19 @@ export const TasksMethods = {
 
   // ---------- "Minhas tarefas": lista própria, CRUD completo ----------
 
+  // Filtro do accordion de tarefas das conversas: guarda o id da conversa
+  // escolhida ('' = todas). Persistido em `ui` para sobreviver ao reload.
+  _threadFilter() {
+    const ui = Store.data.ui || (Store.data.ui = {});
+    return ui.tasksThreadFilter || '';
+  },
+  _setThreadFilter(v, { render = true } = {}) {
+    const ui = Store.data.ui || (Store.data.ui = {});
+    if (v) ui.tasksThreadFilter = v; else delete ui.tasksThreadFilter;
+    Store.save();
+    if (render) this.renderTasksPage();
+  },
+
   _ownTasks() {
     const ui = Store.data.ui || (Store.data.ui = {});
     if (!Array.isArray(ui[OWN_KEY])) ui[OWN_KEY] = [];
@@ -236,11 +249,44 @@ export const TasksMethods = {
     // --- accordion 2: tarefas das conversas ---
     const thList = document.getElementById('tasks-threads-list');
     if (thList) {
-      const items = this._allOpenTasks();
+      const all = this._allOpenTasks();
+      // Conversas com tarefa aberta, na ordem em que aparecem (a lista já
+      // vem ordenada por atividade da conversa).
+      const seen = new Set();
+      const origens = [];
+      for (const t of all) {
+        if (seen.has(t.threadId)) continue;
+        seen.add(t.threadId);
+        origens.push({ id: t.threadId, name: t.threadName || 'Conversa' });
+      }
+      const cur = this._threadFilter();
+      const ativo = (cur && seen.has(cur)) ? cur : '';
+      const items = ativo ? all.filter((t) => t.threadId === ativo) : all;
+
+      // Select só com as conversas que TÊM tarefa aberta, e só quando há
+      // mais de uma: com zero ou uma origem não existe o que filtrar.
+      const wrap = document.getElementById('tasks-threads-filter-wrap');
+      const sel = document.getElementById('tasks-threads-filter');
+      if (wrap) wrap.classList.toggle('hidden', origens.length < 2);
+      if (sel) {
+        sel.innerHTML = '<option value="">Todas as conversas</option>'
+          + origens.map((o) => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('');
+        sel.value = ativo;
+        // Se a conversa do filtro não tem mais tarefa aberta, o estado salvo
+        // não pode continuar apontando para ela: o select mostraria "Todas"
+        // com a lista filtrada — mentira visual.
+        if (ativo !== cur) this._setThreadFilter(ativo, { render: false });
+      }
+
       const thCount = document.getElementById('tasks-threads-count');
       if (thCount) thCount.textContent = items.length;
       const thEmpty = document.getElementById('tasks-threads-empty');
       if (thEmpty) thEmpty.classList.toggle('hidden', items.length > 0);
+      if (thEmpty && ativo && !items.length) {
+        thEmpty.innerHTML = 'Nada pendente nesta conversa 🎉<br /><span class="task-acc-empty-sub">Toque em “Todas as conversas” no filtro acima para ver as demais.</span>';
+      } else if (thEmpty) {
+        thEmpty.innerHTML = 'Nada pendente nas conversas 🎉<br /><span class="task-acc-empty-sub">Itens de checklist (<code>[ ]</code>) escritos nas notas aparecem aqui.</span>';
+      }
       thList.innerHTML = items.map((t) => `
         <div class="task-row" data-tid="${t.threadId}" data-cid="${t.clientId}" data-chk="${t.index}">
           <input type="checkbox" class="task-chk" aria-label="Concluir ${esc(t.text)}" />
@@ -393,6 +439,10 @@ export const TasksMethods = {
       input.value = '';
       input.focus();
     });
+
+    // filtro do accordion de conversas
+    const filterSel = document.getElementById('tasks-threads-filter');
+    filterSel?.addEventListener('change', () => this._setThreadFilter(filterSel.value));
 
     // acordeões: abrem/fecham. `aria-expanded` e a classe `.open` são a
     // fonte da verdade (o CSS usa grid-template-rows para animar sem jank).

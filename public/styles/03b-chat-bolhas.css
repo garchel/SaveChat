@@ -171,8 +171,17 @@
 .composer-edit ul { list-style: disc; }
 .composer-edit ol { list-style: decimal; }
 .composer-edit ol li::marker { font-weight: 700; }
-.composer-edit .md-check { display: flex; align-items: center; gap: 7px; }
-.composer-edit .md-check input[type=checkbox] { accent-color: var(--accent); }
+/* Checklist no editor: SEM bullet. O marcador é o próprio checkbox — o
+   bullet do `ul` aparecia colado nele ("• ☐ item"). O padding-left de 22px
+   também some, senão o item fica com recuo duplo. */
+.composer-edit ul.md-checklist { list-style: none; padding-left: 2px; }
+.composer-edit ul.md-checklist ul.md-checklist { padding-left: 18px; }
+/* Alinhamento do checkbox em item de checklist que QUEBRA LINHA: com
+   `align-items: center` o checkbox descia para o meio da linha alta e
+   parecia solto do texto. `flex-start` gruda no primeiro texto. */
+.composer-edit .md-check { display: flex; align-items: flex-start; gap: 7px; }
+.composer-edit .md-check input[type=checkbox] { accent-color: var(--accent); margin-top: 2px; flex: 0 0 auto; }
+.composer-edit .md-check > span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .composer-edit .md-check.done span { text-decoration: line-through; opacity: .55; }
 .composer-edit a { color: var(--accent); }
 /* camada espelho: pinta só os chips de menção; o texto do textarea sobrepõe idêntico por cima */
@@ -870,6 +879,20 @@
    primeira tarefa da conversa — antes a lista encostava na cor (o
    padding-bottom do cabeçalho empurra o fundo, não o conteúdo). */
 .task-list { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px 14px; }
+
+/* Filtro por conversa (accordion de tarefas das conversas) */
+.task-filter { position: relative; display: flex; align-items: center; padding: 10px 14px 0; }
+.task-filter.hidden { display: none; }
+.task-filter-select {
+  flex: 1; min-width: 0; appearance: none; -webkit-appearance: none;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 8px 34px 8px 12px; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text); background: var(--bg-elev); cursor: pointer;
+}
+.task-filter-select:focus { outline: none; border-color: var(--accent); }
+.task-filter-chev {
+  position: absolute; right: 26px; pointer-events: none; color: var(--text-dim);
+}
 .task-row {
   display: flex; align-items: flex-start; gap: 12px;
   background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
