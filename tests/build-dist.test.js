@@ -82,6 +82,14 @@ describe('build de produção (dist)', () => {
     assert.ok(soltos.length <= 2, 'módulos soltos no dist: ' + soltos.slice(0, 6).join(', '));
   });
 
+  it('supabase vem do pacote local, não do esm.sh', () => {
+    // empacotar o Supabase tira ~20 requests de terceiro do boot; se o plugin
+    // parar de resolver, esses módulos voltam silenciosamente pela URL
+    const src = readFileSync(join(dist, appFile), 'utf8');
+    assert.equal(src.includes('esm.sh/@supabase'), false, 'Supabase ainda vem do CDN no dist');
+    assert.ok(src.includes('createClient'), 'createClient não está no bundle');
+  });
+
   it('todo arquivo JS do dist tem tamanho razoável (nada vazio)', () => {
     const vazios = [];
     (function walk(d) {
