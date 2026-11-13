@@ -1,5 +1,6 @@
 {
-  "outputDirectory": "public",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "github": { "silent": true },
   "functions": {
     "api/ai.js": { "maxDuration": 60 },
