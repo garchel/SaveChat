@@ -75,7 +75,7 @@ describe('contexto da IA', () => {
     const { Store } = await import('../public/js/store.js');
     const prev = Store.data;
     Store.data = {
-      threads: { t1: { id: 't1', name: 'Vozes', created: 1 } },
+      threads: { t1: { id: 't1', name: 'Vozes', created: 1, aiShared: true } },
       notes: {
         t1: [
           { clientId: 'a', threadId: 't1', text: '', audio: { url: 'x', transcript: 'comprar leite amanhã' } },

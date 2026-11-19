@@ -71,11 +71,18 @@ test('conta nova não enxerga as conversas, a chave da IA nem a rotina da conta 
   const result = await page.evaluate(() => {
     const { Store, UI } = window.NoteThread;
     Store.setUser({ name: 'novo', mail: 'novo@example.com', provider: 'supabase', id: 'uid-novo' });
-    UI.renderAuthOrApp();
+    // `renderAuthOrApp()` é assíncrono desde o CryptoGate (busca a chave da
+    // conta antes de pintar). Aqui a conta nova não tem chave e o teste não
+    // tem servidor: renderiza a árvore direto para medir o DOM sem depender
+    // da rede. A árvore lê só do Store, que é o contrato em teste.
+    UI.renderTree();
+    UI.renderMe();
     return {
       user: Store.user.mail,
       threads: Store.threadList().map((t) => t.name),
-      domThreads: [...document.querySelectorAll('.tnode .label')].map((e) => e.textContent),
+      // a thread da IA é estrutural do DISPOSITIVO (ver comentário no reload),
+      // então a árvore sempre tem esse nó — o contrato é sobre o CONTEÚDO da conta
+      domThreads: [...document.querySelectorAll('.tnode:not(.ai-thread-node) .label')].map((e) => e.textContent),
       leakedAiKey: Store.data.ui.aiKey || null,
       leakedDaily: Store.data.ui.dailyRoutine || null,
       theme: Store.data.ui.theme || null,
@@ -151,10 +158,15 @@ test('conexões criadas em uma conta somem ao trocar para outra', async ({ page 
 
 // ---------------------------------------------------------------------
 // Fila offline: o vetor que fazia as contas compartilharem notas.
-// A fila mora no dispositivo e era global; uma nota enfileirada offline
-// pela conta A era enviada quando a conta B ficava online — gravada com o
+// A fila mora no dispositivo e é global; uma nota enfileirada offline pela
+// conta A era enviada quando a conta B ficava online — gravada com o
 // user_id da B (o RLS aceitava, então a nota vazava de verdade).
+//
+// Desde a Fase 1 da criptografia o item da fila vai CIFRADO com a DEK da
+// conta dona: sem a chave dela em memória o item nem é decifrado.
 // ---------------------------------------------------------------------
+const PASS = 'senha-de-teste';
+
 async function mockSupabase(page, sent) {
   await page.route('**/rest/v1/notes**', async (route) => {
     const req = route.request();
@@ -167,6 +179,54 @@ async function mockSupabase(page, sent) {
   await page.route('**/auth/v1/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
 }
 
+// Cria a chave da conta e deixa a DEK em memória, como o CryptoGate faz no
+// login. `fakeSupa` evita rede: o bundle fica no cache local do keyring.
+async function createKeyFor(page, uid) {
+  await page.evaluate(async ({ uid, pass }) => {
+    const { createAndSaveKeys } = await import('./js/keyring.js');
+    const fakeSupa = { from: () => ({ insert: async () => ({ error: null }) }) };
+    await createAndSaveKeys(fakeSupa, uid, pass, { iterations: 1000 });
+  }, { uid, pass: PASS });
+}
+
+async function unlockFor(page, uid) {
+  await page.evaluate(async ({ uid, pass }) => {
+    const { unlockKeys } = await import('./js/keyring.js');
+    const bundle = JSON.parse(localStorage.getItem('notethread.keys::u::' + uid));
+    const supa = {
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: bundle, error: null }) }) }) }),
+    };
+    await unlockKeys(supa, uid, pass);
+  }, { uid, pass: PASS });
+}
+
+async function useQueueCipher(page, uid) {
+  await page.evaluate(async (uid) => {
+    const { getDek } = await import('./js/keyring.js');
+    const { makeQueueCipher } = await import('./js/crypto-session.js');
+    const { OfflineQueue } = await import('./js/offline-queue.js');
+    OfflineQueue.setCipher(makeQueueCipher(uid, getDek()));
+  }, uid);
+}
+
+// Itens CRUS do IndexedDB (é o que ficaria legível num disco roubado).
+async function dumpQueue(page) {
+  return page.evaluate(async () => {
+    const db = await new Promise((res, rej) => {
+      const r = indexedDB.open('notethread-offline', 1);
+      r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('syncQueue')) r.result.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true }); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return new Promise((res, rej) => {
+      const tx = db.transaction('syncQueue', 'readonly');
+      const q = tx.objectStore('syncQueue').getAll();
+      q.onsuccess = () => res(q.result || []);
+      q.onerror = () => rej(q.error);
+    });
+  });
+}
+
 test('nota enfileirada offline pela conta A não é enviada pela conta B', async ({ page }) => {
   const sent = [];
   await mockSupabase(page, sent);
@@ -175,30 +235,46 @@ test('nota enfileirada offline pela conta A não é enviada pela conta B', async
   await expect(page.locator('#app')).toBeVisible();
 
   // conta A fica offline e enfileira uma nota
+  await createKeyFor(page, 'uid-A');
   await page.evaluate(async () => {
     const { Store } = window.NoteThread;
+    const { getDek } = await import('./js/keyring.js');
+    const { makeQueueCipher } = await import('./js/crypto-session.js');
+    const { OfflineQueue } = await import('./js/offline-queue.js');
     Store.setUser({ name: 'A', mail: 'a@example.com', provider: 'supabase', id: 'uid-A' });
     Store.upsertThread({ id: 'tA', name: 'Thread do A', folderId: null, created: Date.now() });
-    const { OfflineQueue } = await import('./js/offline-queue.js');
+    OfflineQueue.setCipher(makeQueueCipher('uid-A', getDek()));
     await OfflineQueue.add('note:upsert', { clientId: 'NOTA-A', threadId: 'tA', text: 'segredo do A', ts: Date.now(), sortOrder: 0 }, 'uid-A');
   });
 
+  // o item está no disco CIFRADO (nenhum texto da nota legível)
+  const raw = JSON.stringify(await dumpQueue(page));
+  expect(raw).not.toContain('segredo do A');
+  expect(raw).toContain('"enc"');
+
   // conta B entra e "fica online": a fila é drenada
+  await createKeyFor(page, 'uid-B');
   sent.length = 0;
   const queueAfterB = await page.evaluate(async () => {
     const { Store, Sync } = window.NoteThread;
+    const { getDek } = await import('./js/keyring.js');
+    const { makeQueueCipher } = await import('./js/crypto-session.js');
+    const { OfflineQueue } = await import('./js/offline-queue.js');
     Store.setUser({ name: 'B', mail: 'b@example.com', provider: 'supabase', id: 'uid-B' });
+    OfflineQueue.setCipher(makeQueueCipher('uid-B', getDek()));
     Sync._uidCache = 'uid-B';
     await Sync.flushQueue();
-    const { OfflineQueue } = await import('./js/offline-queue.js');
     return (await OfflineQueue.getAll()).map((i) => i.payload.clientId);
   });
   expect(sent).toEqual([]);
-  // a nota continua na fila, esperando a conta dona
-  expect(queueAfterB).toEqual(['NOTA-A']);
+  // a chave da B não abre o item da A
+  expect(queueAfterB).toEqual([]);
+  expect((await dumpQueue(page)).length).toBe(1);
 
-  // quando a conta A volta, a nota sobe com o user_id dela
+  // quando a conta A volta, a nota sobe com o user_id dela — e cifrada
   sent.length = 0;
+  await unlockFor(page, 'uid-A');
+  await useQueueCipher(page, 'uid-A');
   await page.evaluate(async () => {
     const { Store, Sync } = window.NoteThread;
     Store.setUser({ name: 'A', mail: 'a@example.com', provider: 'supabase', id: 'uid-A' });
@@ -207,6 +283,9 @@ test('nota enfileirada offline pela conta A não é enviada pela conta B', async
   });
   expect(sent.length).toBe(1);
   expect(JSON.parse(sent[0]).user_id).toBe('uid-A');
+  expect(sent[0]).not.toContain('segredo do A');
+  expect(JSON.parse(sent[0]).text).toBe(null);
+  expect(JSON.parse(sent[0]).text_enc.ct).toBeTruthy();
 });
 
 test('item legado da fila (sem owner) não vaza para a outra conta', async ({ page }) => {
@@ -216,29 +295,41 @@ test('item legado da fila (sem owner) não vaza para a outra conta', async ({ pa
   await page.waitForTimeout(1500);
   await expect(page.locator('#app')).toBeVisible();
 
-  // item sem `owner` = enfileirado por uma versão antiga do app
+  // item sem `owner` = enfileirado por uma versão antiga do app (texto claro
+  // no IndexedDB). Ele continua drenável — e nunca deve sair pela conta errada.
   await page.evaluate(async () => {
     const { Store } = window.NoteThread;
     Store.setUser({ name: 'A', mail: 'a@example.com', provider: 'supabase', id: 'uid-A' });
     Store.upsertThread({ id: 'tA', name: 'Thread do A', folderId: null, created: Date.now() });
-    const { OfflineQueue } = await import('./js/offline-queue.js');
-    await OfflineQueue.add('note:upsert', { clientId: 'LEGADO-A', threadId: 'tA', text: 'segredo do A', ts: Date.now(), sortOrder: 0 });
+    const db = await new Promise((res, rej) => {
+      const r = indexedDB.open('notethread-offline', 1);
+      r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('syncQueue')) r.result.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true }); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    await new Promise((res, rej) => {
+      const tx = db.transaction('syncQueue', 'readwrite');
+      tx.objectStore('syncQueue').add({ type: 'note:upsert', ts: Date.now(), tries: 0, nextRetry: 0, owner: null, payload: { clientId: 'LEGADO-A', threadId: 'tA', text: 'segredo do A', ts: Date.now(), sortOrder: 0 } });
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+    });
   });
 
   sent.length = 0;
   const remaining = await page.evaluate(async () => {
     const { Store, Sync } = window.NoteThread;
+    const { OfflineQueue } = await import('./js/offline-queue.js');
     Store.setUser({ name: 'B', mail: 'b@example.com', provider: 'supabase', id: 'uid-B' });
     Sync._uidCache = 'uid-B';
     await Sync.flushQueue();
-    const { OfflineQueue } = await import('./js/offline-queue.js');
     return (await OfflineQueue.getAll()).map((i) => i.payload.clientId);
   });
   expect(sent).toEqual([]);
   expect(remaining).toEqual(['LEGADO-A']);
 
-  // e volta a subir quando a dona volta
+  // e volta a subir quando a dona volta (agora cifrado com a DEK dela)
   sent.length = 0;
+  await createKeyFor(page, 'uid-A');
   await page.evaluate(async () => {
     const { Store, Sync } = window.NoteThread;
     Store.setUser({ name: 'A', mail: 'a@example.com', provider: 'supabase', id: 'uid-A' });
@@ -247,4 +338,5 @@ test('item legado da fila (sem owner) não vaza para a outra conta', async ({ pa
   });
   expect(sent.length).toBe(1);
   expect(JSON.parse(sent[0]).user_id).toBe('uid-A');
+  expect(sent[0]).not.toContain('segredo do A');
 });
