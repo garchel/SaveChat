@@ -9,7 +9,7 @@
     "dev": "node scripts/static-server.mjs 3001",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/preview.mjs",
-    "start": "node scripts/static-server.mjs 3000",
+    "start": "node scripts/static-server.mjs 3001",
     "staging": "node scripts/preview.mjs",
     "promote": "node scripts/promote.mjs",
     "release": "node scripts/release.mjs"

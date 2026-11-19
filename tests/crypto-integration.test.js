@@ -33,8 +33,14 @@ test('boot: cache cifrado espera o gate, cache em claro pinta antes', () => {
 test('sync grava ciphertext e não texto claro', () => {
   const sync = read('public/js/sync-supabase.js');
   assert.match(sync, /encryptNoteText\(n, dek, uid\)/);
-  assert.match(sync, /text: null, text_enc: enc\.text_enc, enc_version: enc\.enc_version/);
-  assert.match(sync, /last_preview: '', last_preview_enc: previewEnc/);
+  // conta com chave: texto vai nulo e só o ciphertext sobe.
+  assert.match(sync, /text: semChave \? \(n\.text == null \? '' : String\(n\.text\)\) : null/);
+  assert.match(sync, /text_enc: enc \? enc\.text_enc : null/);
+  // conta sem chave NÃO pode ser bloqueada: sem esse caminho nenhuma conta
+  // nova conseguiria salvar nota nem criar chave (o gate só abre com bundle).
+  assert.match(sync, /const semChave = !dek && !Store\._encrypted;/);
+  assert.match(sync, /if \(!dek && !semChave\) throw new Error\('Criptografia bloqueada\.'\);/);
+  assert.match(sync, /last_preview: semChave \? \(t\.lastPreview \|\| ''\) : '', last_preview_enc: previewEnc/);
   assert.match(sync, /decryptNoteText/);
   assert.match(sync, /decryptThreadPreview/);
   assert.doesNotMatch(sync, /text: n\.text, images:/);

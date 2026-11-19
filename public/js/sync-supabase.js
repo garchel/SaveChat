@@ -358,9 +358,22 @@ function isCutoverError(err) {
       if (type === 'note:upsert') {
         const n = payload;
         const dek = getDek();
-        if (!dek) throw new Error('Criptografia bloqueada.');
-        const enc = await encryptNoteText(n, dek, uid);
-        const row = { client_id: n.clientId, thread_id: n.threadId, text: null, text_enc: enc.text_enc, enc_version: enc.enc_version, images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: n.ts, sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null, rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired, reactions: n.reactions || {}, user_id: uid };
+        // Conta que AINDA não ativou a criptografia (sem DEK e sem cache
+        // cifrado): grava como antes da Fase 1. Se lançasse aqui, a conta sem
+        // chave não conseguiria salvar nota nenhuma — e o gate só abre quando
+        // existe bundle salvo, ou seja, ninguém conseguiria nem ativar a chave.
+        const semChave = !dek && !Store._encrypted;
+        if (!dek && !semChave) throw new Error('Criptografia bloqueada.');
+        const enc = semChave ? null : await encryptNoteText(n, dek, uid);
+        const row = {
+          client_id: n.clientId, thread_id: n.threadId,
+          text: semChave ? (n.text == null ? '' : String(n.text)) : null,
+          text_enc: enc ? enc.text_enc : null,
+          enc_version: enc ? enc.enc_version : null,
+          images: n.images || [], audio: n.audio || null, tags: n.tags || [], ts: n.ts,
+          sort_order: n.sortOrder || 0, edited: !!n.edited, edited_at: n.editedAt || null,
+          rev: n.rev || 0, remind_at: n.remindAt || null, remind_fired: !!n.remindFired,
+          reactions: n.reactions || {}, user_id: uid };
         // (supabase-js devolve { error } em vez de lançar — checar o resultado)
         let res = await this.supa.from('notes').upsert(row, { onConflict: 'client_id' });
         // banco sem a migração da Fase 1: NÃO cair para texto claro (seria
@@ -399,9 +412,13 @@ function isCutoverError(err) {
       } else if (type === 'thread:upsert') {
         const t = payload;
         const dek = getDek();
-        if (!dek) throw new Error('Criptografia bloqueada.');
-        const previewEnc = await encryptThreadPreview(t.lastPreview || '', dek, uid, t.id);
-        const res = await this.supa.from('threads').upsert({ id: t.id, name: t.name, emoji: t.emoji, color: t.color || null, folder_id: t.folderId || null, favorite: !!t.favorite, pinned_id: t.pinnedId || null, updated_at: new Date().toISOString(), last_preview: '', last_preview_enc: previewEnc, user_id: uid }, { onConflict: 'id' });
+        // mesma regra das notas: conta sem chave ainda grava em claro,
+        // senão criar/renomear conversa falharia para todo mundo que nunca
+        // ativou a criptografia.
+        const semChave = !dek && !Store._encrypted;
+        if (!dek && !semChave) throw new Error('Criptografia bloqueada.');
+        const previewEnc = semChave ? null : await encryptThreadPreview(t.lastPreview || '', dek, uid, t.id);
+        const res = await this.supa.from('threads').upsert({ id: t.id, name: t.name, emoji: t.emoji, color: t.color || null, folder_id: t.folderId || null, favorite: !!t.favorite, pinned_id: t.pinnedId || null, updated_at: new Date().toISOString(), last_preview: semChave ? (t.lastPreview || '') : '', last_preview_enc: previewEnc, user_id: uid }, { onConflict: 'id' });
         if (res.error) throw res.error;
       } else if (type === 'thread:delete') {
         await this.supa.from('threads').delete().eq('id', payload.id).eq('user_id', uid);
