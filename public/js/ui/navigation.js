@@ -377,6 +377,26 @@ export const NavigationMethods = {
       if (hide('settings-popover')) return true;
       if (hide('mascot-popover')) return true;
       if (hide('profile-popover')) return true;
+      // Menus/autocompletes criados em RUNTIME, que não estão no HTML e por
+      // isso não aparecem na lista acima. O caso real é o dropdown de
+      // @menções: digitar "@" abre a lista e o "voltar" fechava a conversa
+      // (ou saía do app) em vez de só dispensar a lista.
+      //
+      // A varredura é genérica de propósito: um menu novo, acrescentado
+      // depois desta função, também é dispensado pelo gesto em vez de deixar
+      // o "voltar" vazar para o nível seguinte. O filtro por `position`
+      // evita pegar conteúdo estático que só por coincidência tem a classe.
+      const isLayer = (el) => {
+        if (el.classList.contains('hidden')) return false;
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+        // `offsetParent` NÃO serve aqui: em elemento `position: fixed` ele é
+        // sempre `null` por especificação — foi o que fez o dropdown de
+        // @menções (fixed) escapar da varredura numa primeira versão.
+        return cs.position === 'fixed' || cs.position === 'absolute';
+      };
+      const dynamic = [...document.querySelectorAll('.mention-dd, .popover, .ctx-menu, [data-layer]')].filter(isLayer);
+      if (dynamic.length) { dynamic[dynamic.length - 1].classList.add('hidden'); return true; }
       return false;
     },
 
