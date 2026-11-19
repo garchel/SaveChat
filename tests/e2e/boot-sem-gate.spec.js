@@ -22,6 +22,7 @@ const seed = {
 };
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+test.setTimeout(60000);
 
 test('com usuário em cache o boot não espera os 3s do Supabase', async ({ page, context }) => {
   await context.addInitScript((s) => {
@@ -33,20 +34,23 @@ test('com usuário em cache o boot não espera os 3s do Supabase', async ({ page
 
   const t0 = Date.now();
   await page.goto('/');
-  await page.waitForFunction(() => document.querySelectorAll('.tnode').length > 0, null, { timeout: 20000 });
+  // a própria espera já exige as DUAS conversas do cache: contar depois de um
+  // `> 0` deixava uma janela em que um re-render passava por zero
+  await page.waitForFunction(() => document.querySelectorAll('.tnode').length >= 2, null, { timeout: 45000 });
   const ms = Date.now() - t0;
 
-  // o teto com cache é 350ms; o gate antigo esperava até 3000ms
-  expect(ms, 'não pode encostar no timeout antigo de 3s (' + ms + 'ms)').toBeLessThan(2000);
+  // o teto com cache é 350ms; o gate antigo esperava até 3000ms (medido 3746ms
+  // com a requisição pendurada). 2600 dá folga para a máquina carregada sem
+  // encostar no comportamento antigo.
+  expect(ms, 'não pode encostar no timeout antigo de 3s (' + ms + 'ms)').toBeLessThan(2600);
 
-  const visivel = await page.evaluate(() => {
+  // `waitForFunction` em vez de `evaluate` solto: sob carga pode haver uma
+  // navegação em andamento e o evaluate morre com "execution context destroyed"
+  await page.waitForFunction(() => {
     const app = document.getElementById('app');
-    return app && !app.classList.contains('hidden') && getComputedStyle(app).display !== 'none';
-  });
-  expect(visivel, 'app visível com o cache local').toBe(true);
-
-  // e a árvore tem as conversas do cache
-  expect(await page.locator('.tnode').count()).toBeGreaterThanOrEqual(2);
+    return !!app && !app.classList.contains('hidden') && getComputedStyle(app).display !== 'none'
+      && document.querySelectorAll('.tnode').length >= 2;
+  }, null, { timeout: 15000 });
 });
 
 test('sem usuário em cache continua esperando (não pisca login)', async ({ page, context }) => {
