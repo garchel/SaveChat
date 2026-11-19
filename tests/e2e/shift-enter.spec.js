@@ -22,10 +22,22 @@ test.beforeEach(async ({ context, page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.NoteThread && document.querySelectorAll('.tnode').length > 0, null, { timeout: 45000 });
   // fecha o diálogo do mascote (o seed não define nome) antes de clicar
-  await page.evaluate(() => {
-    const m = document.getElementById('modal');
-    if (m && !m.classList.contains('hidden')) window.NoteThread.UI.closeModal();
-  });
+  // sob 3 workers o contexto às vezes é destruído entre a espera e este
+  // evaluate (navegação/re-render). Uma nova tentativa depois do load resolve,
+  // sem mascarar falha de comportamento.
+  for (let tentativa = 0; ; tentativa++) {
+    try {
+      await page.evaluate(() => {
+        const m = document.getElementById('modal');
+        if (m && !m.classList.contains('hidden')) window.NoteThread.UI.closeModal();
+      });
+      break;
+    } catch (e) {
+      if (tentativa >= 2) throw e;
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await page.waitForFunction(() => !!window.NoteThread, null, { timeout: 45000 });
+    }
+  }
   // clique REAL no nó: o Playwright espera o elemento ficar acionável, o que
   // cobre o caso de os bindings do composer ainda não estarem prontos sob carga
   await page.locator('.tnode[data-tid="t1"]').click();
