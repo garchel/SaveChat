@@ -73,6 +73,7 @@ export const MessagesReactionsMethods = {
         else if (act === 'pin' || act === 'unpin') this.togglePin(cid);
         else if (act === 'tags') this.editTags(cid);
         else if (act === 'copy') this.copyNote(cid);
+        else if (act === 'group') this.startGroupMode(cid);
         else if (act === 'remind') this.showReminderModal(cid);
         else if (act === 'cancel-remind') this.cancelReminder(cid);
       });
