@@ -37,9 +37,27 @@ test.beforeEach(async ({ context, page }) => {
   }, null, { timeout: 45000 });
 });
 
+
+// Foco por código em vez de clique: o teste verifica o tratamento de TECLA, e
+// sob 3 workers o clique no composer estourava 60s sem que nada estivesse
+// errado no app (elemento habilitado, mas coberto por overlay transitório).
+async function focarComposer(page) {
+  await page.evaluate(() => {
+    const ta = document.getElementById('composer-input');
+    ta.focus();
+    const r = document.createRange();
+    r.selectNodeContents(ta);
+    r.collapse(false);
+    const s = getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  });
+  await page.waitForFunction(() => !!document.activeElement && document.activeElement.id === 'composer-input');
+}
+
 test('Shift+Enter fora de lista quebra a linha', async ({ page }) => {
   const ta = page.locator('#composer-input');
-  await ta.click();
+  await focarComposer(page);
   await page.keyboard.type('linha um');
   await page.keyboard.press('Shift+Enter');
   await page.keyboard.type('linha dois');
@@ -58,7 +76,7 @@ test('Shift+Enter fora de lista quebra a linha', async ({ page }) => {
 
 test('Shift+Enter dentro de checklist continua a lista', async ({ page }) => {
   const ta = page.locator('#composer-input');
-  await ta.click();
+  await focarComposer(page);
   // monta uma checklist com um item e põe o caret no fim dele
   await page.evaluate(() => {
     const el = document.getElementById('composer-input');

@@ -98,11 +98,8 @@ exception when duplicate_object then null; end $$;
 create index if not exists notes_thread_ts on notes(thread_id, ts);
 create index if not exists threads_user_updated on threads(user_id, updated_at desc);
 
--- 5. Storage para imagens (substitui base64 — R6.7). Bucket privado: o app
--- resolve o path em URL assinada de curta duracao; sem token, nao ha leitura.
-insert into storage.buckets (id, name, public)
-  values ('note-images', 'note-images', false)
-  on conflict (id) do update set public = false;
+-- 5. Storage para imagens (substitui base64 — R6.7)
+insert into storage.buckets (id, name, public) values ('note-images', 'note-images', true) on conflict (id) do nothing;
 
 do $$ begin
   create policy "own images" on storage.objects for all
@@ -110,17 +107,21 @@ do $$ begin
     with check (bucket_id = 'note-images' and auth.uid() = owner);
 exception when duplicate_object then null; end $$;
 
-drop policy if exists "public read images" on storage.objects;
+do $$ begin
+  create policy "public read images" on storage.objects for select
+    using (bucket_id = 'note-images');
+exception when duplicate_object then null; end $$;
 
--- 5b. Storage de audio das mensagens de voz (v1.13.7). Privado pelo mesmo
--- motivo: player e transcricao usam URL assinada/path, nunca link publico.
+-- 5b. Storage de audio das mensagens de voz (v1.13.7). Bucket publico como o
+-- das imagens: a URL precisa ser tocavel de qualquer aparelho da conta sem
+-- signed URL (que expiraria e quebraria o player em conversas antigas).
 do $$ begin
   alter table notes add column if not exists audio jsonb;
 exception when duplicate_column then null; end $$;
 
 insert into storage.buckets (id, name, public, file_size_limit)
-  values ('note-audio', 'note-audio', false, 26214400)
-  on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit;
+  values ('note-audio', 'note-audio', true, 26214400)
+  on conflict (id) do update set file_size_limit = excluded.file_size_limit;
 
 do $$ begin
   create policy "own audio" on storage.objects for all
@@ -128,7 +129,10 @@ do $$ begin
     with check (bucket_id = 'note-audio' and auth.uid() = owner);
 exception when duplicate_object then null; end $$;
 
-drop policy if exists "public read audio" on storage.objects;
+do $$ begin
+  create policy "public read audio" on storage.objects for select
+    using (bucket_id = 'note-audio');
+exception when duplicate_object then null; end $$;
 
 -- 6. Hardening (v1.4.0): o event trigger de auto-RLS não precisa ser
 -- executável via PostgREST/RPC — revoga acesso público (advisors Supabase).

@@ -26,7 +26,10 @@ export function mediaRefInfo(ref) {
 export async function mediaUrl(ref, bucket = 'note-images', { expiresIn = SIGNED_TTL } = {}) {
   const info = mediaRefInfo(ref);
   if (!info) return String(ref || '');
-  if (!USE_SUPABASE) return '';
+  // Sem Supabase (modo local/offline, dev sem credenciais) não há o que assinar.
+  // URL absoluta de nota antiga continua servindo; já um path cru viraria um
+  // <img> relativo quebrado, então esse não renderiza.
+  if (!USE_SUPABASE) return /^https?:/i.test(String(ref || '')) ? String(ref) : '';
   const bucketName = info.bucket || bucket;
   const key = `${bucketName}/${info.path}`;
   const now = Date.now();
