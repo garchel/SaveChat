@@ -145,3 +145,30 @@
   .brand h1 { font-size: 26px; }
 }
 
+/* ===================== CRYPTO GATE ===================== */
+.crypto-lock {
+  width: 64px; height: 64px; margin: 0 auto 14px; display: grid; place-items: center;
+  color: var(--accent); background: var(--accent-soft);
+  border: 1px solid var(--border-light); border-radius: 20px;
+  box-shadow: 0 8px 22px var(--accent-soft), var(--shadow-sm);
+}
+.crypto-card .email-form .btn.primary { width: 100%; margin-top: 4px; }
+.crypto-card #crypto-switch { align-self: center; margin-top: 2px; }
+.crypto-label { font-size: 12px; font-weight: 700; color: var(--text-dim); margin: 2px 0 -2px 4px; }
+.crypto-warn {
+  font-size: 13px; line-height: 1.55; color: var(--text);
+  background: var(--accent-soft); border: 1px solid var(--border-light);
+  border-radius: 14px; padding: 12px 14px; margin-bottom: 12px;
+}
+.crypto-code {
+  display: block; width: 100%; margin: 0 0 12px; padding: 14px 12px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 13px; line-height: 1.6; letter-spacing: .4px; text-align: center;
+  color: var(--text); background: var(--bg); border: 1.5px dashed var(--border);
+  border-radius: 14px; word-break: break-all; user-select: all;
+}
+.crypto-card #crypto-recovery-copy { width: 100%; margin-bottom: 10px; }
+.crypto-check { margin: 4px 2px 14px; align-items: flex-start; line-height: 1.4; }
+.crypto-check input { margin-top: 1px; flex: 0 0 auto; }
+.crypto-card #crypto-recovery-done { width: 100%; }
+
