@@ -13,6 +13,7 @@ import { MessagesMethods } from './js/ui/messages.js';
 import { MessagesBubbleMethods } from './js/ui/messages-bubble.js';
 import { MessagesReactionsMethods } from './js/ui/messages-reactions.js';
 import { MessagesEditMethods } from './js/ui/messages-edit.js';
+import { MessagesGroupMethods } from './js/ui/messages-group.js';
 import { MessagesScrollMethods } from './js/ui/messages-scroll.js';
 import { MentionMethods } from './js/ui/mentions.js';
 import { ReminderMethods } from './js/ui/reminders.js';
@@ -233,6 +234,7 @@ async init() {
       this.bindHistoryBack();
       this.bindWorkspace();
       this.bindTasksPage();
+      this.bindGroupBar();
       this.initReminders();
       // Persistência de login. Antes: SEMPRE esperava o Supabase (até 3s) antes
       // do primeiro render, então quem já estava logado ficava 3s no splash.
@@ -424,7 +426,7 @@ showModal(title, bodyHtml, onOk) {
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
-    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods,
+    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesGroupMethods, MessagesScrollMethods,
     WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods);
 
   // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do

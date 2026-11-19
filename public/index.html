@@ -157,6 +157,11 @@
               <div id="composer-input" class="composer-edit composer-disabled" role="textbox" aria-multiline="true" aria-label="Enviar mensagem" data-placeholder="Enviar mensagem..." contenteditable="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" spellcheck="false"></div>
             </div>
             <button id="btn-send" class="btn-send cozy-send" disabled aria-label="Enviar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+            <!-- modo agrupar: substitui o enviar/gravar por cancelar + agrupar -->
+            <div id="group-bar" class="group-bar hidden">
+              <button type="button" id="group-cancel" class="group-btn group-cancel">Cancelar</button>
+              <button type="button" id="group-confirm" class="group-btn group-confirm" disabled>Agrupar (0)</button>
+            </div>
             <input type="file" id="file-input" accept="image/*" hidden aria-hidden="true" />
           </div>
         </div>

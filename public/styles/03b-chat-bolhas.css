@@ -1407,3 +1407,31 @@ classe unico (0-1-0) perderia para ela mesmo estando no fim do arquivo.
 .composer.cozy-composer,
 #btn-pin,
 #messages { z-index: 1; }
+
+/* ===================== MODO AGRUPAR (seleção de bolhas) ===================== */
+/* Cada bolha ganha um checkbox à esquerda e o conteúdo recua para abrir espaço.
+   O checkbox é irmão do conteúdo (absolute), não um wrapper: a estrutura
+   .bubble é usada por muitos seletores e não vale arriscar a cascata. */
+.bubble.group-sel { padding-left: calc(var(--space-4) + 26px); cursor: pointer; }
+.bubble-check {
+  position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center; width: 26px; height: 26px;
+  cursor: pointer;
+}
+.bubble-check input { width: 19px; height: 19px; accent-color: var(--accent); cursor: pointer; margin: 0; }
+.bubble.group-checked { box-shadow: 0 0 0 2px var(--accent), 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* no composer, os controles de escrita dão lugar a Cancelar/Agrupar */
+.composer-row.grouping #btn-attach,
+.composer-row.grouping .cozy-input-wrap,
+.composer-row.grouping #btn-send { display: none; }
+.group-bar { display: flex; gap: 8px; flex: 1; }
+.group-bar.hidden { display: none; }
+.group-btn {
+  flex: 1; height: 42px; border-radius: 21px; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text);
+  font: inherit; font-size: 14px; font-weight: 700;
+}
+.group-cancel:hover { background: var(--accent-soft); }
+.group-confirm { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.group-confirm:disabled { opacity: .45; cursor: not-allowed; }
