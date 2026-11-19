@@ -2,7 +2,7 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
-## Não publicado
+## [1.28.0] — 2026-11-19
 ### Corrigido
 - **O áudio gravado no Safari agora é enviado com a extensão e o `Content-Type` corretos.** A gravação saía como `audio/mp4`, mas o arquivo era sempre nomeado `.webm`; agora o nome acompanha o formato real (`m4a` no Safari, `webm` no Chrome/Firefox) e o upload declara o tipo do blob.
 
