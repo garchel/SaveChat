@@ -171,8 +171,17 @@
 .composer-edit ul { list-style: disc; }
 .composer-edit ol { list-style: decimal; }
 .composer-edit ol li::marker { font-weight: 700; }
-.composer-edit .md-check { display: flex; align-items: center; gap: 7px; }
-.composer-edit .md-check input[type=checkbox] { accent-color: var(--accent); }
+/* Checklist no editor: SEM bullet. O marcador é o próprio checkbox — o
+   bullet do `ul` aparecia colado nele ("• ☐ item"). O padding-left de 22px
+   também some, senão o item fica com recuo duplo. */
+.composer-edit ul.md-checklist { list-style: none; padding-left: 2px; }
+.composer-edit ul.md-checklist ul.md-checklist { padding-left: 18px; }
+/* Alinhamento do checkbox em item de checklist que QUEBRA LINHA: com
+   `align-items: center` o checkbox descia para o meio da linha alta e
+   parecia solto do texto. `flex-start` gruda no primeiro texto. */
+.composer-edit .md-check { display: flex; align-items: flex-start; gap: 7px; }
+.composer-edit .md-check input[type=checkbox] { accent-color: var(--accent); margin-top: 2px; flex: 0 0 auto; }
+.composer-edit .md-check > span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .composer-edit .md-check.done span { text-decoration: line-through; opacity: .55; }
 .composer-edit a { color: var(--accent); }
 /* camada espelho: pinta só os chips de menção; o texto do textarea sobrepõe idêntico por cima */
@@ -870,6 +879,20 @@
    primeira tarefa da conversa — antes a lista encostava na cor (o
    padding-bottom do cabeçalho empurra o fundo, não o conteúdo). */
 .task-list { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px 14px; }
+
+/* Filtro por conversa (accordion de tarefas das conversas) */
+.task-filter { position: relative; display: flex; align-items: center; padding: 10px 14px 0; }
+.task-filter.hidden { display: none; }
+.task-filter-select {
+  flex: 1; min-width: 0; appearance: none; -webkit-appearance: none;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 8px 34px 8px 12px; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text); background: var(--bg-elev); cursor: pointer;
+}
+.task-filter-select:focus { outline: none; border-color: var(--accent); }
+.task-filter-chev {
+  position: absolute; right: 26px; pointer-events: none; color: var(--text-dim);
+}
 .task-row {
   display: flex; align-items: flex-start; gap: 12px;
   background: var(--bg); border: 1px solid var(--border); border-radius: 14px;
@@ -1407,3 +1430,31 @@ classe unico (0-1-0) perderia para ela mesmo estando no fim do arquivo.
 .composer.cozy-composer,
 #btn-pin,
 #messages { z-index: 1; }
+
+/* ===================== MODO AGRUPAR (seleção de bolhas) ===================== */
+/* Cada bolha ganha um checkbox à esquerda e o conteúdo recua para abrir espaço.
+   O checkbox é irmão do conteúdo (absolute), não um wrapper: a estrutura
+   .bubble é usada por muitos seletores e não vale arriscar a cascata. */
+.bubble.group-sel { padding-left: calc(var(--space-4) + 26px); cursor: pointer; }
+.bubble-check {
+  position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  display: grid; place-items: center; width: 26px; height: 26px;
+  cursor: pointer;
+}
+.bubble-check input { width: 19px; height: 19px; accent-color: var(--accent); cursor: pointer; margin: 0; }
+.bubble.group-checked { box-shadow: 0 0 0 2px var(--accent), 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* no composer, os controles de escrita dão lugar a Cancelar/Agrupar */
+.composer-row.grouping #btn-attach,
+.composer-row.grouping .cozy-input-wrap,
+.composer-row.grouping #btn-send { display: none; }
+.group-bar { display: flex; gap: 8px; flex: 1; }
+.group-bar.hidden { display: none; }
+.group-btn {
+  flex: 1; height: 42px; border-radius: 21px; cursor: pointer;
+  border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text);
+  font: inherit; font-size: 14px; font-weight: 700;
+}
+.group-cancel:hover { background: var(--accent-soft); }
+.group-confirm { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.group-confirm:disabled { opacity: .45; cursor: not-allowed; }

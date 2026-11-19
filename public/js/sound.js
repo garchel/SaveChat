@@ -19,6 +19,21 @@ import { haptic } from './utils.js';
         .catch((err) => { console.warn('[cuelume] falha ao carregar sons:', err); });
       return this.loadPromise;
     },
+    // Carrega a lib só quando há motivo: o boot não precisa dela (são ~4
+    // módulos remotos) e som nenhum pode tocar antes do primeiro gesto, por
+    // causa da política de autoplay. Se o usuário usa sons, carregamos no
+    // primeiro gesto; se não usa, não carregamos nada.
+    loadWhenNeeded() {
+      if (this.loadPromise) return;
+      const s = (Store.data && Store.data.ui && Store.data.ui.sounds) || {};
+      if (!s.enabled) return;
+      const go = () => this.load();
+      window.addEventListener('pointerdown', go, { once: true, passive: true });
+      window.addEventListener('keydown', go, { once: true });
+      // rede de segurança: se o usuário ficar só lendo, carrega ocioso depois
+      // que o app já está interativo
+      setTimeout(go, 8000);
+    },
     // aplica estado (ligado/desligado + volume) a partir do Store
     apply() {
       if (!this.lib) return;

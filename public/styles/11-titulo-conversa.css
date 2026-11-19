@@ -1,5 +1,11 @@
 /* ===================== TÍTULO DA CONVERSA EDITÁVEL ===================== */
-#chat-name { cursor: text; border-radius: 6px; padding: 2px 6px; transition: background .12s; outline: none; }
-#chat-name:hover { background: var(--accent-soft); }
+/* Moldura fina igual à do campo de input (`.cozy-input-row`), para o nome
+   da conversa ler como campo editável e não como texto solto. `1.5px` é a
+   mesma espessura do input; raio menor porque o título é uma linha só. */
+#chat-name {
+  cursor: text; border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 3px 10px; transition: background .12s, border-color .12s; outline: none;
+}
+#chat-name:hover { background: var(--accent-soft); border-color: var(--accent); }
 #chat-name.editing { background: var(--bg-elev); box-shadow: 0 0 0 2px var(--accent); }
 

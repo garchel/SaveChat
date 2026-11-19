@@ -3,6 +3,7 @@
 // (a chave fica no servidor). Áudios salvos no Supabase vão por URL; gravações
 // locais (blob) vão em base64.
 import { getSupa, USE_SUPABASE, SUPABASE_ANON_KEY } from './sync-supabase.js';
+import { mediaUrl } from './media.js';
 
 const PROXY = '/api/transcribe';
 const MAX_LOCAL_BYTES = 2.5 * 1024 * 1024; // base64 cresce 4/3 e o corpo do proxy tem teto de 4 MB
@@ -42,18 +43,24 @@ async function blobFrom(source) {
   return res.blob();
 }
 
-export async function transcribeAudio(source, { mime = '', token = '' } = {}) {
+export async function transcribeAudio(source, { mime = '', token = '', bucket = 'note-audio' } = {}) {
   if (!source) throw new Error('Áudio indisponível.');
 
   // o proxy exige sessão: sem ela, falha antes de baixar o áudio
   const auth = token || await sessionToken();
   if (!auth) throw new Error('Entre na sua conta para transcrever o áudio.');
 
+  let src = source;
+  if (typeof src === 'string' && !/^(https?:|blob:|data:)/i.test(src)) {
+    src = await mediaUrl(src, bucket, { expiresIn: 300 });
+    if (!src) throw new Error('Áudio indisponível.');
+  }
+
   let body;
-  if (typeof source === 'string' && /^https?:\/\//i.test(source)) {
-    body = { audioUrl: source, mime };
+  if (typeof src === 'string' && /^https?:\/\//i.test(src)) {
+    body = { audioUrl: src, mime };
   } else {
-    const blob = await blobFrom(source);
+    const blob = await blobFrom(src);
     if (!blob.size) throw new Error('Áudio vazio.');
     if (blob.size > MAX_LOCAL_BYTES) throw new Error('Áudio grande demais para transcrever. Envie um áudio mais curto.');
     body = { audioBase64: await toBase64(blob), mime: blob.type || mime || 'audio/webm' };

@@ -3,6 +3,7 @@ import { Store } from '../store.js';
 import { USE_SUPABASE, getSupa, Sync } from '../sync-supabase.js';
 import { setPetals } from '../petals.js';
 import { mascotNameUnset } from '../mascot.js';
+import { clearMediaCache } from '../media.js';
 
 export const AuthMethods = {
 _getSupa() {
@@ -325,6 +326,7 @@ _clearAuthMsg() { const el = $('#auth-msg'); if (el) { el.textContent = ''; el.c
       if (logoutBtn) logoutBtn.addEventListener('click', async () => {
         const supa = this._getSupa();
         if (supa) try { await supa.auth.signOut(); } catch {}
+        clearMediaCache();
         Store.setUser(null); this.renderAuthOrApp();
         if (passField) passField.classList.add('hidden');
         if (links) links.classList.add('hidden');

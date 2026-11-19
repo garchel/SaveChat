@@ -13,6 +13,7 @@ import { MessagesMethods } from './js/ui/messages.js';
 import { MessagesBubbleMethods } from './js/ui/messages-bubble.js';
 import { MessagesReactionsMethods } from './js/ui/messages-reactions.js';
 import { MessagesEditMethods } from './js/ui/messages-edit.js';
+import { MessagesGroupMethods } from './js/ui/messages-group.js';
 import { MessagesScrollMethods } from './js/ui/messages-scroll.js';
 import { MentionMethods } from './js/ui/mentions.js';
 import { ReminderMethods } from './js/ui/reminders.js';
@@ -233,24 +234,22 @@ async init() {
       this.bindHistoryBack();
       this.bindWorkspace();
       this.bindTasksPage();
+      this.bindGroupBar();
       this.initReminders();
-      // persistência de login: restaura sessão Supabase antes do primeiro render
+      // Persistência de login. Antes: SEMPRE esperava o Supabase (até 3s) antes
+      // do primeiro render, então quem já estava logado ficava 3s no splash.
+      // Agora, com usuário em cache, pintamos a tela na hora e conferimos a
+      // sessão em segundo plano — se for OUTRA conta, `_applySessionUser` zera
+      // o estado por-conta, troca o bucket e a UI é remontada (e é aí que o
+      // Sync.connect roda). Sem cache não há o que pintar: aí sim esperamos,
+      // senão a tela de login pisca para quem está logado.
       if (USE_SUPABASE) {
-        try {
-          // timeout 3s: se esm.sh/Supabase não responder, renderiza offline mesmo assim
-          const supa = await Promise.race([
-            this._ensureSupa(),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))
-          ]);
-          if (supa) {
-            const { data: { session } } = await supa.auth.getSession();
-            if (session && session.user) {
-              // lembrar-me desmarcado na última sessão → não restaura login
-              if (Store.data.ui && Store.data.ui.rememberMe === false) { try { await supa.auth.signOut(); } catch {} Store.setUser(null); }
-              else Store.setUser({ name: session.user.email.split('@')[0], mail: session.user.email, provider: 'supabase', id: session.user.id, photo: (session.user.user_metadata && session.user.user_metadata.picture) || null });
-            }
-          }
-        } catch (e) { /* offline/timeout, mantém Store.user local */ }
+        // Com usuário em cache a espera é CURTA: em rede boa a sessão responde
+        // antes disso e nada muda; em rede ruim não seguramos a tela por 3s.
+        // Sem cache não há o que pintar — aí esperamos o prazo cheio, senão a
+        // tela de login pisca para quem está logado.
+        const temCache = !!(Store.data && Store.data.user);
+        await this._restaurarSessao({ timeoutMs: temCache ? 350 : 3000 });
       }
       this.removeSplash();
       this.renderAuthOrApp();
@@ -260,6 +259,31 @@ async init() {
       Updater.check({ silent: true });
       // atualiza o rótulo de "última sincronização" a cada 15s
       setInterval(() => this.updateSyncLabel(), 15000);
+    },
+
+    // Restaura a sessão do Supabase e aplica ao Store.
+    // Devolve true quando a CONTA mudou (o caller remonta a UI).
+    // Nunca lança: offline/timeout devolve false e o app segue com o cache.
+    async _restaurarSessao({ timeoutMs = 3000 } = {}) {
+      try {
+        // prazo configurável: ver comentário no init
+        const supa = await Promise.race([
+          this._ensureSupa(),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeoutMs)),
+        ]);
+        if (!supa) return false;
+        const { data: { session } } = await supa.auth.getSession();
+        if (!session || !session.user) return false;
+        // lembrar-me desmarcado na última sessão → não restaura login
+        if (Store.data.ui && Store.data.ui.rememberMe === false) {
+          try { await supa.auth.signOut(); } catch {}
+          Store.setUser(null);
+          return false;
+        }
+        return this._applySessionUser(session.user);
+      } catch {
+        return false;
+      }
     },
 
     removeSplash() {
@@ -340,6 +364,20 @@ toast(msg, opts) {
         t.appendChild(btn);
       }
       document.body.appendChild(t);
+      // Aviso ABAIXO do cabeçalho visível, com respiro. O toast nasce em
+      // `position: fixed; top: 14px`, exatamente onde fica o cabeçalho:
+      // "Atualizado"/"Excluído" apareciam POR CIMA do título.
+      //
+      // Medir o cabeçalho de verdade (e não fixar uma altura) mantém o respiro
+      // certo em qualquer fonte/safe-area. A varredura pega o cabeçalho da
+      // página ATIVA — Tarefas, Busca e Lembretes têm o seu próprio, e olhar
+      // só o `#chat-header` deixava o aviso caindo sobre o primeiro cartão
+      // nessas páginas.
+      const heads = [...document.querySelectorAll('#chat-header, .cozy-banner')]
+        .map((el) => ({ el, cs: getComputedStyle(el), r: el.getBoundingClientRect() }))
+        .filter((x) => x.cs.display !== 'none' && x.cs.visibility !== 'hidden' && x.r.height > 0 && x.r.top >= 0)
+        .sort((a, b) => a.r.top - b.r.top);
+      if (heads.length) t.style.top = Math.round(heads[0].r.bottom + 10) + 'px';
       requestAnimationFrame(() => { t.classList.add('show'); });
       hideTimer = setTimeout(hide, opts.duration || 2600);
     },    bindModal() {
@@ -402,7 +440,7 @@ showModal(title, bodyHtml, onOk) {
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
     SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
-    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesScrollMethods,
+    MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesGroupMethods, MessagesScrollMethods,
     WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods);
 
   // DEV: o index.html traz marcadores <!--#include partials/x.html--> em vez do
@@ -421,6 +459,11 @@ showModal(title, bodyHtml, onOk) {
   // aplica tema salvo antes de montar a UI
   const savedTheme = (Store.data.ui && Store.data.ui.theme) || 'terracota';
   document.documentElement.dataset.theme = savedTheme;
+  // o global precisa existir ANTES de UI.init(): a primeira renderTree() consulta
+  // window.NoteThread para desenhar o item da conversa com a IA. Antes isso
+  // funcionava por acidente — o `await` da sessão dava tempo de chegar à
+  // atribuição (que era depois do init) antes do primeiro render.
+  window.NoteThread = { Store, Sync, UI, Sound, AiThread };
   UI.init();
 
   // diagnose: anel de 200 entradas dos eventos de sincronização/envio. Com isso
@@ -435,8 +478,7 @@ showModal(title, bodyHtml, onOk) {
     if (dbg.length > 200) dbg.shift();
     return origSend(type, payload);
   };
-  // expõe para debugging/inspeção no console
-  window.NoteThread = { Store, Sync, UI, Sound, AiThread };
+  // expõe para debugging/inspeção no console (o objeto já foi criado antes do init)
   window.NoteThread.debugLog = () => dbg.slice(-50);
   // marcador de build: torna óbvio no console se o navegador rodou o build novo
   // (lê o número do cache direto do sw.js para nunca mais destoar da versão real)

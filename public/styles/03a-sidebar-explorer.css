@@ -80,7 +80,7 @@
 .explorer-label { font-size: 12px; text-transform: uppercase; letter-spacing: .9px; color: var(--text); font-weight: 800; padding: 18px 14px 7px; }
 .cozy-caderno { gap: 12px; padding: 10px 12px; border-radius: 12px; }
 /* ícone dos cadernos/pastas: estilizado via inline no tree.js (cache-proof) */
-.cozy-caderno.active { background: var(--accent-soft); box-shadow: none; font-weight: 700; }
+.cozy-caderno.active { background: transparent; box-shadow: none; font-weight: 700; }
 .cozy-caderno .label { font-weight: 700; color: var(--text); }
 .cozy-caderno.active .label { font-weight: 800; }
 
@@ -300,7 +300,8 @@
 }
 .tnode:hover { background: var(--accent-soft); }
 .tnode:active { transform: scale(var(--press-scale, .96)); }
-.tnode.active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.tnode.active { background: transparent; border-radius: 0 12px 12px 0; box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
+.tnode.active:hover { background: transparent; }
 .tnode .twist {
   width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim);
   transition: transform .2s ease; font-size: 12px; display: grid; place-items: center;

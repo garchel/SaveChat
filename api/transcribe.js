@@ -5,9 +5,10 @@
 // aqui. O endpoint exige a sessão do Supabase do usuário, como o /api/ai, para
 // ninguém consumir a cota do projeto sem estar logado.
 //
-// O cliente manda a URL pública do áudio (bucket do Supabase) ou o áudio em
-// base64 (gravação local / página da IA). A URL só é aceita se for do próprio
-// projeto e do storage público — evita que o endpoint vire um proxy SSRF.
+// O cliente manda a URL assinada do áudio (bucket privado do Supabase), a URL
+// pública legada ou o áudio em base64 (gravação local / página da IA). A URL só
+// é aceita se for do próprio projeto e do storage — evita que o endpoint vire um
+// proxy SSRF.
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://dcttsnttbtsvpnfwtoaj.supabase.co';
@@ -87,7 +88,7 @@ function allowedAudioUrl(raw) {
   }
   return url.protocol === 'https:' &&
     url.origin === base.origin &&
-    url.pathname.startsWith('/storage/v1/object/public/');
+    /^\/storage\/v1\/object\/(?:public|sign)\/note-audio\//.test(url.pathname);
 }
 
 async function loadAudio(payload) {

@@ -5,6 +5,7 @@ import { Store } from '../store.js';
 import { Sync, getSupa, USE_SUPABASE } from '../sync-supabase.js';
 import { Sound } from '../sound.js';
 import { uid, now, fmtTime, haptic, esc, $ } from '../utils.js';
+import { hydrateMedia } from '../media.js';
 
 export const ComposerMethods = {
     showSyncError() {
@@ -110,14 +111,18 @@ export const ComposerMethods = {
         else if (e.key === 'Enter' && !e.shiftKey) {
           // mobile: Enter também continua listas (desktop usa Shift+Enter p/ enviar)
           const isTouch = window.matchMedia('(hover: none)').matches;
-          if (isTouch && this._listContinuation(ta)) { e.preventDefault(); return; }
+          if (isTouch && this._listContinuation(ta)) { e.preventDefault(); resize(); return; }
           e.preventDefault(); this.sendNote();
         }
         else if (e.key === 'Enter' && e.shiftKey) {
-          // Shift+Enter: quebra linha; se a linha atual é item de checklist, bullet
-          // ou lista numerada, continua a lista na próxima linha
-          e.preventDefault();
-          this._listContinuation(ta);
+          // Shift+Enter: DENTRO de lista continua a lista na próxima linha
+          // (checklist/bullet/numerada). FORA de lista é quebra de linha — e o
+          // `preventDefault` sem condição matava a quebra nativa: a tecla não
+          // fazia nada (medido: "linha umlinha dois" em vez de duas linhas).
+          if (this._listContinuation(ta)) {
+            e.preventDefault();
+            resize(); // a continuação mexe no DOM sem evento `input`
+          }
         }
       });
       // barra de formatação
@@ -173,10 +178,11 @@ export const ComposerMethods = {
             if (uid) {
               const safeName = fileToUpload.name.replace(/[^a-zA-Z0-9._-]/g, '_');
               const path = `${uid}/${Date.now()}-${safeName}`;
-              const { error } = await supa.storage.from('note-images').upload(path, fileToUpload, { cacheControl: '3600', upsert: false });
+              const options = { cacheControl: '3600', upsert: false };
+              if (fileToUpload.type) options.contentType = fileToUpload.type;
+              const { error } = await supa.storage.from('note-images').upload(path, fileToUpload, options);
               if (!error) {
-                const { data } = supa.storage.from('note-images').getPublicUrl(path);
-                this.pendingImages.push(data.publicUrl);
+                this.pendingImages.push(path);
                 this.renderAttachPreview();
                 send.disabled = false;
                 fileInput.value = '';
@@ -283,12 +289,13 @@ export const ComposerMethods = {
       const prev = this.dom.attachPreview;
       if (!((this.pendingImages||[]).length)) { prev.classList.add('hidden'); prev.innerHTML = ''; return; }
       prev.innerHTML = this.pendingImages.map((src, i) =>
-        `<div class="attach-thumb"><img src="${src}" alt="anexo"/><button class="attach-rm" data-i="${i}" title="Remover">×</button></div>`
+        `<div class="attach-thumb"><img data-media-ref="${esc(src)}" data-media-bucket="note-images" alt="anexo"/><button class="attach-rm" data-i="${i}" title="Remover">×</button></div>`
       ).join('');
       prev.classList.remove('hidden');
       prev.querySelectorAll('.attach-rm').forEach((b) => b.addEventListener('click', () => {
         this.pendingImages.splice(+b.dataset.i, 1); this.renderAttachPreview();
       }));
+      hydrateMedia(prev, 'note-images').catch((e) => console.warn('[storage] preview de anexo falhou', e));
     },
 
 bindThreadTitle() {
