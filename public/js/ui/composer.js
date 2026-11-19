@@ -114,10 +114,14 @@ export const ComposerMethods = {
           e.preventDefault(); this.sendNote();
         }
         else if (e.key === 'Enter' && e.shiftKey) {
-          // Shift+Enter: quebra linha; se a linha atual é item de checklist, bullet
-          // ou lista numerada, continua a lista na próxima linha
-          e.preventDefault();
-          this._listContinuation(ta);
+          // Shift+Enter: DENTRO de lista continua a lista na próxima linha
+          // (checklist/bullet/numerada). FORA de lista é quebra de linha — e o
+          // `preventDefault` sem condição matava a quebra nativa: a tecla não
+          // fazia nada (medido: "linha umlinha dois" em vez de duas linhas).
+          if (this._listContinuation(ta)) {
+            e.preventDefault();
+            resize(); // a continuação mexe no DOM sem evento `input`
+          }
         }
       });
       // barra de formatação
