@@ -16,10 +16,15 @@ test('gate de criptografia tem setup, unlock e recuperação no HTML', () => {
   assert.match(html, /Crie sua senha de criptografia|Desbloqueie suas notas/);
 });
 
-test('boot só mostra o app depois de CryptoGate.ensure', () => {
+// Regra depois da correção do boot offline: com cache CIFRADO o app espera o
+// unlock (sem a DEK não há o que mostrar); com cache em CLARO pinta primeiro e
+// só depois procura a chave — senão ficava em branco até 45s sem rede.
+test('boot: cache cifrado espera o gate, cache em claro pinta antes', () => {
   const auth = read('public/js/ui/auth.js');
-  assert.match(auth, /CryptoGate\.ensure\(supa, Store\.user\)/);
-  assert.match(auth, /await CryptoGate\.ensure/);
+  assert.match(auth, /if \(!Store\._encrypted\) \{\s*this\._paintApp\(\);\s*this\._unlockCryptoInBackground\(attempt\);/, 'cache em claro pinta sem await');
+  assert.match(auth, /_paintApp\(\) \{/, 'paint isolado, sem rede');
+  assert.match(auth, /_unlockCryptoInBackground\(attempt\) \{/, 'unlock corre depois do paint');
+  assert.match(auth, /await CryptoGate\.ensure\(supa, Store\.user\)/, 'cache cifrado continua esperando o unlock');
   assert.match(auth, /lockKeys\(\)/);
   assert.match(auth, /CryptoGate\.close\(\)/);
   assert.match(auth, /USE_SUPABASE && Store\.user\.id/);

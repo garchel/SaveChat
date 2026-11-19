@@ -5,7 +5,7 @@ import { setPetals } from '../petals.js';
 import { mascotNameUnset } from '../mascot.js';
 import { clearMediaCache } from '../media.js';
 import { CryptoGate } from '../crypto-gate.js';
-import { getDek, lockKeys } from '../keyring.js';
+import { getDek, lockKeys, loadKeyBundle } from '../keyring.js';
 import { makeCacheCipher, makeQueueCipher } from '../crypto-session.js';
 import { OfflineQueue } from '../offline-queue.js';
 
@@ -426,6 +426,18 @@ async renderAuthOrApp() {
       if (Store.user) {
         if (USE_SUPABASE && Store.user.id) {
           const attempt = (this._renderAttempt = (this._renderAttempt || 0) + 1);
+
+          // Cache em CLARO = não há nada a desbloquear (sem chave, sem
+          // ciphertext). Pintar já com o que está no aparelho e deixar a
+          // criptografia para depois: esperar o Supabase aqui deixava o app
+          // em branco por até 45s com a rede pendurada
+          // (`tests/e2e/boot-sem-gate.spec.js`).
+          if (!Store._encrypted) {
+            this._paintApp();
+            this._unlockCryptoInBackground(attempt);
+            return;
+          }
+
           let supa = null;
           try { supa = await this._ensureSupa(); } catch {}
           if (attempt !== this._renderAttempt || !Store.user) return;
@@ -457,22 +469,57 @@ async renderAuthOrApp() {
           }
           if (attempt !== this._renderAttempt || !Store.user) return;
         }
-        $('#crypto-gate')?.classList.add('hidden');
-        $('#auth-screen').classList.add('hidden');
-        $('#app').classList.remove('hidden');
-        setPetals(!!(Store.data.ui && Store.data.ui.petals)); // ambiente cozy
-this.renderMe();
-              this.renderTree();
-              // primeira entrada (ou retorno de login) sem nome de mascote:
-              // pergunta uma vez. `setTimeout` deixa o app pintar antes.
-              if (mascotNameUnset()) setTimeout(() => this.askMascotName(), 420);
-        // conecta apenas 1× — evita channel duplicado a cada onAuthStateChange
-        if (!Sync.connected && !Sync._connecting) Sync.connect();
-        this.setChatActiveUi(false);
+        this._paintApp();
       } else {
         $('#auth-screen').classList.remove('hidden');
         $('#app').classList.add('hidden');
       }
+    },
+
+    // Pinta a tela com o que já está em memória/localStorage. Não depende de
+    // rede: é o caminho do boot offline e do primeiro paint antes do unlock.
+    _paintApp() {
+      $('#crypto-gate')?.classList.add('hidden');
+      $('#auth-screen').classList.add('hidden');
+      $('#app').classList.remove('hidden');
+      setPetals(!!(Store.data.ui && Store.data.ui.petals)); // ambiente cozy
+      this.renderMe();
+      this.renderTree();
+      if (mascotNameUnset()) setTimeout(() => this.askMascotName(), 420);
+      if (!Sync.connected && !Sync._connecting) Sync.connect();
+      this.setChatActiveUi(false);
+    },
+
+    // Depois do primeiro paint: procura a chave da conta. Com bundle salvo,
+    // abre o gate e, ao desbloquear, liga o cipher e recarrega o cache
+    // cifrado. Sem bundle (conta que nunca ativou), NÃO bloqueia: o app segue
+    // em claro e a ativação acontece quando o usuário pedir.
+    async _unlockCryptoInBackground(attempt) {
+      let supa = null;
+      try { supa = await this._ensureSupa(); } catch { return; }
+      if (attempt !== this._renderAttempt || !Store.user || !supa) return;
+      let bundle = null;
+      try { bundle = await loadKeyBundle(supa, Store.user.id); } catch { return; }
+      if (!bundle) return;
+      let unlocked = false;
+      try {
+        unlocked = await CryptoGate.ensure(supa, Store.user);
+      } catch (err) {
+        console.error('[crypto] não foi possível carregar as chaves', err);
+        return;
+      }
+      if (!unlocked || attempt !== this._renderAttempt || !Store.user) return;
+      const dek = getDek();
+      Store.setCipher(makeCacheCipher(Store.user.id, dek));
+      OfflineQueue.setCipher(makeQueueCipher(Store.user.id, dek));
+      try {
+        await Store.hydrate();
+      } catch (err) {
+        console.error('[crypto] não foi possível abrir o cache local', err);
+        return;
+      }
+      if (attempt !== this._renderAttempt || !Store.user) return;
+      this.renderTree();
     },
 
 renderMe() {
