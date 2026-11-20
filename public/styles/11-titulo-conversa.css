@@ -1,11 +1,14 @@
 /* ===================== TÍTULO DA CONVERSA EDITÁVEL ===================== */
-/* Moldura fina igual à do campo de input (`.cozy-input-row`), para o nome
-   da conversa ler como campo editável e não como texto solto. `1.5px` é a
-   mesma espessura do input; raio menor porque o título é uma linha só. */
-#chat-name {
-  cursor: text; border: 1.5px solid var(--border); border-radius: 10px;
-  padding: 3px 10px; transition: background .12s, border-color .12s; outline: none;
+/* Moldura fina no CARD do cabeçalho — voltar + nome + ⋮ —, não no texto do
+   nome. Antes ela ficava no `#chat-name`, que lia como um input solto no meio
+   da barra; no card ela delimita o componente inteiro. `1.5px` é a mesma
+   espessura do campo de input; o raio vem do `.cozy-banner`. */
+#chat-header {
+  border: 1.5px solid var(--border);
+  transition: border-color .12s;
 }
-#chat-name:hover { background: var(--accent-soft); border-color: var(--accent); }
-#chat-name.editing { background: var(--bg-elev); box-shadow: 0 0 0 2px var(--accent); }
+/* em conversa com cor própria o fundo é o acento: borda neutra some nele */
+.cozy-banner.thread-colored#chat-header { border-color: color-mix(in srgb, var(--border) 70%, transparent); }
+#chat-name { cursor: text; outline: none; }
+#chat-name.editing { background: var(--bg-elev); box-shadow: 0 0 0 2px var(--accent); border-radius: 8px; }
 

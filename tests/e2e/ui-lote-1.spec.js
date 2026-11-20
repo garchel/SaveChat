@@ -39,27 +39,47 @@ test.beforeEach(async ({ context, page }) => {
 
 // Abre t1 sem depender de gesto (a sidebar cobre o canvas em 390px)
 async function abrirConversa(page, id = 't1') {
-  await page.evaluate((tid) => { window.NoteThread.UI.openThread(tid); }, id);
+  // sob carga o app pode ainda não ter exposto `window.NoteThread` quando o
+  // teste começa (o evaluate anterior falhava com "Cannot read properties of
+  // undefined"). Espera o boot e retenta uma vez se o contexto cair.
+  await page.waitForFunction(() => !!window.NoteThread, null, { timeout: 45000 });
+  for (let tentativa = 0; ; tentativa++) {
+    try {
+      await page.evaluate((tid) => { window.NoteThread.UI.openThread(tid); }, id);
+      break;
+    } catch (e) {
+      if (tentativa >= 2) throw e;
+      await page.waitForFunction(() => !!window.NoteThread, null, { timeout: 45000 });
+    }
+  }
   await page.waitForTimeout(600);
 }
 
-test('1. nome da conversa tem moldura fina (= borda do input)', async ({ page }) => {
+test('1. moldura fina no card do cabecalho (voltar + nome + 3 pontos)', async ({ page }) => {
   await abrirConversa(page);
   const r = await page.evaluate(() => {
-    const el = document.getElementById('chat-name');
-    const cs = getComputedStyle(el);
+    const header = document.getElementById('chat-header');
+    const nome = document.getElementById('chat-name');
+    const cs = getComputedStyle(header);
+    const cn = getComputedStyle(nome);
     const input = getComputedStyle(document.querySelector('.cozy-input-row'));
+    const h = header.getBoundingClientRect();
+    const voltar = document.getElementById('btn-back').getBoundingClientRect();
+    const menu = document.getElementById('btn-thread-menu').getBoundingClientRect();
     return {
       border: cs.borderTopWidth + ' ' + cs.borderTopStyle,
-      color: cs.borderTopColor,
       inputBorder: input.borderTopWidth + ' ' + input.borderTopStyle,
       radius: cs.borderTopLeftRadius,
+      nomeBorder: cn.borderTopWidth + ' ' + cn.borderTopStyle,
+      cobre: voltar.left >= h.left && menu.right <= h.right,
     };
   });
-  console.log('BORDA=' + JSON.stringify(r));
-  expect(r.border, 'moldura presente').not.toBe('0px none');
+  console.log('MOLDURA=' + JSON.stringify(r));
+  expect(r.border, 'moldura presente no cabecalho').not.toBe('0px none');
   expect(r.border, 'MESMA borda do componente de input').toBe(r.inputBorder);
+  expect(r.nomeBorder, 'o nome NAO carrega a borda').toBe('0px none');
   expect(r.radius, 'raio arredondado').not.toBe('0px');
+  expect(r.cobre, 'a moldura engloba voltar e o botao de 3 pontos').toBe(true);
 });
 
 test('2. checklist no editor nao cresce cortada ao quebrar linha', async ({ page }) => {
