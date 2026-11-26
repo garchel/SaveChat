@@ -154,7 +154,15 @@
 }
 .crypto-card .email-form .btn.primary { width: 100%; margin-top: 4px; }
 .crypto-card #crypto-switch { align-self: center; margin-top: 2px; }
-.crypto-label { font-size: 12px; font-weight: 700; color: var(--text-dim); margin: 2px 0 -2px 4px; }
+/* Campos do gate empilhados: label em cima, input embaixo. Sem isto o label
+   (inline) e o input (inline-block) ficavam LADO A LADO dentro do div e a
+   linha quebrava quando o rótulo cresceu ("Repita a senha" virava "Repita a" +
+   input + "senha"). */
+#crypto-setup-fields, #crypto-unlock-fields, #crypto-recovery-fields {
+  display: flex; flex-direction: column; gap: 4px;
+}
+#crypto-setup-fields.hidden, #crypto-unlock-fields.hidden, #crypto-recovery-fields.hidden { display: none; }
+.crypto-label { display: block; font-size: 12px; font-weight: 700; color: var(--text-dim); margin: 2px 0 -2px 4px; }
 .crypto-warn {
   font-size: 13px; line-height: 1.55; color: var(--text);
   background: var(--accent-soft); border: 1px solid var(--border-light);

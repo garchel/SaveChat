@@ -59,7 +59,7 @@
         </div>
         <div id="crypto-unlock-fields">
           <label class="crypto-label" for="crypto-pass-unlock">PIN</label>
-          <input id="crypto-pass-unlock" type="password" autocomplete="current-password" maxlength="4" inputmode="numeric" placeholder="Seu PIN de 4 dígitos" />
+          <input id="crypto-pass-unlock" type="password" autocomplete="current-password" placeholder="Seu PIN" />
         </div>
         <div id="crypto-recovery-fields" class="hidden">
           <label class="crypto-label" for="crypto-recovery-input">Código de recuperação</label>
