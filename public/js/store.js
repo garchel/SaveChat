@@ -237,6 +237,16 @@ const AI_THREAD_ID = 'ai-assistant';
 
     clearCipher() { this.cipher = null; },
 
+    // Desliga o PIN: volta a gravar o cache em claro e descarta o envelope
+    // cifrado. Chamado depois de reverter o servidor para texto claro.
+    disableCipher() {
+      this.cipher = null;
+      this._encrypted = false;
+      this._encryptedBucket = null;
+      this.locked = false;
+      this.save();
+    },
+
     // Abre o bucket cifrado depois do unlock. Devolve true quando havia algo
     // para decifrar. A thread e as notas da IA são do dispositivo e ficam.
     async hydrate() {

@@ -22,6 +22,7 @@ import { WorkspaceMethods } from './js/ui/workspace.js';
 import { WorkspaceAiMethods } from './js/ui/workspace-ai.js';
 import { WorkspaceDailyMethods } from './js/ui/workspace-daily.js';
 import { SettingsMethods } from './js/ui/settings.js';
+import { PinMethods } from './js/ui/pin.js';
 import { MascotPanelMethods } from './js/ui/mascot-panel.js';
 import { AuthMethods } from './js/ui/auth.js';
 import { CryptoGate } from './js/crypto-gate.js';
@@ -449,7 +450,7 @@ showModal(title, bodyHtml, onOk) {
   // o composer e' um mixin de 4 partes (campo/anexos, áudio, markdown, listas):
   // todas entram no mesmo UI plano, entao a ordem aqui nao muda comportamento
   Object.assign(UI, PickerMethods, NavigationMethods, MessagesMethods, MentionMethods, ReminderMethods,
-    SettingsMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
+    SettingsMethods, PinMethods, AuthMethods, TreeMethods, SyncEventsMethods, TasksMethods, WorkspaceMethods,
     ComposerMethods, ComposerAudioMethods, ComposerMarkdownMethods, ComposerListsMethods,
     MessagesBubbleMethods, MessagesReactionsMethods, MessagesEditMethods, MessagesGroupMethods, MessagesScrollMethods,
     WorkspaceAiMethods, WorkspaceDailyMethods, MascotPanelMethods, PrivacyMethods);

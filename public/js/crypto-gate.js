@@ -103,10 +103,10 @@ export const CryptoGate = {
     const desc = $('#crypto-desc');
     const submit = $('#crypto-submit');
     const sw = $('#crypto-switch');
-    if (title) title.textContent = setup ? 'Crie sua senha de criptografia' : 'Desbloqueie suas notas';
+    if (title) title.textContent = setup ? 'Crie seu PIN (4 dígitos)' : 'Digite seu PIN';
     if (desc) desc.textContent = setup
       ? 'Suas notas são cifradas neste dispositivo. Crie uma senha diferente da conta — ela nunca é enviada ao servidor.'
-      : 'Digite a senha de criptografia desta conta para abrir suas notas neste dispositivo.';
+      : 'Digite o PIN desta conta para abrir suas notas neste dispositivo.';
     if (submit) submit.textContent = setup ? 'Criar chave e continuar' : (recovery ? 'Desbloquear com código' : 'Desbloquear');
     if (sw) {
       sw.classList.toggle('hidden', setup);

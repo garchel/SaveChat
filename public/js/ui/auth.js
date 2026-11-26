@@ -500,20 +500,9 @@ async renderAuthOrApp() {
       if (attempt !== this._renderAttempt || !Store.user || !supa) return;
       let bundle = null;
       try { bundle = await loadKeyBundle(supa, Store.user.id); } catch { return; }
-      if (!bundle) {
-        // Conta sem chave e ONLINE: oferece a ativação, com o app já pintado
-        // atrás do card. Sem isto a criptografia nunca seria ativável (o gate
-        // só aparecia quando já existia bundle). Offline não chega aqui.
-        let ativou = false;
-        try { ativou = await CryptoGate.ensure(supa, Store.user); } catch { return; }
-        if (!ativou || attempt !== this._renderAttempt || !Store.user) return;
-        const d = getDek();
-        Store.setCipher(makeCacheCipher(Store.user.id, d));
-        OfflineQueue.setCipher(makeQueueCipher(Store.user.id, d));
-        try { await Store.hydrate(); } catch { return; }
-        this.renderTree();
-        return;
-      }
+      // Sem chave = PIN nunca ativado: o app segue em claro e NÃO pede nada.
+      // Ativar/desativar agora é opt-in nas Configurações (ui/pin.js).
+      if (!bundle) return;
       let unlocked = false;
       try {
         unlocked = await CryptoGate.ensure(supa, Store.user);

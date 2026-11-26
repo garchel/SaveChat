@@ -35,6 +35,10 @@ export function currentUid() {
   return session.uid;
 }
 
+export function forgetBundle(uid) {
+  if (uid) writeCached(uid, null);
+}
+
 export function lockKeys() {
   session = { uid: null, bundle: null, dek: null };
 }

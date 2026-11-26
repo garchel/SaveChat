@@ -47,19 +47,19 @@
         <div class="crypto-lock" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg>
         </div>
-        <h1 id="crypto-title">Desbloqueie suas notas</h1>
-        <p class="tagline" id="crypto-desc">Digite a senha de criptografia desta conta para abrir suas notas neste dispositivo.</p>
+        <h1 id="crypto-title">Digite seu PIN</h1>
+        <p class="tagline" id="crypto-desc">Digite o PIN desta conta para abrir suas notas neste dispositivo.</p>
       </div>
       <form id="crypto-form" class="email-form" novalidate>
         <div id="crypto-setup-fields" class="hidden">
-          <label class="crypto-label" for="crypto-pass">Senha de criptografia</label>
-          <input id="crypto-pass" type="password" autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres" />
+          <label class="crypto-label" for="crypto-pass">PIN (4 dígitos)</label>
+          <input id="crypto-pass" type="password" autocomplete="new-password" minlength="4" maxlength="4" inputmode="numeric" placeholder="4 dígitos" />
           <label class="crypto-label" for="crypto-pass2">Repita a senha</label>
-          <input id="crypto-pass2" type="password" autocomplete="new-password" minlength="8" placeholder="Repita para confirmar" />
+          <input id="crypto-pass2" type="password" autocomplete="new-password" minlength="4" maxlength="4" inputmode="numeric" placeholder="Repita o PIN" />
         </div>
         <div id="crypto-unlock-fields">
-          <label class="crypto-label" for="crypto-pass-unlock">Senha de criptografia</label>
-          <input id="crypto-pass-unlock" type="password" autocomplete="current-password" placeholder="Sua senha de criptografia" />
+          <label class="crypto-label" for="crypto-pass-unlock">PIN</label>
+          <input id="crypto-pass-unlock" type="password" autocomplete="current-password" maxlength="4" inputmode="numeric" placeholder="Seu PIN de 4 dígitos" />
         </div>
         <div id="crypto-recovery-fields" class="hidden">
           <label class="crypto-label" for="crypto-recovery-input">Código de recuperação</label>
