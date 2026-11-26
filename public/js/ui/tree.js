@@ -526,8 +526,15 @@ folderNode(f) {
       // badge ⏰ se a thread tem lembrete pendente
       const hasRemind = Store.notesFor(t.id).some((x) => x.remindAt && !x.remindFired);
       const remindEl = hasRemind ? '<span class="remind-badge" title="Lembrete pendente">⏰</span>' : '';
+      const comCodigo = typeof this.threadPinHas === 'function' && this.threadPinHas(t.id);
+      const lockBadge = comCodigo
+        ? '<span class="lock-badge" title="Conversa com código" aria-label="Conversa com código">'
+          + '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">'
+          + '<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg>'
+          + '</span>'
+        : '';
       el.innerHTML = `<span class="twist" style="visibility:hidden">${wrapSvg(ICON.chevron, 10)}</span>
-                      <span class="ico">${ic}</span>
+                      <span class="ico">${ic}${lockBadge}</span>
                       <span class="label">${esc(t.name)}</span>
                       ${remindEl}
                       ${countEl}
@@ -620,6 +627,12 @@ toggleFavorite(id) {
       // ('block' quebrava o flex e o texto caía para a linha de baixo do ícone)
       if (favBtn) favBtn.style.display = t.favorite ? 'none' : '';
       if (unfavBtn) unfavBtn.style.display = t.favorite ? '' : 'none';
+      // cadeado no menu de contexto: trava/destrava conforme o estado
+      const travado = typeof this.threadPinHas === 'function' && this.threadPinHas(t.id);
+      const lockBtn = m.querySelector('[data-act="lock"]');
+      const unlockBtn = m.querySelector('[data-act="unlock"]');
+      if (lockBtn) lockBtn.classList.toggle('hidden', travado);
+      if (unlockBtn) unlockBtn.classList.toggle('hidden', !travado);
       m.classList.remove('hidden');
       m.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
       m.style.top = Math.min(e.clientY, window.innerHeight - 220) + 'px';
@@ -697,6 +710,8 @@ toggleFavorite(id) {
     },
     handleCtx(act) {
       const id = this.ctxThreadId; const t = Store.getThread(id); if (!t) return;
+      if (act === 'lock') { this.setThreadPin(id); this.dom.ctx.classList.add('hidden'); return; }
+      if (act === 'unlock') { this.removeThreadPin(id); this.dom.ctx.classList.add('hidden'); return; }
       if (act === 'fav') this.toggleFavorite(id);
       else if (act === 'unfav') this.toggleFavorite(id);
       else if (act === 'rename') this.renameThread(id);

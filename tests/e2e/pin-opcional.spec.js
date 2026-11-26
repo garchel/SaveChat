@@ -10,7 +10,8 @@ const seed = {
   ui: { mascot: { nameSet: true }, expanded: {}, theme: 'terracota', sounds: { enabled: false } },
 };
 
-test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+// SW bloqueado: a troca de controlador recarrega a página no meio do teste
+test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, serviceWorkers: 'block' });
 test.setTimeout(60000);
 
 test.beforeEach(async ({ context, page }) => {

@@ -24,6 +24,9 @@ export const ThreadPinMethods = {
     return (Store.data.ui.threadPins = Store.data.ui.threadPins || {});
   },
 
+  // exposto para testes e para qualquer fluxo que precise comparar o código
+  hashThreadPin(pin) { return hashPin(pin); },
+
   threadPinHas(id) {
     return !!this._threadPins()[id];
   },
@@ -36,6 +39,26 @@ export const ThreadPinMethods = {
   syncThreadPinMenu() {
     const label = $('#menu-pin-label');
     if (label) label.textContent = this.threadPinHas(this.activeThread) ? 'Destravar conversa (remover código)' : 'Travar com código';
+  },
+
+  // A árvore se reconcilia no lugar (não reconstrói o nó), então o cadeado é
+  // aplicado direto no ícone — depender de `renderTree()` não atualizava nada.
+  _syncThreadBadge(id) {
+    const ico = document.querySelector('.tnode[data-tid="' + id + '"] .ico');
+    if (!ico) return;
+    const tem = this.threadPinHas(id);
+    const atual = ico.querySelector('.lock-badge');
+    if (tem && !atual) {
+      const b = document.createElement('span');
+      b.className = 'lock-badge';
+      b.title = 'Conversa com código';
+      b.setAttribute('aria-label', 'Conversa com código');
+      b.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">'
+        + '<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg>';
+      ico.appendChild(b);
+    } else if (!tem && atual) {
+      atual.remove();
+    }
   },
 
   async setThreadPin(id) {
@@ -51,8 +74,8 @@ export const ThreadPinMethods = {
         this._threadPins()[id] = await hashPin(a);
         Store.save();
         this._threadUnlocked.add(id); // acabou de digitar: não pede de novo agora
-        this.toast('Conversa protegida com PIN', { kind: 'success' });
-        this.renderTree();
+        this._syncThreadBadge(id);
+        this.toast('Conversa travada com código', { kind: 'success' });
       });
   },
 
@@ -62,8 +85,8 @@ export const ThreadPinMethods = {
     delete pins[id];
     Store.save();
     this._threadUnlocked.delete(id);
-    this.toast('PIN da conversa removido', { kind: 'success' });
-    this.renderTree();
+    this._syncThreadBadge(id);
+    this.toast('Código da conversa removido', { kind: 'success' });
   },
 
   // Resolve `true` quando o PIN confere. `onOk` roda depois do acerto.
