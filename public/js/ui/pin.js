@@ -25,20 +25,28 @@ export const PinMethods = {
   async refreshPinUi() {
     const cb = $('#pin-enabled');
     const uid = Store.user && Store.user.id;
-    // O estado real é o bundle no servidor/aparelho: se existe chave, o PIN
-    // está ligado mesmo antes de o cache ser aberto.
+    // O estado real é o bundle no servidor/aparelho: se existe chave, a
+    // criptografia está ligada mesmo antes de o cache ser aberto.
     let ligado = this.pinOn();
     try {
       if (uid && Sync.supa) ligado = !!(await loadKeyBundle(Sync.supa, uid)) || ligado;
     } catch { /* offline: vale o que o cache diz */ }
     if (cb) cb.checked = ligado;
+    const status = $('#crypto-status');
+    if (status) {
+      status.textContent = ligado
+        ? 'Ligada — o conteúdo das notas vai cifrado para o servidor e o app pede o PIN ao abrir.'
+        : 'Desligada — o conteúdo das notas fica em texto claro no servidor.';
+    }
     const btnChange = $('#pin-change');
     if (btnChange) btnChange.classList.toggle('hidden', !ligado);
-    const hint = $('#pin-hint');
-    if (hint) {
-      hint.textContent = ligado
-        ? 'Ligado — o app pede o PIN para abrir as notas neste aparelho.'
-        : 'Desligado — as notas ficam em texto claro e o app abre direto.';
+    // PIN por conversa é outra coisa: fechadura local, sem cifragem
+    const count = $('#thread-pin-count');
+    if (count) {
+      const n = Object.keys((Store.data.ui && Store.data.ui.threadPins) || {}).length;
+      count.textContent = n
+        ? n + (n === 1 ? ' conversa protegida' : ' conversas protegidas') + ' neste aparelho.'
+        : 'Nenhuma conversa protegida neste aparelho.';
     }
     return ligado;
   },

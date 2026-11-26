@@ -142,13 +142,19 @@
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-label">PIN</div>
+      <div class="settings-label">Criptografia</div>
+      <p class="about-note" id="crypto-status">Desligada — o conteúdo das notas fica em texto claro no servidor.</p>
       <div class="sound-row">
         <label class="switch"><input type="checkbox" id="pin-enabled" /><span class="slider"></span></label>
-        <span class="sound-caption">Proteger com PIN de 4 dígitos</span>
+        <span class="sound-caption">Cifrar as notas com um PIN</span>
       </div>
-      <button type="button" id="pin-change" class="hidden">Alterar PIN</button>
-      <p class="about-note" id="pin-hint">Desligado — as notas ficam em texto claro e o app abre direto.</p>
+      <button type="button" id="pin-change" class="hidden">Alterar PIN de desbloqueio</button>
+      <p class="about-note" id="pin-hint">O PIN é a chave: sem ele o servidor não lê suas notas, e o app pede o PIN ao abrir.</p>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">PIN por conversa</div>
+      <p class="about-note">Trava conversas escolhidas <strong>neste aparelho</strong> — não cifra nada, só pede o PIN para abrir. Para proteger uma conversa, abra-a e use o menu <strong>⋮</strong> → “Proteger com PIN”.</p>
+      <p class="about-note" id="thread-pin-count"></p>
     </div>
     <div class="settings-section">
       <div class="settings-label">Dados</div>

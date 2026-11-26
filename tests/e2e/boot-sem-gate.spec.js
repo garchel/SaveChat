@@ -63,6 +63,9 @@ test('sem usuário em cache continua esperando (não pisca login)', async ({ pag
   await page.route('**/esm.sh/**', () => { /* pendura */ });
 
   await page.goto('/');
+  // os partials entram por fetch no servidor de dev: em runner lento o
+  // #auth-screen ainda não existia aos 1,2s e o teste morria no null
+  await page.waitForFunction(() => !!document.getElementById('auth-screen') && !!document.getElementById('app'), null, { timeout: 30000 });
   await page.waitForTimeout(1200);
   const estado = await page.evaluate(() => ({
     authVisivel: !document.getElementById('auth-screen').classList.contains('hidden'),
