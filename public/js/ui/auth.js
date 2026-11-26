@@ -5,7 +5,7 @@ import { setPetals } from '../petals.js';
 import { mascotNameUnset } from '../mascot.js';
 import { clearMediaCache } from '../media.js';
 import { CryptoGate } from '../crypto-gate.js';
-import { getDek, lockKeys, loadKeyBundle } from '../keyring.js';
+import { getDek, lockKeys, loadKeyBundle, unlockWithDevice } from '../keyring.js';
 import { makeCacheCipher, makeQueueCipher } from '../crypto-session.js';
 import { OfflineQueue } from '../offline-queue.js';
 
@@ -488,6 +488,8 @@ async renderAuthOrApp() {
       if (mascotNameUnset()) setTimeout(() => this.askMascotName(), 420);
       if (!Sync.connected && !Sync._connecting) Sync.connect();
       this.setChatActiveUi(false);
+      // bloqueio do app (opcional) por cima de tudo
+      if (typeof this.showAppLock === 'function') this.showAppLock();
     },
 
     // Depois do primeiro paint: procura a chave da conta. Com bundle salvo,
@@ -495,6 +497,17 @@ async renderAuthOrApp() {
     // cifrado. Sem bundle (conta que nunca ativou), NÃO bloqueia: o app segue
     // em claro e a ativação acontece quando o usuário pedir.
     async _unlockCryptoInBackground(attempt) {
+      // 1) chave do aparelho: destrava sem perguntar nada (criptografia ligada)
+      const uid = Store.user && Store.user.id;
+      if (uid && await unlockWithDevice(uid)) {
+        if (attempt !== this._renderAttempt || !Store.user) return;
+        const d = getDek();
+        Store.setCipher(makeCacheCipher(uid, d));
+        OfflineQueue.setCipher(makeQueueCipher(uid, d));
+        try { await Store.hydrate(); } catch { return; }
+        this.renderTree();
+        return;
+      }
       let supa = null;
       try { supa = await this._ensureSupa(); } catch { return; }
       if (attempt !== this._renderAttempt || !Store.user || !supa) return;

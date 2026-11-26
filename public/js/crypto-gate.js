@@ -7,6 +7,8 @@ import {
   loadKeyBundle,
   isUnlocked,
   lockKeys,
+  getDek,
+  saveDeviceEnvelope,
 } from './keyring.js';
 import { formatRecoveryCode } from './keys.js';
 
@@ -60,6 +62,17 @@ export const CryptoGate = {
       }
     })();
     return this._pending;
+  },
+
+  // Depois de um unlock/criação bem-sucedidos: guarda a DEK embrulhada pela
+  // chave deste aparelho, para não pedir código nunca mais aqui.
+  async _rememberDevice() {
+    try {
+      const dek = getDek();
+      if (dek && this._uid) await saveDeviceEnvelope(this._uid, dek);
+    } catch (e) {
+      console.warn('[crypto] aparelho não memorizado', e && e.message);
+    }
   },
 
   async _signOut() {
@@ -216,6 +229,8 @@ export const CryptoGate = {
   },
 
   _finish() {
+    // memoriza ANTES de fechar: a DEK está em memória agora
+    this._rememberDevice();
     const gate = $('#crypto-gate');
     if (gate) gate.classList.add('hidden');
     const done = this._resolve;

@@ -71,7 +71,7 @@ test('configurações têm a opção PIN, desligada por padrão', async ({ page 
     const secs = [...document.querySelectorAll('.settings-section')];
     const acha = (txt) => secs.find((s) => (s.querySelector('.settings-label') || {}).textContent?.trim() === txt);
     const cripto = acha('Criptografia');
-    const conversa = acha('PIN por conversa');
+    const conversa = acha('Bloqueio da conversa');
     return {
       temCripto: !!cripto,
       temConversa: !!conversa,
@@ -84,7 +84,7 @@ test('configurações têm a opção PIN, desligada por padrão', async ({ page 
   console.log('PIN_UI=' + JSON.stringify(info));
   // duas seções distintas: uma cifra, a outra só tranca
   expect(info.temCripto, 'seção Criptografia').toBe(true);
-  expect(info.temConversa, 'seção PIN por conversa').toBe(true);
+  expect(info.temConversa, 'seção Bloqueio da conversa').toBe(true);
   expect(info.marcado, 'criptografia desligada por padrão').toBe(false);
   expect(info.status).toContain('Desligada');
   expect(info.contagem).toContain('Nenhuma conversa protegida');

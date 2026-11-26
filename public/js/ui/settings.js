@@ -183,6 +183,7 @@ bindSettings() {
       }
       // ---- PIN opcional (Configurações → PIN) ----
       if (typeof this.bindPin === 'function') this.bindPin();
+      if (typeof this.bindAppLock === 'function') this.bindAppLock();
       // ---- Limpar cache do app (desregistra SW + caches) ----
       const clearSw = $('#btn-clear-sw');
       if (clearSw) {

@@ -180,3 +180,29 @@
 .crypto-check input { margin-top: 1px; flex: 0 0 auto; }
 .crypto-card #crypto-recovery-done { width: 100%; }
 
+
+/* ===================== BLOQUEIO DO APP (código de 4 dígitos) ===================== */
+.app-lock {
+  position: fixed; inset: 0; z-index: 3000;
+  display: grid; place-items: center; padding: 24px;
+  background: var(--bg); backdrop-filter: blur(6px);
+}
+.app-lock-card {
+  width: 100%; max-width: 320px; text-align: center;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 24px; padding: 28px 22px 22px; box-shadow: var(--shadow-sm);
+}
+.app-lock-lock {
+  width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 16px;
+  display: grid; place-items: center; color: var(--accent);
+  background: var(--accent-soft);
+}
+.app-lock-card h2 { margin: 0 0 4px; font-size: 18px; }
+.app-lock-hint { margin: 0 0 14px; font-size: 13px; color: var(--text-dim); }
+.app-lock-card input {
+  width: 100%; text-align: center; letter-spacing: 8px; font-size: 22px;
+  padding: 12px 14px; border-radius: 14px; border: 1.5px solid var(--border);
+  background: var(--bg); color: var(--text); outline: none;
+}
+.app-lock-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.app-lock-card .btn { width: 100%; margin-top: 12px; }
