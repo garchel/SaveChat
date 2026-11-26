@@ -7,6 +7,15 @@ import { now, esc, $, PAGE_SIZE } from '../utils.js';
 
 export const MessagesMethods = {
     openThread(id) {
+      // conversa com PIN: pede o PIN antes de abrir (só nesta sessão)
+      if (typeof this.threadPinLocked === 'function' && this.threadPinLocked(id)) {
+        this.askThreadPin(id, () => this._openThread(id));
+        return;
+      }
+      return this._openThread(id);
+    },
+
+    _openThread(id) {
       // Atalho para não re-renderizar a conversa que já está em tela. Só vale
       // enquanto ela está DE FATO visível: no celular o gesto de volta (goBack)
       // apenas tira a classe `show-chat` da .app e deixa `activeThread`
@@ -165,6 +174,7 @@ export const MessagesMethods = {
         if (!this.activeThread) return;
         if (!menu.classList.contains('hidden')) { menu.classList.add('hidden'); return; }
         menu.classList.remove('hidden');
+        if (typeof this.syncThreadPinMenu === 'function') this.syncThreadPinMenu();
         menu.style.visibility = 'hidden';
         const r = trigger.getBoundingClientRect();
         const mw = menu.offsetWidth || 220, mh = menu.offsetHeight || 180;
@@ -187,6 +197,18 @@ export const MessagesMethods = {
           menu.classList.add('hidden');
         }
       });
+      // Proteger/desproteger a conversa com PIN
+      const pinBtn = menu.querySelector('[data-act="pin"]');
+      if (pinBtn && !pinBtn.dataset.bound) {
+        pinBtn.dataset.bound = '1';
+        pinBtn.addEventListener('click', () => {
+          menu.classList.add('hidden');
+          const id = this.activeThread;
+          if (!id) return;
+          if (this.threadPinHas(id)) this.removeThreadPin(id);
+          else this.setThreadPin(id);
+        });
+      }
       // Renomear
       const renameBtn = menu.querySelector('[data-act="rename"]');
       if (renameBtn && !renameBtn.dataset.bound) {
