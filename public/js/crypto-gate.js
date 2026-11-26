@@ -8,7 +8,7 @@ import {
 } from './keyring.js';
 import { formatRecoveryCode } from './keys.js';
 
-const MIN_PASS = 8;
+const MIN_PASS = 4; // PIN numérico de 4 dígitos
 
 export const CryptoGate = {
   _pending: null,
@@ -132,7 +132,8 @@ export const CryptoGate = {
     if (this._mode === 'setup') {
       const pass = $('#crypto-pass')?.value || '';
       const pass2 = $('#crypto-pass2')?.value || '';
-      if (pass.length < MIN_PASS) return this._msg(`Use pelo menos ${MIN_PASS} caracteres.`, 'error');
+      // PIN é 4 dígitos exatos (o HTML limita o tamanho; aqui garantimos o tipo)
+      if (!/^\d{4}$/.test(pass)) return this._msg('O PIN precisa ter exatamente 4 dígitos.', 'error');
       if (pass !== pass2) return this._msg('As duas senhas não são iguais.', 'error');
       btn.disabled = true; btn.textContent = 'Criando chave…';
       try {
@@ -155,7 +156,7 @@ export const CryptoGate = {
 
     const code = this._mode === 'recovery' ? ($('#crypto-recovery-input')?.value || '').replace(/[\s-]/g, '') : '';
     const pass = $('#crypto-pass-unlock')?.value || '';
-    if (this._mode === 'unlock' && !pass) return this._msg('Digite sua senha.', 'error');
+    if (this._mode === 'unlock' && !pass) return this._msg('Digite seu PIN.', 'error');
     if (this._mode === 'recovery' && !code) return this._msg('Digite o código de recuperação.', 'error');
     btn.disabled = true; btn.textContent = 'Desbloqueando…';
     try {
@@ -164,7 +165,7 @@ export const CryptoGate = {
       this._finish();
     } catch (e) {
       console.warn('[crypto] unlock falhou', e);
-      this._msg(this._mode === 'recovery' ? 'Código inválido. Confira e tente de novo.' : 'Senha incorreta. Tente de novo.', 'error');
+      this._msg(this._mode === 'recovery' ? 'Código inválido. Confira e tente de novo.' : 'PIN incorreto. Tente de novo.', 'error');
       btn.disabled = false;
       btn.textContent = this._mode === 'recovery' ? 'Desbloquear com código' : 'Desbloquear';
     }

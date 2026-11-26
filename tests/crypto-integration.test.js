@@ -30,6 +30,23 @@ test('boot: cache cifrado espera o gate, cache em claro pinta antes', () => {
   assert.match(auth, /USE_SUPABASE && Store\.user\.id/);
 });
 
+// Regressões que trancariam usuário fora: limite de 4 no campo de DESBLOQUEIO
+// impede digitar um PIN antigo (criado quando o mínimo era 8), e validação de
+// 8 caracteres impede criar o PIN novo de 4.
+test('PIN: setup exige 4 dígitos e o desbloqueio aceita PIN antigo', () => {
+  const html = read('public/partials/login.txt');
+  const gate = read('public/js/crypto-gate.js');
+  assert.match(html, /id="crypto-pass"[^>]*maxlength="4"/);
+  assert.doesNotMatch(html, /id="crypto-pass-unlock"[^>]*maxlength/, 'unlock não pode limitar a 4');
+  assert.ok(gate.includes('{4}$/') && gate.includes('4 dígitos'), 'setup valida 4 dígitos');
+  assert.doesNotMatch(gate, /MIN_PASS = 8/, 'o mínimo de 8 não pode voltar');
+});
+
+test('campos do gate ficam empilhados (label acima do input)', () => {
+  const css = read('public/styles/02-auth.css');
+  assert.match(css, /#crypto-setup-fields, #crypto-unlock-fields, #crypto-recovery-fields \{\s*display: flex; flex-direction: column;/);
+});
+
 test('sync grava ciphertext e não texto claro', () => {
   const sync = read('public/js/sync-supabase.js');
   assert.match(sync, /encryptNoteText\(n, dek, uid\)/);
