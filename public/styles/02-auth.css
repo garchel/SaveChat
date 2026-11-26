@@ -206,3 +206,15 @@
 }
 .app-lock-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .app-lock-card .btn { width: 100%; margin-top: 12px; }
+
+/* Aviso de sessão expirada (barra fixa no topo) */
+.session-expired {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 4000;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600;
+  background: var(--danger, #e5484d); color: #fff;
+}
+.session-expired button {
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.45);
+  color: #fff; border-radius: 999px; padding: 4px 12px; font: inherit; cursor: pointer;
+}

@@ -31,6 +31,13 @@ function mockReq({ method = 'POST', token = 'tok', apikey = 'anon-de-teste', bod
   };
 }
 
+// Cota diária: a primeira chamada de cada request é o RPC usage_bump.
+const usageOk = (allowed = true) => ({
+  ok: true, status: 200,
+  json: async () => ({ allowed, used: 1, limit: 20 }),
+  text: async () => JSON.stringify({ allowed }),
+});
+
 const json = (status, obj) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(obj) });
 const geminiOk = (text = 'Olá') => json(200, { candidates: [{ content: { parts: [{ text }] } }] });
 const supabaseOk = () => ({ ok: true, status: 200, text: async () => '{}' });
@@ -38,6 +45,8 @@ const supabaseOk = () => ({ ok: true, status: 200, text: async () => '{}' });
 // Só o Supabase responde; qualquer tentativa de falar com o Gemini estoura.
 function onlySupabase(ok = true) {
   return async (url) => {
+    if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
     if (String(url).includes('/auth/v1/user')) return ok ? supabaseOk() : { ok: false, status: 401 };
     throw new Error('não deveria chamar o Gemini: ' + url);
   };
@@ -86,6 +95,7 @@ describe('api/ai.js (proxy do Gemini)', () => {
     let call = null;
     let authCall = null;
     global.fetch = async (url, opts) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) { authCall = { url: String(url), opts }; return supabaseOk(); }
       call = { url: String(url), opts };
       return geminiOk('Olá das notas');
@@ -106,6 +116,7 @@ describe('api/ai.js (proxy do Gemini)', () => {
   it('limita maxOutputTokens ao teto do servidor', async () => {
     let sent = null;
     global.fetch = async (url, opts) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
       sent = JSON.parse(opts.body);
       return geminiOk();
@@ -125,6 +136,7 @@ describe('api/ai.js (proxy do Gemini)', () => {
   it('tenta de novo quando o Gemini responde 503 (pico de demanda)', async () => {
     let calls = 0;
     global.fetch = async (url) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
       calls += 1;
       if (calls === 1) return json(503, { error: { message: 'high demand' } });
@@ -137,10 +149,36 @@ describe('api/ai.js (proxy do Gemini)', () => {
     assert.match(res.body, /retry/);
   });
 
+  it('429 quando o limite diário de IA é atingido', async () => {
+    global.fetch = async (url) => {
+      const u = String(url);
+      if (u.includes('/rest/v1/rpc/usage_bump')) return usageOk(false);
+      if (u.includes('/auth/v1/user')) return supabaseOk();
+      throw new Error('não deveria chamar o Gemini: ' + u);
+    };
+    const res = mockRes();
+    await handler(mockReq({ body: { model: 'gemini-3.8-flash', payload: { contents: [] } } }), res);
+    assert.equal(res.statusCode, 429);
+    assert.match(JSON.parse(res.body).error.message, /limite/i);
+  });
+
+  it('503 quando não consegue medir a cota (falha fechada)', async () => {
+    global.fetch = async (url) => {
+      const u = String(url);
+      if (u.includes('/rest/v1/rpc/usage_bump')) return { ok: false, status: 500 };
+      if (u.includes('/auth/v1/user')) return supabaseOk();
+      throw new Error('não deveria chamar o Gemini: ' + u);
+    };
+    const res = mockRes();
+    await handler(mockReq({ body: { model: 'gemini-3.8-flash', payload: { contents: [] } } }), res);
+    assert.equal(res.statusCode, 503);
+  });
+
   it('troca para um modelo estável quando o pedido segue em 503', async () => {
     const seen = [];
     global.fetch = async (url) => {
       const u = String(url);
+      if (u.includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (u.includes('/auth/v1/user')) return supabaseOk();
       seen.push(u.match(/models\/([^:]+):/)[1]);
       if (u.includes('/gemini-3.8-flash:')) return json(503, { error: { message: 'high demand' } });

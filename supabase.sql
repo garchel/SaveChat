@@ -124,7 +124,11 @@ create index if not exists notes_thread_ts on notes(thread_id, ts);
 create index if not exists threads_user_updated on threads(user_id, updated_at desc);
 
 -- 5. Storage para imagens (substitui base64 — R6.7)
-insert into storage.buckets (id, name, public) values ('note-images', 'note-images', true) on conflict (id) do nothing;
+-- Buckets PRIVADOS: o app pede URL assinada (media.js). Link público direto
+-- deixa de existir, que é o esperado para dado pessoal (LGPD).
+insert into storage.buckets (id, name, public)
+  values ('note-images', 'note-images', false)
+  on conflict (id) do update set public = false;
 
 do $$ begin
   create policy "own images" on storage.objects for all
@@ -133,8 +137,8 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "public read images" on storage.objects for select
-    using (bucket_id = 'note-images');
+  -- leitura pública NÃO existe mais: só o dono (policy "own images" acima)
+  drop policy if exists "public read images" on storage.objects;
 exception when duplicate_object then null; end $$;
 
 -- 5b. Storage de audio das mensagens de voz (v1.13.7). Bucket publico como o
@@ -145,8 +149,8 @@ do $$ begin
 exception when duplicate_column then null; end $$;
 
 insert into storage.buckets (id, name, public, file_size_limit)
-  values ('note-audio', 'note-audio', true, 26214400)
-  on conflict (id) do update set file_size_limit = excluded.file_size_limit;
+  values ('note-audio', 'note-audio', false, 26214400)
+  on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit;
 
 do $$ begin
   create policy "own audio" on storage.objects for all
@@ -155,8 +159,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create policy "public read audio" on storage.objects for select
-    using (bucket_id = 'note-audio');
+  drop policy if exists "public read audio" on storage.objects;
 exception when duplicate_object then null; end $$;
 
 -- 6. Hardening (v1.4.0): o event trigger de auto-RLS não precisa ser
