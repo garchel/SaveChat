@@ -50,7 +50,7 @@ describe('mídia privada', () => {
   // muda o banco em produção (links públicos de imagens/áudio morrem se o SQL
   // rodar antes do código novo no ar). Ele vai numa entrega própria; até lá o
   // teste fica pendente em vez de ser afrouxado ou apagado.
-  it('supabase.sql deixa os buckets privados e remove leitura pública', { skip: 'migração de buckets fica para a entrega de privacidade' }, () => {
+  it('supabase.sql deixa os buckets privados e remove leitura pública', () => {
     const sql = readFileSync('supabase.sql', 'utf8');
     assert.match(sql, /values \('note-images', 'note-images', false\)/);
     assert.match(sql, /values \('note-audio', 'note-audio', false, 26214400\)/);

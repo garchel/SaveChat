@@ -35,6 +35,13 @@ function mockReq({ method = 'POST', token = 'tok', apikey = 'anon-de-teste', bod
 
 const supabaseOk = () => ({ ok: true, status: 200, text: async () => '{}' });
 const groqOk = (text) => ({ ok: true, status: 200, text: async () => JSON.stringify({ text }) });
+// Cota diária: a primeira chamada de cada request é o RPC usage_bump.
+const usageOk = (allowed = true) => ({
+  ok: true, status: 200,
+  json: async () => ({ allowed, used: 1, limit: 20 }),
+  text: async () => JSON.stringify({ allowed }),
+});
+
 const json = (status, obj) => ({ ok: status >= 200 && status < 300, status, text: async () => JSON.stringify(obj) });
 const audioOk = (bytes) => ({
   ok: true,
@@ -46,6 +53,8 @@ const audioOk = (bytes) => ({
 // Só o Supabase responde; qualquer tentativa de falar com a Groq estoura.
 function onlySupabase(ok = true) {
   return async (url) => {
+    if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
     if (String(url).includes('/auth/v1/user')) return ok ? supabaseOk() : { ok: false, status: 401 };
     throw new Error('não deveria chamar a Groq: ' + url);
   };
@@ -100,6 +109,7 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
   it('recusa URL de áudio fora do bucket note-audio do projeto (SSRF)', async () => {
     let outside = false;
     global.fetch = async (url) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
       outside = true;
       throw new Error('não deveria buscar URL externa');
@@ -120,6 +130,7 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
   it('manda o áudio em base64 ao Whisper com a chave só no servidor', async () => {
     let call = null;
     global.fetch = async (url, opts) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
       call = { url: String(url), opts };
       return groqOk('  olá das notas  ');
@@ -148,7 +159,8 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
       let call = null;
       global.fetch = async (url, opts) => {
         const u = String(url);
-        if (u.includes('/auth/v1/user')) return supabaseOk();
+        if (u.includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
+      if (u.includes('/auth/v1/user')) return supabaseOk();
         if (u === audioUrl) return audioOk([5, 6, 7, 8]);
         call = { url: u, opts };
         return groqOk('fala do bucket');
@@ -165,6 +177,7 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
 
   it('429 da Groq vira mensagem de limite para o cliente', async () => {
     global.fetch = async (url) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
       return json(429, { error: { message: 'rate limit' } });
     };
@@ -176,6 +189,7 @@ describe('api/transcribe.js (proxy do Groq Whisper)', () => {
 
   it('resposta sem fala vira 422 em vez de texto vazio', async () => {
     global.fetch = async (url) => {
+      if (String(url).includes('/rest/v1/rpc/usage_bump')) return usageOk(true);
       if (String(url).includes('/auth/v1/user')) return supabaseOk();
       return groqOk('   ');
     };

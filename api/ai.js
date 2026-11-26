@@ -76,6 +76,27 @@ async function isValidSession(token, anonKey) {
   }
 }
 
+// Cota diária por conta. A contagem é feita no Postgres (`usage_bump`), com
+// auth.uid() do PRÓPRIO usuário — o servidor não guarda estado e a função é
+// atômica. Sem isso, qualquer sessão válida poderia gastar a chave do projeto
+// sem teto.
+const DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT || 20);
+
+async function bumpUsage(token, anonKey, kind) {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/usage_bump', {
+      method: 'POST',
+      headers: { apikey: anonKey, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_kind: kind, p_limit: DAILY_LIMIT }),
+    });
+    if (!r.ok) return { ok: false };
+    const data = await r.json();
+    return { ok: true, allowed: !!(data && data.allowed), used: data && data.used };
+  } catch {
+    return { ok: false };
+  }
+}
+
 async function callGemini(model, body, apiKey) {
   const models = [model, ...FALLBACK_MODELS.filter((m) => m !== model)];
   const deadline = Date.now() + TOTAL_BUDGET_MS;
@@ -133,6 +154,12 @@ module.exports = async function handler(req, res) {
   const anonKey = String(req.headers.apikey || process.env.SUPABASE_ANON_KEY || '').trim();
   if (!anonKey) return fail(res, 503, 'Configuração do Supabase ausente no servidor.');
   if (!(await isValidSession(token, anonKey))) return fail(res, 401, 'Sessão expirada. Entre de novo para usar a IA.');
+
+  const uso = await bumpUsage(token, anonKey, 'ai');
+  if (!uso.ok) return fail(res, 503, 'Não foi possível verificar seu limite agora. Tente de novo em instantes.');
+  if (!uso.allowed) {
+    return fail(res, 429, 'Limite diário de ' + DAILY_LIMIT + ' mensagens de IA atingido. Volte amanhã.');
+  }
 
   let payload;
   try {

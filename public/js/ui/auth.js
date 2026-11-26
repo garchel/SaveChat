@@ -490,6 +490,7 @@ async renderAuthOrApp() {
       this.setChatActiveUi(false);
       // bloqueio do app (opcional) por cima de tudo
       if (typeof this.showAppLock === 'function') this.showAppLock();
+      if (typeof this.watchSession === 'function') this.watchSession();
     },
 
     // Depois do primeiro paint: procura a chave da conta. Com bundle salvo,
@@ -535,6 +536,42 @@ async renderAuthOrApp() {
       }
       if (attempt !== this._renderAttempt || !Store.user) return;
       this.renderTree();
+    },
+
+    // Vigia a sessão do Supabase: quando ela morre (token revogado, refresh
+    // reusado), o app continuava funcionando como anônimo e as gravações
+    // falhavam em silêncio — o usuário só descobria no PIN. Agora avisa.
+    watchSession() {
+      if (this._sessionWatch) return;
+      this._sessionWatch = setInterval(async () => {
+        if (!USE_SUPABASE || !Store.user) return;
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+        try {
+          const supa = await this._ensureSupa();
+          if (!supa) return;
+          const { data } = await supa.auth.getSession();
+          if (!data || !data.session) this.showSessionExpired();
+        } catch { /* rede instável: não acusa */ }
+      }, 60000);
+    },
+
+    showSessionExpired() {
+      if (document.getElementById('session-expired')) return;
+      const el = document.createElement('div');
+      el.id = 'session-expired';
+      el.className = 'session-expired';
+      el.innerHTML = '<span>Sua sessão expirou — as gravações não estão chegando ao servidor.</span>'
+        + '<button type="button">Entrar de novo</button>';
+      el.querySelector('button').addEventListener('click', async () => {
+        try { const supa = await this._ensureSupa(); if (supa) await supa.auth.signOut(); } catch {}
+        try {
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch {}
+        location.reload();
+      });
+      document.body.appendChild(el);
     },
 
 renderMe() {
