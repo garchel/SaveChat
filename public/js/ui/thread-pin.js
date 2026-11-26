@@ -35,13 +35,13 @@ export const ThreadPinMethods = {
   // rótulo do item do menu ⋮ conforme o estado da conversa
   syncThreadPinMenu() {
     const label = $('#menu-pin-label');
-    if (label) label.textContent = this.threadPinHas(this.activeThread) ? 'Remover PIN da conversa' : 'Proteger com PIN';
+    if (label) label.textContent = this.threadPinHas(this.activeThread) ? 'Destravar conversa (remover código)' : 'Travar com código';
   },
 
   async setThreadPin(id) {
-    this.showModal('PIN da conversa',
-      '<p class="modal-hint">Fechadura local: pede o PIN para abrir esta conversa neste aparelho. Não cifra o conteúdo.</p>'
-      + '<input id="tpin-input" type="password" inputmode="numeric" maxlength="4" placeholder="PIN de 4 dígitos" style="width:100%" />'
+    this.showModal('Código da conversa',
+      '<p class="modal-hint">Pede o código para abrir esta conversa neste aparelho. Não cifra o conteúdo.</p>'
+      + '<input id="tpin-input" type="password" inputmode="numeric" maxlength="4" placeholder="Código de 4 dígitos" style="width:100%" />'
       + '<input id="tpin-input2" type="password" inputmode="numeric" maxlength="4" placeholder="Repita o PIN" style="width:100%;margin-top:8px" />',
       async () => {
         const a = ($('#tpin-input') || {}).value || '';
@@ -69,8 +69,8 @@ export const ThreadPinMethods = {
   // Resolve `true` quando o PIN confere. `onOk` roda depois do acerto.
   askThreadPin(id, onOk) {
     const titulo = (Store.getThread(id) || {}).name || 'Conversa protegida';
-    this.showModal('PIN da conversa — ' + titulo,
-      '<input id="tpin-ask" type="password" inputmode="numeric" maxlength="4" autofocus placeholder="PIN de 4 dígitos" style="width:100%" />',
+    this.showModal('Código da conversa — ' + titulo,
+      '<input id="tpin-ask" type="password" inputmode="numeric" maxlength="4" autofocus placeholder="Código de 4 dígitos" style="width:100%" />',
       async () => {
         const v = ($('#tpin-ask') || {}).value || '';
         const ok = (await hashPin(v)) === this._threadPins()[id];

@@ -37,7 +37,7 @@ test('menu ⋮ oferece a opção de proteger a conversa', async ({ page }) => {
     const b = document.querySelector('[data-act="pin"]');
     return b ? b.textContent.trim() : null;
   });
-  expect(item, 'item do menu existe').toContain('Proteger com PIN');
+  expect(item, 'item do menu existe').toContain('Travar com código');
 });
 
 test('conversa protegida pede o PIN ao abrir e recusa o errado', async ({ page }) => {

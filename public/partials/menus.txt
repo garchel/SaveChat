@@ -146,14 +146,23 @@
       <p class="about-note" id="crypto-status">Desligada — o conteúdo das notas fica em texto claro no servidor.</p>
       <div class="sound-row">
         <label class="switch"><input type="checkbox" id="pin-enabled" /><span class="slider"></span></label>
-        <span class="sound-caption">Cifrar as notas com um PIN</span>
+        <span class="sound-caption">Cifrar as notas no servidor</span>
       </div>
-      <button type="button" id="pin-change" class="hidden">Alterar PIN de desbloqueio</button>
-      <p class="about-note" id="pin-hint">O PIN é a chave: sem ele o servidor não lê suas notas, e o app pede o PIN ao abrir.</p>
+      <button type="button" id="pin-change" class="hidden">Trocar o código de recuperação</button>
+      <p class="about-note" id="pin-hint">Abre sozinha neste aparelho. Em um aparelho novo, o app pede o código uma vez.</p>
     </div>
     <div class="settings-section">
-      <div class="settings-label">PIN por conversa</div>
-      <p class="about-note">Trava conversas escolhidas <strong>neste aparelho</strong> — não cifra nada, só pede o PIN para abrir. Para proteger uma conversa, abra-a e use o menu <strong>⋮</strong> → “Proteger com PIN”.</p>
+      <div class="settings-label">Bloqueio do app</div>
+      <div class="sound-row">
+        <label class="switch"><input type="checkbox" id="app-lock-enabled" /><span class="slider"></span></label>
+        <span class="sound-caption">Pedir um código de 4 dígitos ao abrir</span>
+      </div>
+      <button type="button" id="app-lock-change" class="hidden">Trocar código do app</button>
+      <p class="about-note">Só impede quem pega o aparelho já destravado. Não é a criptografia e não cifra nada.</p>
+    </div>
+    <div class="settings-section">
+      <div class="settings-label">Bloqueio da conversa</div>
+      <p class="about-note">Trava conversas escolhidas <strong>neste aparelho</strong> — não cifra nada, só pede o código para abrir. Para travar uma conversa, abra-a e use o menu <strong>⋮</strong> → “Travar com código”.</p>
       <p class="about-note" id="thread-pin-count"></p>
     </div>
     <div class="settings-section">
