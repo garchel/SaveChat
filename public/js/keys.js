@@ -41,6 +41,20 @@ export async function createKeys(passphrase, { iterations = PBKDF2_ITERATIONS } 
   };
 }
 
+// Troca o PIN sem trocar a DEK: o mesmo conteúdo continua cifrado, só muda a
+// chave que embrulha a DEK. O código de recuperação permanece válido porque
+// `recovery_wrapped_dek` embrulha a MESMA DEK.
+export async function rewrapWithPassword(bundle, dek, newPassphrase) {
+  if (!bundle || !dek) throw new Error('Chaves de criptografia ausentes.');
+  const iterations = iterationsOf(bundle);
+  const salt = randomSalt();
+  const kek = await deriveKek(newPassphrase, salt, iterations);
+  const wrapped = await wrapDek(dek, kek);
+  return Object.assign({}, bundle, {
+    version: KEY_VERSION, salt, kdf: KDF, kdf_iterations: iterations, wrapped_dek: wrapped,
+  });
+}
+
 export async function unlockWithPassword(bundle, passphrase) {
   if (!bundle || !bundle.salt || !bundle.wrapped_dek) throw new Error('Chaves de criptografia ausentes.');
   const kek = await deriveKek(passphrase, bundle.salt, iterationsOf(bundle));

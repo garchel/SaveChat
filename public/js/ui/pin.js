@@ -10,6 +10,7 @@ import { Sync } from '../sync-supabase.js';
 import { CryptoGate } from '../crypto-gate.js';
 import { Backfill } from '../backfill.js';
 import { getDek, loadKeyBundle, forgetBundle, lockKeys } from '../keyring.js';
+import { unlockWithPassword, rewrapWithPassword } from '../keys.js';
 import { makeCacheCipher, makeQueueCipher } from '../crypto-session.js';
 import { OfflineQueue } from '../offline-queue.js';
 import { $ } from '../utils.js';
@@ -31,6 +32,8 @@ export const PinMethods = {
       if (uid && Sync.supa) ligado = !!(await loadKeyBundle(Sync.supa, uid)) || ligado;
     } catch { /* offline: vale o que o cache diz */ }
     if (cb) cb.checked = ligado;
+    const btnChange = $('#pin-change');
+    if (btnChange) btnChange.classList.toggle('hidden', !ligado);
     const hint = $('#pin-hint');
     if (hint) {
       hint.textContent = ligado
@@ -44,6 +47,11 @@ export const PinMethods = {
     const cb = $('#pin-enabled');
     if (!cb) return;
     cb.addEventListener('change', () => this.togglePin(cb.checked));
+    const btnChange = $('#pin-change');
+    if (btnChange && !btnChange.dataset.bound) {
+      btnChange.dataset.bound = '1';
+      btnChange.addEventListener('click', () => this.changePin());
+    }
     this.refreshPinUi();
   },
 
@@ -79,6 +87,48 @@ export const PinMethods = {
     // cifra o que já está em claro no servidor (idempotente e retomável)
     const r = await Backfill.run(supa, uid).catch(() => ({ done: 0 }));
     this.toast(r && r.done ? `PIN ativado — ${r.done} nota(s) cifrada(s)` : 'PIN ativado', { kind: 'success' });
+  },
+
+  // Troca o PIN mantendo os dados: a DEK é a mesma, só muda a senha que a
+  // embrulha. Exige o PIN atual (se não, qualquer um trocaria e teria acesso).
+  async changePin() {
+    const supa = Sync.supa;
+    const uid = Store.user && Store.user.id;
+    if (!supa || !uid) return this.toast('Sem conexão com o servidor', { kind: 'error' });
+    this.showModal('Alterar PIN',
+      '<p class="modal-hint">Digite o PIN atual e o novo PIN de 4 dígitos.</p>'
+      + '<input id="pin-old" type="password" inputmode="numeric" maxlength="4" placeholder="PIN atual" style="width:100%" />'
+      + '<input id="pin-new" type="password" inputmode="numeric" maxlength="4" placeholder="Novo PIN" style="width:100%;margin-top:8px" />'
+      + '<input id="pin-new2" type="password" inputmode="numeric" maxlength="4" placeholder="Repita o novo PIN" style="width:100%;margin-top:8px" />',
+      async () => {
+        const atual = ($('#pin-old') || {}).value || '';
+        const novo = ($('#pin-new') || {}).value || '';
+        const rep = ($('#pin-new2') || {}).value || '';
+        if (!/^\d{4}$/.test(novo)) return this.toast('O novo PIN precisa ter 4 dígitos', { kind: 'error' });
+        if (novo !== rep) return this.toast('Os PINs não são iguais', { kind: 'error' });
+        if (novo === atual) return this.toast('O novo PIN é igual ao atual', { kind: 'info' });
+        try {
+          const bundle = await loadKeyBundle(supa, uid);
+          if (!bundle) return this.toast('Esta conta ainda não tem PIN', { kind: 'error' });
+          const dek = await unlockWithPassword(bundle, atual);
+          const novoBundle = await rewrapWithPassword(bundle, dek, novo);
+          const { error } = await supa.from('user_keys').update({
+            version: novoBundle.version,
+            salt: novoBundle.salt,
+            kdf: novoBundle.kdf,
+            kdf_iterations: novoBundle.kdf_iterations,
+            wrapped_dek: novoBundle.wrapped_dek,
+            updated_at: new Date().toISOString(),
+          }).eq('user_id', uid);
+          if (error) throw error;
+          // o bundle em cache local ainda tem o salt antigo
+          forgetBundle(uid);
+          this.toast('PIN alterado', { kind: 'success' });
+        } catch (e) {
+          console.warn('[pin] troca falhou', e);
+          this.toast('PIN atual incorreto', { kind: 'error' });
+        }
+      });
   },
 
   async disablePin() {

@@ -147,6 +147,7 @@
         <label class="switch"><input type="checkbox" id="pin-enabled" /><span class="slider"></span></label>
         <span class="sound-caption">Proteger com PIN de 4 dígitos</span>
       </div>
+      <button type="button" id="pin-change" class="hidden">Alterar PIN</button>
       <p class="about-note" id="pin-hint">Desligado — as notas ficam em texto claro e o app abre direto.</p>
     </div>
     <div class="settings-section">
