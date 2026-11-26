@@ -181,6 +181,8 @@ bindSettings() {
           Store.data.ui.chatBgScale = 1; Store.save();
         });
       }
+      // ---- PIN opcional (Configurações → PIN) ----
+      if (typeof this.bindPin === 'function') this.bindPin();
       // ---- Limpar cache do app (desregistra SW + caches) ----
       const clearSw = $('#btn-clear-sw');
       if (clearSw) {

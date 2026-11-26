@@ -4,7 +4,7 @@
 // Retomável por construção: cada rodada busca de novo as linhas que ainda têm
 // `text`/`last_preview` em claro. Se a rede cair (ou a aba fechar), a próxima
 // execução continua de onde parou sem repetir o que já foi cifrado.
-import { encryptNoteText, encryptThreadPreview } from './note-crypto.js';
+import { encryptNoteText, encryptThreadPreview, decryptNoteText, decryptThreadPreview } from './note-crypto.js';
 import { getDek } from './keyring.js';
 
 const PAGE = 25;
@@ -95,6 +95,66 @@ export const Backfill = {
     } finally {
       this.running = false;
     }
+  },
+
+  // Desligar o PIN: devolve o texto em claro ao servidor. Roda com a DEK em
+  // memória (o usuário acabou de digitar o PIN) e é a única forma de desfazer
+  // a cifragem — sem a chave, `text_enc` é irrecuperável.
+  // Se qualquer decifragem falhar, para na hora e não grava lixo.
+  async revert(supa, uid, { onProgress, batchSize, dek } = {}) {
+    if (!supa || !uid) return { skipped: true, done: 0, total: 0 };
+    const key = dek || getDek();
+    if (!key) throw new Error('PIN bloqueado — desbloqueie antes de desligar.');
+    const size = batchSize || PAGE;
+    let done = 0, total = 0;
+
+    for (;;) {
+      const { data, error } = await supa.from('notes')
+        .select('client_id, thread_id, text_enc')
+        .eq('user_id', uid)
+        .not('text_enc', 'is', null)
+        .limit(size);
+      if (error) {
+        // banco sem a coluna: nada a reverter
+        if (error.code === '42703') break;
+        throw error;
+      }
+      if (!data || !data.length) break;
+      total = Math.max(total, done + data.length);
+      for (const row of data) {
+        const texto = await decryptNoteText(row, key, uid);
+        const { error: upErr } = await supa.from('notes')
+          .update({ text: texto, text_enc: null, enc_version: null })
+          .eq('client_id', row.client_id).eq('user_id', uid);
+        if (upErr) throw upErr;
+        done++;
+        if (onProgress) onProgress({ done, total });
+      }
+      if (data.length < size) break;
+    }
+
+    for (;;) {
+      const { data, error } = await supa.from('threads')
+        .select('id, last_preview_enc')
+        .eq('user_id', uid)
+        .not('last_preview_enc', 'is', null)
+        .limit(size);
+      if (error) {
+        if (error.code === '42703') break;
+        throw error;
+      }
+      if (!data || !data.length) break;
+      for (const row of data) {
+        const previa = await decryptThreadPreview(row, key, uid);
+        const { error: upErr } = await supa.from('threads')
+          .update({ last_preview: previa, last_preview_enc: null })
+          .eq('id', row.id).eq('user_id', uid);
+        if (upErr) throw upErr;
+      }
+      if (data.length < size) break;
+    }
+
+    return { done, total };
   },
 
   async _count(supa, table, uid, column, { nonEmpty = false } = {}) {

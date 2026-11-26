@@ -13,7 +13,7 @@ test('gate de criptografia tem setup, unlock e recuperação no HTML', () => {
   assert.match(html, /id="crypto-recovery-input"/);
   assert.match(html, /id="crypto-code"/);
   assert.match(html, /id="crypto-recovery-saved"/);
-  assert.match(html, /Crie sua senha de criptografia|Desbloqueie suas notas/);
+  assert.match(html, /Crie seu PIN \(4 dígitos\)|Digite seu PIN/);
 });
 
 // Regra depois da correção do boot offline: com cache CIFRADO o app espera o
