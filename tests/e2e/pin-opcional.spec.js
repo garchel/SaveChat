@@ -68,17 +68,26 @@ test('configurações têm a opção PIN, desligada por padrão', async ({ page 
   await page.evaluate(() => document.getElementById('pin-enabled').closest('.settings-section').scrollIntoView({ block: 'center' }));
 
   const info = await page.evaluate(() => {
-    const cb = document.getElementById('pin-enabled');
-    const sec = cb.closest('.settings-section');
+    const secs = [...document.querySelectorAll('.settings-section')];
+    const acha = (txt) => secs.find((s) => (s.querySelector('.settings-label') || {}).textContent?.trim() === txt);
+    const cripto = acha('Criptografia');
+    const conversa = acha('PIN por conversa');
     return {
-      rotulo: sec.querySelector('.settings-label').textContent.trim(),
-      marcado: cb.checked,
-      dica: document.getElementById('pin-hint').textContent,
+      temCripto: !!cripto,
+      temConversa: !!conversa,
+      status: (document.getElementById('crypto-status') || {}).textContent || '',
+      contagem: (document.getElementById('thread-pin-count') || {}).textContent || '',
+      textoConversa: conversa ? conversa.textContent : '',
+      marcado: document.getElementById('pin-enabled').checked,
     };
   });
   console.log('PIN_UI=' + JSON.stringify(info));
-  expect(info.rotulo).toBe('PIN');
-  expect(info.marcado, 'desligado por padrão').toBe(false);
-  expect(info.dica).toContain('Desligado');
-  expect(info.dica).not.toContain('criptografia');
+  // duas seções distintas: uma cifra, a outra só tranca
+  expect(info.temCripto, 'seção Criptografia').toBe(true);
+  expect(info.temConversa, 'seção PIN por conversa').toBe(true);
+  expect(info.marcado, 'criptografia desligada por padrão').toBe(false);
+  expect(info.status).toContain('Desligada');
+  expect(info.contagem).toContain('Nenhuma conversa protegida');
+  // a seção da conversa precisa dizer que NÃO cifra (evita a mistura)
+  expect(info.textoConversa).toContain('não cifra');
 });
