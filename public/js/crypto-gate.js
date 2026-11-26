@@ -1,10 +1,12 @@
 import { $ } from './utils.js';
+import { Store } from './store.js';
 import {
   createAndSaveKeys,
   unlockKeys,
   unlockKeysWithRecovery,
   loadKeyBundle,
   isUnlocked,
+  lockKeys,
 } from './keyring.js';
 import { formatRecoveryCode } from './keys.js';
 
@@ -60,6 +62,18 @@ export const CryptoGate = {
     return this._pending;
   },
 
+  async _signOut() {
+    const supa = this._supa;
+    const btn = $('#crypto-signout');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saindo…'; }
+    try { if (supa) await supa.auth.signOut(); } catch {}
+    // persiste o bucket da conta que sai antes de soltar a chave
+    try { Store.setUser(null); await Store.flush(); } catch {}
+    lockKeys();
+    this.close();
+    location.reload();
+  },
+
   fail(message, user) {
     if (user && user.id) this._uid = user.id;
     this._detached = true;
@@ -97,6 +111,10 @@ export const CryptoGate = {
       this._msg('');
       this._renderMode();
     });
+    // Saída de emergência: sem sessão válida o card não tem como resolver
+    // nada (o Supabase recusa tudo como anônimo) e cobria a tela inteira,
+    // deixando o usuário sem acesso ao "Sair" do perfil.
+    $('#crypto-signout')?.addEventListener('click', () => this._signOut());
     $('#crypto-recovery-copy')?.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(this._code || '');
@@ -127,7 +145,7 @@ export const CryptoGate = {
     const sw = $('#crypto-switch');
     if (title) title.textContent = setup ? 'Crie seu PIN (4 dígitos)' : 'Digite seu PIN';
     if (desc) desc.textContent = setup
-      ? 'Suas notas são cifradas neste dispositivo. Crie uma senha diferente da conta — ela nunca é enviada ao servidor.'
+      ? 'Suas notas são cifradas neste dispositivo. Escolha um PIN de 4 dígitos — ele nunca é enviado ao servidor.'
       : 'Digite o PIN desta conta para abrir suas notas neste dispositivo.';
     if (submit) submit.textContent = setup ? 'Criar chave e continuar' : (recovery ? 'Desbloquear com código' : 'Desbloquear');
     if (sw) {

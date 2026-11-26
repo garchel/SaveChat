@@ -67,6 +67,7 @@
         </div>
         <button id="crypto-submit" class="btn primary" type="submit">Desbloquear</button>
         <button id="crypto-switch" class="btn-link-sm" type="button">Usar código de recuperação</button>
+        <button id="crypto-signout" class="btn-link-sm" type="button">Sair e entrar de novo</button>
         <p id="crypto-msg" class="auth-msg hidden" role="status" aria-live="polite"></p>
       </form>
       <div id="crypto-recovery-card" class="hidden">
