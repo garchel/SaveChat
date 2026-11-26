@@ -1113,11 +1113,11 @@
    chevron. Ao abrir, gira 180° e o texto aparece entre aspas. */
 .va-tr-toggle {
   align-self: center; width: 28px; height: 18px;
-  /* 3px de folga abaixo do player (era 1px): com 1px o chevron encostava na
-     borda inferior e o arredondamento subpixel o jogava 1px ACIMA dela sob
-     carga — `audio.spec.js` exige `arrow.y >= row.bottom - 1` e reprovava de
-     forma intermitente sem nada visível errado. */
-  margin-top: 3px;
+  /* 6px de folga abaixo do player. Com 1px e depois 3px o chevron ainda caía
+     ~1px ACIMA da borda inferior quando a altura do player variava em
+     sub-pixel (texto quebrado, zoom do CI) — `audio.spec.js` exige
+     `arrow.y >= row.bottom - 1` e reprovava de forma intermitente. */
+  margin-top: 6px;
   padding: 0; border: none; border-radius: 9px;
   display: grid; place-items: center;
   background: transparent; color: inherit; opacity: .5;
