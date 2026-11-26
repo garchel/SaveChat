@@ -36,14 +36,26 @@ test('sem PIN ativado o boot não pede nada', async ({ page }) => {
 });
 
 test('configurações têm a opção PIN, desligada por padrão', async ({ page }) => {
-  await page.evaluate(() => {
-    const m = document.getElementById('modal');
-    if (m && !m.classList.contains('hidden')) window.NoteThread.UI.closeModal();
-    // só abre se ainda não estiver aberto: `toggle` fecharia um popover já
-    // visível (ele abre sozinho em algumas larguras)
-    const pop = document.getElementById('settings-popover');
-    if (!pop || pop.classList.contains('hidden')) window.NoteThread.UI.toggleSettingsPopover();
-  });
+  // No CI o app troca de controlador do service worker no primeiro boot e
+  // recarrega sozinho; um evaluate nesse instante morre com "execution context
+  // destroyed". Retenta depois do load em vez de falhar o teste.
+  for (let tentativa = 0; ; tentativa++) {
+    try {
+      await page.evaluate(() => {
+        const m = document.getElementById('modal');
+        if (m && !m.classList.contains('hidden')) window.NoteThread.UI.closeModal();
+        // só abre se ainda não estiver aberto: `toggle` fecharia um popover já
+        // visível (ele abre sozinho em algumas larguras)
+        const pop = document.getElementById('settings-popover');
+        if (!pop || pop.classList.contains('hidden')) window.NoteThread.UI.toggleSettingsPopover();
+      });
+      break;
+    } catch (e) {
+      if (tentativa >= 2) throw e;
+      await page.waitForLoadState('domcontentloaded').catch(() => {});
+      await page.waitForFunction(() => !!window.NoteThread, null, { timeout: 45000 });
+    }
+  }
   // o popover é uma lista rolável: a seção do PIN nasce abaixo da dobra, então
   // o teste exige existência + visibilidade CSS (não estar na viewport)
   await page.waitForFunction(() => {
