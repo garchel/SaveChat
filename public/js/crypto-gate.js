@@ -17,17 +17,39 @@ export const CryptoGate = {
   _mode: 'unlock',
   _bound: false,
 
+  // A chave é gravada com `user_id` e a policy exige `auth.uid() = user_id`.
+  // Se a sessão do Supabase não estiver restaurada, o cliente fala como `anon`,
+  // `auth.uid()` é nulo, o SELECT some (parece "conta sem chave") e o INSERT é
+  // recusado com "new row violates row-level security policy" — que o app
+  // mostrava como "Não foi possível criar a chave".
+  async _resolveAuthUid(supa, user) {
+    try {
+      const { data } = await supa.auth.getSession();
+      let session = data && data.session;
+      if (!session) {
+        const r = await supa.auth.refreshSession().catch(() => null);
+        session = r && r.data && r.data.session;
+      }
+      if (session && session.user && session.user.id) return session.user.id;
+    } catch (e) {
+      console.warn('[crypto] sessão indisponível', e && e.message);
+    }
+    return user && user.id ? user.id : null;
+  },
+
   async ensure(supa, user) {
     if (!supa || !user || !user.id) return false;
-    if (isUnlocked(user.id)) return true;
-    if (this._pending && this._uid === user.id) return this._pending;
+    const uid = await this._resolveAuthUid(supa, user);
+    if (!uid) return false;
+    if (isUnlocked(uid)) return true;
+    if (this._pending && this._uid === uid) return this._pending;
 
-    this._uid = user.id;
+    this._uid = uid;
     this._supa = supa;
     this._detached = false;
     this._pending = (async () => {
       try {
-        const bundle = await loadKeyBundle(supa, user.id);
+        const bundle = await loadKeyBundle(supa, uid);
         this._open(!!bundle);
         return await new Promise((resolve) => { this._resolve = resolve; });
       } catch (e) {
@@ -147,7 +169,11 @@ export const CryptoGate = {
         if (done) done.disabled = true;
       } catch (e) {
         console.error('[crypto] falha ao criar chaves', e);
-        this._msg('Não foi possível criar a chave. Tente novamente.', 'error');
+        const motivo = (e && (e.message || e.error_description)) || '';
+        const rls = /row-level security|permission denied/i.test(motivo);
+        this._msg(rls
+          ? 'Sua sessão não está autenticada agora. Saia e entre de novo para criar o PIN.'
+          : 'Não foi possível criar a chave' + (motivo ? ': ' + motivo : '. Tente novamente.'), 'error');
         btn.disabled = false;
         btn.textContent = 'Criar chave e continuar';
       }
