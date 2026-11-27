@@ -380,6 +380,42 @@ handleSetting(act, val) {
           });
         }
         fileInput.click();
+      } else if (act === 'delete-account') {
+        const body = `<p style="font-size:14px;line-height:1.55;color:var(--text)">Apaga <b>sua conta e todos os dados</b> — notas, conversas, pastas, anexos e a chave de criptografia — em todos os aparelhos.</p>
+          <p style="font-size:13px;color:var(--text-dim);margin-top:8px">Não pode ser desfeito. Digite <b>APAGAR</b> para confirmar:</p>
+          <input id="del-account-input" type="text" autocomplete="off" style="width:100%;margin-top:6px" />`;
+        this.showModal('Apagar conta', body, async () => {
+          const v = (($('#del-account-input') || {}).value || '').trim().toUpperCase();
+          if (v !== 'APAGAR') return this.toast('Digite APAGAR para confirmar', { kind: 'error' });
+          const supa = Sync.supa;
+          if (!supa) return this.toast('Sem conexão com o servidor', { kind: 'error' });
+          const uid = Store.user && Store.user.id;
+          try {
+            const { error } = await supa.rpc('delete_my_account');
+            if (error) throw error;
+          } catch (e) {
+            return this.toast('Não foi possível apagar sua conta: ' + (e.message || e), { kind: 'error' });
+          }
+          // anexos do usuário no storage (pastas por uid)
+          try {
+            for (const bucket of ['note-images', 'note-audio']) {
+              const { data: objs } = await supa.storage.from(bucket).list(uid || '');
+              const paths = (objs || []).map((o) => uid + '/' + o.name);
+              if (paths.length) await supa.storage.from(bucket).remove(paths);
+            }
+          } catch (e) { console.warn('[delete-account] storage:', e); }
+          // tudo que ficou no aparelho
+          try {
+            if (uid) {
+              localStorage.removeItem('notethread.v2::u::' + uid);
+              localStorage.removeItem('notethread.dev::u::' + uid);
+              localStorage.removeItem('notethread.keys::u::' + uid);
+            }
+          } catch {}
+          try { await supa.auth.signOut(); } catch {}
+          this.toast('Conta apagada', { kind: 'success' });
+          setTimeout(() => location.reload(), 800);
+        });
       } else if (act === 'clear') {
         const body = `<p style="font-size:14px;line-height:1.55;color:var(--text)">Tem certeza que deseja apagar <b>TODAS</b> as conversas, cadernos e notas?</p>
           <p style="font-size:13px;color:var(--text-dim);margin-top:8px">Esta ação não pode ser desfeita e afetará todos os dispositivos sincronizados.</p>`;
