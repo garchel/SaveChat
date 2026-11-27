@@ -173,6 +173,7 @@
       <button data-set="export-md"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15v-6l3 3 3-3v6"/><path d="M17 9v6"/><path d="M19.5 12.5 17 15l-2.5-2.5"/></svg> Exportar em Markdown</button>
       <button data-set="import"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar backup (JSON)</button>
       <input type="file" id="import-file" accept="application/json,.json" hidden />
+      <button data-set="delete-account" class="danger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M4.5 20c.7-3.6 3.4-5.6 7.5-5.6s6.8 2 7.5 5.6"/></svg> Apagar conta</button>
       <button data-set="clear" class="danger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Apagar tudo</button>
     </div>
     <div class="settings-section">

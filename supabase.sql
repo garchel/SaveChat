@@ -218,3 +218,33 @@ revoke execute on function public.notethread_reject_plaintext() from anon, authe
 --   update app_config set encryption_enforced = true, min_client_version = '1.27.0' where id;
 -- Desligar (emergência):
 --   update app_config set encryption_enforced = false where id;
+
+-- ===================== EXCLUSÃO DE CONTA (LGPD art. 18, VI) =====================
+-- Apaga todos os dados do usuário de uma vez, com o uid do PRÓPRIO token. A
+-- identidade em auth.users não é apagável por aqui (exige service_role): o
+-- pedido fica registrado em account_deletions para purga administrativa.
+create table if not exists public.account_deletions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  requested_at timestamptz not null default now()
+);
+alter table public.account_deletions enable row level security;
+
+create or replace function public.delete_my_account()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  n_notas int; n_conversas int; n_pastas int;
+begin
+  if uid is null then raise exception 'sem sessao'; end if;
+  delete from notes where user_id = uid;          get diagnostics n_notas = row_count;
+  delete from threads where user_id = uid;        get diagnostics n_conversas = row_count;
+  delete from folders where user_id = uid;        get diagnostics n_pastas = row_count;
+  delete from user_keys where user_id = uid;
+  delete from usage_daily where user_id = uid;
+  insert into account_deletions (user_id) values (uid)
+    on conflict (user_id) do update set requested_at = now();
+  return jsonb_build_object('notas', n_notas, 'conversas', n_conversas, 'pastas', n_pastas);
+end $$;
+
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;
