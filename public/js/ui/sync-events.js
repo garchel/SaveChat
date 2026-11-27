@@ -1,9 +1,27 @@
 import { $ } from '../utils.js';
 import { Store } from '../store.js';
 import { Sync } from '../sync-supabase.js';
+import { conflitoDeEdicao } from './sync-merge.js';
 
 export const SyncEventsMethods = {
-bindSync() {
+// Aplica uma nota vinda do servidor respeitando a edição mais recente.
+    // Devolve a nota efetiva (pode ser a local, quando ela é mais nova).
+    _aplicarNotaRemota(tid, n) {
+      const local = (Store.notesFor(tid) || []).find((x) => x.clientId === n.clientId);
+      if (conflitoDeEdicao(local, n)) {
+        // mantém o texto deste aparelho e reenvia, para o servidor convergir
+        Sync.send('note:edit', {
+          threadId: tid, clientId: local.clientId, text: local.text,
+          edited: local.edited, editedAt: local.editedAt, rev: local.rev,
+        });
+        return Store.upsertNote(Object.assign({}, n, {
+          text: local.text, edited: local.edited, editedAt: local.editedAt, rev: local.rev,
+        }));
+      }
+      return Store.upsertNote(n);
+    },
+
+    bindSync() {
       Sync.on('snapshot', (db) => {
         // fingerprint da conversa aberta ANTES do merge — se o snapshot não mudou
         // nada visível (reconexões frequentes re-baixam tudo), pula o re-render
@@ -14,7 +32,7 @@ bindSync() {
         if (db.folders) Object.values(db.folders).forEach((f) => Store.upsertFolder(f));
         if (db.notes) Object.entries(db.notes).forEach(([tid, arr]) => {
           arr.forEach((n) => {
-            const eff = Store.upsertNote(n);
+            const eff = this._aplicarNotaRemota(tid, n);
             // gêmea absorvida pelo guard estrutural: apaga a linha no servidor
             if (eff && eff.clientId !== n.clientId) Sync.send('note:delete', { threadId: tid, clientId: n.clientId });
           });
@@ -26,7 +44,7 @@ bindSync() {
         if (this.activeThread && fp(this.activeThread) !== beforeActive) { this.oldestTs = null; this.renderedClientIds = new Set(); this.renderMessages(true); this.updatePinButton(); }
       });
       Sync.on('note:upsert', (n) => {
-        const eff = Store.upsertNote(n);
+        const eff = this._aplicarNotaRemota(n.threadId, n);
         // gêmea absorvida pelo guard estrutural anti-double-fire: a existente venceu —
         // apaga a chegada no servidor e não renderiza nada
         if (eff && eff.clientId !== n.clientId) {

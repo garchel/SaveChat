@@ -127,9 +127,9 @@ describe('PWA', ()=>{
     assert.deepEqual(oficiais, [],
       `texto abaixo de 12px (piso WCAG/legibilidade):\n  ${oficiais.join('\n  ')}`);
   });
-  it('sw.js é v197', ()=>{
+  it('sw.js é v198', ()=>{
     const sw=readFileSync('public/sw.js','utf8');
-    assert.match(sw, /notethread-v197/);
+    assert.match(sw, /notethread-v198/);
     // o próprio SW não pode ser servido do cache (senão o navegador nunca
     // descobre novas versões e o updater fica sem "waiting" — deadlock)
     assert.match(sw, /endsWith\('\/sw\.js'\)\) return/);
