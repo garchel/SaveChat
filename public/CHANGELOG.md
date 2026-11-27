@@ -2,6 +2,10 @@
 
 Todas as mudanças notáveis serão documentadas aqui (semver).
 
+## [1.34.0] — 2026-11-27
+### Alterado
+- (descreva a mudança com --nota=...)
+
 ## [1.33.0] — 2026-11-26
 ### Alterado
 - (descreva a mudança com --nota=...)
